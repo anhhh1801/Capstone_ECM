@@ -1,5 +1,6 @@
 package com.extracenter.backend.repository;
 
+import com.extracenter.backend.entity.User;
 import com.extracenter.backend.entity.VerificationToken;
 
 import java.time.LocalDateTime;
@@ -14,4 +15,7 @@ public interface VerificationTokenRepository extends JpaRepository<VerificationT
     // Tìm tất cả token mà thời gian hết hạn < thời gian hiện tại (nghĩa là đã hết
     // hạn)
     List<VerificationToken> findAllByExpiryDateBefore(LocalDateTime now);
+
+    VerificationToken findByUser(User user);
+
 }

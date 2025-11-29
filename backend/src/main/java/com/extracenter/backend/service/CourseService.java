@@ -11,6 +11,7 @@ import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.UserRepository;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -74,6 +75,10 @@ public class CourseService {
         }
 
         return savedCourse;
+    }
+
+    public List<Course> getAllCourses() {
+        return courseRepository.findAll();
     }
 
     public List<Course> getCoursesByTeacher(Long teacherId) {
@@ -163,6 +168,52 @@ public class CourseService {
     public List<Course> getPendingInvitations(Long teacherId) {
         // Gọi hàm mới bên Repository
         return courseRepository.findPendingInvitations(teacherId);
+    }
+
+    @Transactional // Important for ManyToMany updates
+    public void addStudentToCourse(Long courseId, Long studentId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        if (course.getStudents().contains(student)) {
+            throw new RuntimeException("Học sinh này đã có trong lớp rồi!");
+        }
+
+        course.getStudents().add(student);
+
+        if (course.getCenter() != null) {
+            student.getConnectedCenters().add(course.getCenter());
+            userRepository.save(student);
+        }
+
+        courseRepository.save(course);
+    }
+
+    // 2. Remove Student from Course
+    @Transactional
+    public void removeStudentFromCourse(Long courseId, Long studentId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        if (!course.getStudents().contains(student)) {
+            throw new RuntimeException("Học sinh này không có trong lớp!");
+        }
+
+        course.getStudents().remove(student);
+        courseRepository.save(course);
+    }
+
+    // 3. Get Students in Course
+    public Set<User> getCourseStudents(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        return course.getStudents();
     }
 
 }

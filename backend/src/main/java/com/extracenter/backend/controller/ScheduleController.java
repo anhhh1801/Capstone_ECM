@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/schedule")
-@CrossOrigin(origins = "http://localhost:3000")
 public class ScheduleController {
 
     @Autowired

@@ -53,8 +53,13 @@ public class EnrollmentService {
         enrollment.setCourse(course);
         enrollment.setEnrollmentDate(LocalDate.now());
 
+        enrollment.setProgressScore(0f);
+        enrollment.setTestScore(0f);
+        enrollment.setFinalScore(0f);
+        enrollment.setPerformance("N/A");
+
         userService.connectStudentToCenter(student.getId(), course.getCenter().getId());
 
-        return enrollment;
+        return enrollmentRepository.save(enrollment);
     }
 }

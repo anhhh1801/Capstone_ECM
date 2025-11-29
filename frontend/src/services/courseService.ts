@@ -85,3 +85,27 @@ export const getInvitations = async (teacherId: number) => {
     const res = await api.get(`/courses/invitations/${teacherId}`);
     return res.data;
 };
+
+// Get students in a course
+export const getStudentsInCourse = async (courseId: number) => {
+    const response = await api.get(`/courses/${courseId}/students`);
+    return response.data;
+};
+
+// Add student
+export const addStudentToCourse = async (courseId: number, studentId: number) => {
+    const response = await api.post(`/courses/${courseId}/students/${studentId}`);
+    return response.data;
+};
+
+// Remove student
+export const removeStudentFromCourse = async (courseId: number, studentId: number) => {
+    const response = await api.delete(`/courses/${courseId}/students/${studentId}`);
+    return response.data;
+};
+
+// Search Students (Reusing your User Search logic)
+export const searchStudents = async (keyword: string) => {
+    const response = await api.get(`/users/search?keyword=${keyword}`);
+    return response.data;
+};

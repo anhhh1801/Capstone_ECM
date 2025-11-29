@@ -65,4 +65,18 @@ public class Course {
     @ManyToOne
     @JoinColumn(name = "pending_teacher_id") // Lưu ID người được mời
     private User pendingTeacher;
+
+    @ManyToMany
+    @JoinTable(name = "student_courses", // Creates a middle table in DB
+            joinColumns = @JoinColumn(name = "course_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
+    private java.util.Set<User> students = new java.util.HashSet<>();
+
+    // Getter & Setter for students
+    public java.util.Set<User> getStudents() {
+        return students;
+    }
+
+    public void setStudents(java.util.Set<User> students) {
+        this.students = students;
+    }
 }

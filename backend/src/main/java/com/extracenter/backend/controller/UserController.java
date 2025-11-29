@@ -1,8 +1,12 @@
 package com.extracenter.backend.controller;
 
+import com.extracenter.backend.dto.ChangePasswordRequest;
 import com.extracenter.backend.dto.CreateStudentRequest;
 import com.extracenter.backend.dto.LoginRequest;
 import com.extracenter.backend.dto.RegisterRequest;
+import com.extracenter.backend.dto.UpdateProfileRequest;
+import com.extracenter.backend.dto.UserStatsResponse;
+import com.extracenter.backend.dto.VerifyOtpRequest;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.UserService;
@@ -15,24 +19,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:3000") // Cho phép Next.js gọi
 public class UserController {
 
     @Autowired
     private UserService userService;
-    private UserRepository userRepository;
 
-    // API: Đăng ký
-    // POST: http://localhost:8080/api/users/register
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        try {
-            User createdUser = userService.registerUser(request);
-            return ResponseEntity.ok("Đăng ký thành công: " + createdUser.getEmail());
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
+    @Autowired
+    private UserRepository userRepository;
 
     // 1. API: Đăng ký Giáo viên (Bước 1 - Gửi mail)
     // POST: http://localhost:8080/api/users/register-teacher
@@ -46,11 +39,11 @@ public class UserController {
         }
     }
 
-    // 2. API: Xác thực tài khoản (Bước 2 - Bấm link mail)
-    // GET: http://localhost:8080/api/users/verify?token=abc...
-    @GetMapping("/verify")
-    public ResponseEntity<?> verifyAccount(@RequestParam String token) {
-        String result = userService.verifyAccount(token);
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
+        // Now we pass BOTH email and otp to the service
+        String result = userService.verifyAccount(request.getEmail(), request.getOtp());
+
         if (result.startsWith("Xác thực thành công")) {
             return ResponseEntity.ok(result);
         } else {
@@ -59,14 +52,55 @@ public class UserController {
     }
 
     // API: Đăng nhập
-    // POST: http://localhost:8080/api/users/login
+    // POST: http://192.168.0.100:8080/api/users/login
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User user = userService.loginUser(request);
-        if (user != null) {
-            return ResponseEntity.ok(user); // Trả về thông tin user (Frontend sẽ lưu lại)
-        } else {
-            return ResponseEntity.status(401).body("Sai email hoặc mật khẩu!");
+        try {
+            User user = userService.loginUser(request);
+
+            if (user != null) {
+                return ResponseEntity.ok(user);
+            } else {
+                return ResponseEntity.status(401).body("Incorrect email or password!");
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    // API: Update Profile
+    // PUT: /api/users/{id}/profile
+    @PutMapping("/{id}/profile")
+    public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody UpdateProfileRequest request) {
+        try {
+            User updatedUser = userService.updateProfile(id, request);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // API: Change Password
+    // PUT: /api/users/{id}/change-password
+    @PutMapping("/{id}/change-password")
+    public ResponseEntity<?> changePassword(@PathVariable Long id, @RequestBody ChangePasswordRequest request) {
+        try {
+            userService.changePassword(id, request);
+            return ResponseEntity.ok("Đổi mật khẩu thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // API: Deactivate Account (Self)
+    // POST: /api/users/{id}/deactivate
+    @PostMapping("/{id}/deactivate")
+    public ResponseEntity<?> deactivateAccount(@PathVariable Long id) {
+        try {
+            userService.deactivateAccount(id);
+            return ResponseEntity.ok("Tài khoản đã được vô hiệu hóa.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -107,4 +141,49 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    // API: Resend OTP
+    // POST: /api/users/resend-otp?email=abc@gmail.com
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestParam String email) {
+        try {
+            String result = userService.resendOtp(email);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // API: Admin khóa/mở khóa User
+    // PUT: /api/users/admin/lock?adminId=1&targetUserId=5
+    @PutMapping("/admin/lock")
+    public ResponseEntity<?> toggleLock(@RequestParam Long adminId, @RequestParam Long targetUserId) {
+        try {
+            String result = userService.toggleUserLock(adminId, targetUserId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    // API: Admin xem thống kê của User
+    // GET: /api/users/admin/stats?adminId=1&targetUserId=5
+    @GetMapping("/admin/stats")
+    public ResponseEntity<?> getUserStats(@RequestParam Long adminId, @RequestParam Long targetUserId) {
+        try {
+            UserStatsResponse stats = userService.getUserStats(adminId, targetUserId);
+            return ResponseEntity.ok(stats);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    // API: Get All Users (For Admin Dashboard)
+    // GET: /api/users/admin/all
+    @GetMapping("/admin/all")
+    public ResponseEntity<?> getAllUsers() {
+        // In a real app, use Pagination (Pageable) here!
+        return ResponseEntity.ok(userRepository.findAll());
+    }
+
 }

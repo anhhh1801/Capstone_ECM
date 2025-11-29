@@ -43,6 +43,7 @@ export default function TeacherLayout({
         { name: "Khóa học", href: "/teacher/courses", icon: BookOpen },
         { name: "Lịch dạy", href: "/teacher/schedule", icon: CalendarDays },
         { name: "Học viên", href: "/teacher/students", icon: Users },
+        { name: "Profile", href: "/teacher/profile", icon: Users },
     ];
 
     return (
@@ -62,8 +63,8 @@ export default function TeacherLayout({
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                                        ? "bg-blue-50 text-blue-600 font-medium"
-                                        : "text-gray-600 hover:bg-gray-50 hover:text-blue-500"
+                                    ? "bg-blue-50 text-blue-600 font-medium"
+                                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-500"
                                     }`}
                             >
                                 <item.icon size={20} />

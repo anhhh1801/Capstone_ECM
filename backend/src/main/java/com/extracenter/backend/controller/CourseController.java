@@ -1,23 +1,19 @@
 package com.extracenter.backend.controller;
 
 import com.extracenter.backend.dto.CourseRequest;
-import com.extracenter.backend.dto.CreateStudentRequest;
 import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.User;
-import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.CourseService;
-import com.extracenter.backend.service.UserService;
 
 import java.util.List;
+import java.util.Set;
 
-import org.apache.catalina.Manager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/courses")
-@CrossOrigin(origins = "http://localhost:3000")
 public class CourseController {
 
     @Autowired
@@ -75,7 +71,7 @@ public class CourseController {
     // API: Lấy danh sách khóa học (Có hỗ trợ lọc theo centerId)
     // GET: http://localhost:8080/api/courses?centerId=1
     @GetMapping
-    public ResponseEntity<List<Course>> getAllCourses(@RequestParam(required = false) Long centerId) {
+    public ResponseEntity<List<Course>> getAllCoursesByCenter(@RequestParam(required = false) Long centerId) {
         if (centerId != null) {
             return ResponseEntity.ok(courseService.getCoursesByCenter(centerId));
         }
@@ -108,5 +104,36 @@ public class CourseController {
     @GetMapping("/invitations/{teacherId}")
     public ResponseEntity<List<Course>> getInvitations(@PathVariable Long teacherId) {
         return ResponseEntity.ok(courseService.getPendingInvitations(teacherId));
+    }
+
+    // GET: List all students in a course
+    // GET /api/courses/1/students
+    @GetMapping("/{courseId}/students")
+    public ResponseEntity<Set<User>> getStudents(@PathVariable Long courseId) {
+        return ResponseEntity.ok(courseService.getCourseStudents(courseId));
+    }
+
+    // POST: Add student to course
+    // POST /api/courses/1/students/5 (Course 1, Student 5)
+    @PostMapping("/{courseId}/students/{studentId}")
+    public ResponseEntity<?> addStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
+        try {
+            courseService.addStudentToCourse(courseId, studentId);
+            return ResponseEntity.ok("Thêm học sinh vào lớp thành công.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // DELETE: Remove student from course
+    // DELETE /api/courses/1/students/5
+    @DeleteMapping("/{courseId}/students/{studentId}")
+    public ResponseEntity<?> removeStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
+        try {
+            courseService.removeStudentFromCourse(courseId, studentId);
+            return ResponseEntity.ok("Đã xóa học sinh khỏi lớp.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

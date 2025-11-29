@@ -15,7 +15,7 @@ public class VerificationToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String token; // Chuỗi mã bí mật (ví dụ: abc-123-xyz)
+    private String token;
 
     @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER)
     @JoinColumn(nullable = false, name = "user_id")
@@ -24,9 +24,9 @@ public class VerificationToken {
     private LocalDateTime expiryDate;
 
     // Constructor tạo nhanh token
-    public VerificationToken(User user) {
+    public VerificationToken(User user, String token) {
         this.user = user;
-        this.token = UUID.randomUUID().toString(); // Tự sinh chuỗi ngẫu nhiên
-        this.expiryDate = LocalDateTime.now().plusMinutes(24 * 60); // Hết hạn sau 24h
+        this.token = token;
+        this.expiryDate = LocalDateTime.now().plusMinutes(10);
     }
 }

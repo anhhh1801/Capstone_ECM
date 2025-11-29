@@ -25,7 +25,7 @@ export const loginUser = async (email: string, password: string) => {
 export interface RegisterData {
     firstName: string;
     lastName: string;
-    email: string;
+    personalEmail: string;
     phoneNumber: string;
     password?: string; // Để optional vì backend tự sinh, nhưng DTO có thể cần
     role?: string;     // Backend tự set là TEACHER
@@ -40,8 +40,16 @@ export const registerTeacher = async (data: RegisterData) => {
     return response.data;
 };
 
-// Hàm gọi API xác thực token
-export const verifyAccount = async (token: string) => {
-    const response = await api.get(`/users/verify?token=${token}`);
+// 1. Verify OTP
+export const verifyOtp = async (email: string, otp: string) => {
+    // Matches Backend: POST /api/users/verify-otp
+    const response = await api.post('/users/verify-otp', { email, otp });
+    return response.data;
+};
+
+// 2. Resend OTP
+export const resendOtp = async (email: string) => {
+    // Matches Backend: POST /api/users/resend-otp?email=...
+    const response = await api.post(`/users/resend-otp?email=${email}`);
     return response.data;
 };

@@ -1,10 +1,11 @@
-"use client"; // Bắt buộc: Vì trang này có tương tác (nhập liệu, bấm nút)
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "@/services/authService";
-import toast, { Toaster } from "react-hot-toast"; // Thư viện thông báo đẹp
-import { User, Lock, Mail } from "lucide-react"; // Icon
+import toast, { Toaster } from "react-hot-toast";
+import { User, Lock, Mail } from "lucide-react";
+import LockedAccountModal from '@/components/LockedAccountModal';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,18 +13,18 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const [showLockedModal, setShowLockedModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
     const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault(); // Chặn reload trang
+        e.preventDefault();
         setLoading(true);
 
         try {
             const user = await loginUser(email, password);
 
-            // 1. Thông báo thành công
-            toast.success(`Xin chào ${user.firstName} ${user.lastName}!`);
+            toast.success(`Hello ${user.firstName} ${user.lastName}!`);
 
-            // 2. Lưu thông tin user vào LocalStorage (để các trang khác biết ai đang đăng nhập)
-            // Lưu ý: Dự án thật thì nên lưu Token, nhưng tạm thời lưu User object cũng được
             localStorage.setItem("user", JSON.stringify(user));
 
             setTimeout(() => {
@@ -32,6 +33,8 @@ export default function LoginPage() {
                 }
                 else if (user.role.name === "STUDENT") {
                     router.push("/student/dashboard");
+                } else if (user.role.name === "ADMIN") {
+                    router.push("/admin/users");
                 }
                 else {
                     router.push("/");
@@ -40,8 +43,29 @@ export default function LoginPage() {
 
         } catch (error: any) {
             console.error("Login Error:", error);
-            const msg = error.response?.data || "Đăng nhập thất bại! Vui lòng kiểm tra lại.";
-            toast.error(msg);
+            const msg = error.response?.data || "Login Failed! Please check again.";
+
+            if (typeof msg === 'string' && msg.includes("ACCOUNT_DEACTIVATED")) {
+                toast((t) => (
+                    <div>
+                        <p className="font-bold">Tài khoản đang tạm khóa/chưa xác thực.</p>
+                        <p className="text-sm">Hệ thống đã gửi OTP mới vào email cá nhân của bạn.</p>
+                    </div>
+                ), { duration: 5000, icon: '🔄' });
+
+                setTimeout(() => {
+                    router.push(`/verify?email=${encodeURIComponent(email)}`);
+                }, 2000);
+            }
+
+            else if (typeof msg === 'string' && msg.includes("locked")) {
+                setShowLockedModal(true);
+            }
+            else if (typeof msg === 'string' && msg.includes("PENDING_VERIFICATION")) {
+                router.push(`/verify?email=${encodeURIComponent(email)}`);
+            } else {
+                setErrorMessage(msg);
+            }
         } finally {
             setLoading(false);
         }
@@ -50,6 +74,11 @@ export default function LoginPage() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
             <Toaster position="top-center" />
+
+            <LockedAccountModal
+                isOpen={showLockedModal}
+                onClose={() => setShowLockedModal(false)}
+            />
 
             <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl transition-all hover:shadow-2xl">
                 <div className="mb-8 text-center">

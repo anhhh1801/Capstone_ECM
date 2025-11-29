@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
+    long countByTeacherId(Long teacherId);
+
     // Tìm tất cả khóa học của 1 Center
     List<Course> findByCenterId(Long centerId);
 
@@ -28,4 +30,10 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // Thay vì tìm teacherId, ta tìm pendingTeacher.id
     @Query("SELECT c FROM Course c WHERE c.pendingTeacher.id = :teacherId AND c.invitationStatus = 'PENDING'")
     List<Course> findPendingInvitations(@Param("teacherId") Long teacherId);
+
+    // Count unique students enrolled in courses taught by this teacher
+    // (Assuming Course has a list of students or enrollments)
+    @Query("SELECT COUNT(DISTINCT s) FROM Course c JOIN c.students s WHERE c.teacher.id = :teacherId")
+    long countStudentsByTeacherId(@Param("teacherId") Long teacherId);
+
 }

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +29,7 @@ public class User {
     @Column(nullable = false)
     private String lastName;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
     @Column(nullable = false)
@@ -40,8 +41,16 @@ public class User {
 
     private String avatarImg;
 
-    private String personalEmail; // Email cá nhân (gmail)
-    private boolean isEnabled = false; // Mặc định là false (chưa kích hoạt)
+    @Column(name = "created_date")
+    private LocalDateTime createdDate = LocalDateTime.now();
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean isLocked = false;
+
+    @Column(nullable = false, unique = true)
+    private String personalEmail;
+
+    private boolean isEnabled = false;
 
     // RELATIONSHIP: Many Users can have One Role
     @ManyToOne

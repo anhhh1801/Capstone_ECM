@@ -17,7 +17,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/centers")
-@CrossOrigin(origins = "http://localhost:3000")
 public class CenterController {
 
     @Autowired

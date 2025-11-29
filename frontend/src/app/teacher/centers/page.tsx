@@ -65,7 +65,7 @@ export default function CenterManagementPage() {
             await createCenter({ ...formData, managerId: user.id });
 
             toast.success("Tạo trung tâm thành công!");
-            setShowForm(false); // Ẩn form đi
+            setShowForm(!showForm); // Ẩn form đi
             setFormData({ name: "", description: "", phoneNumber: "" }); // Reset form
             fetchData(); // Load lại danh sách
         } catch (error) {
