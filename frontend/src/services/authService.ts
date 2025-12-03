@@ -12,7 +12,6 @@ export interface User {
         id: number;
         name: string;
     };
-    // Thêm các trường khác nếu cần
 }
 
 export const loginUser = async (email: string, password: string) => {
