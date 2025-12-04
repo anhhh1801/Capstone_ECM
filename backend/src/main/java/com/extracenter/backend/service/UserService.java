@@ -3,6 +3,7 @@ package com.extracenter.backend.service;
 import com.extracenter.backend.dto.ChangePasswordRequest;
 import com.extracenter.backend.dto.CreateStudentRequest;
 import com.extracenter.backend.dto.LoginRequest;
+import com.extracenter.backend.dto.LoginResponse;
 import com.extracenter.backend.dto.RegisterRequest;
 import com.extracenter.backend.dto.UpdateProfileRequest;
 import com.extracenter.backend.dto.UserStatsResponse;
@@ -16,6 +17,7 @@ import com.extracenter.backend.repository.RoleRepository;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.repository.VerificationTokenRepository;
 import com.extracenter.backend.service.EmailUtils;
+import com.extracenter.backend.utils.JwtUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,8 +41,10 @@ public class UserService {
     private CenterRepository centerRepository;
     @Autowired
     private CourseRepository courseRepository;
+    @Autowired
+    private JwtUtils jwtUtils;
 
-    public User loginUser(LoginRequest request) {
+    public LoginResponse loginUser(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElse(null);
 
@@ -74,9 +78,11 @@ public class UserService {
                 throw new RuntimeException("ACCOUNT_DEACTIVATED");
             }
 
-            return user;
+            String token = jwtUtils.generateToken(user);
+
+            return new LoginResponse(token, user);
         }
-        return null;
+        throw new RuntimeException("Sai email hoặc mật khẩu!");
     }
 
     public User deactivateAccount(Long id) {

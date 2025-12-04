@@ -21,11 +21,16 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const user = await loginUser(email, password);
+            const loginResponse = await loginUser(email, password);
+            localStorage.setItem("loginResponse", JSON.stringify(loginResponse));
+
+            const user = loginResponse.user;
 
             toast.success(`Hello ${user.firstName} ${user.lastName}!`);
 
             localStorage.setItem("user", JSON.stringify(user));
+
+            localStorage
 
             setTimeout(() => {
                 if (user.role.name === "TEACHER") {

@@ -77,7 +77,6 @@ export default function CenterDetailPage() {
         fetchData();
     }, [centerId]);
 
-    // 2. HANDLERS
     const handleRemoveStudent = async (studentId: number) => {
         if (!confirm("Gỡ học sinh khỏi trung tâm này?")) return;
         try {

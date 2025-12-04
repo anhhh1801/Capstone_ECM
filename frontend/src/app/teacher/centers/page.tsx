@@ -25,7 +25,6 @@ export default function CenterManagementPage() {
             if (!userStr) return;
             const user = JSON.parse(userStr);
 
-            // Gọi song song 2 API: Quản lý & Giảng dạy
             const [resManaged, resTeaching] = await Promise.all([
                 getMyCenters(user.id), // API cũ
                 api.get(`/centers/teaching/${user.id}`) // API mới
@@ -73,7 +72,6 @@ export default function CenterManagementPage() {
         }
     };
 
-    // Hàm xóa (Gọi API Delete)
     const handleDelete = async (id: number) => {
         if (!confirm("Bạn có chắc muốn xóa trung tâm này?")) return;
         try {
@@ -205,12 +203,10 @@ export default function CenterManagementPage() {
                         <div key={center.id} className="bg-white p-6 rounded-xl shadow-sm border relative group">
                             <div className="flex justify-between items-start mb-4">
                                 <h3 className="text-lg font-bold text-gray-800 line-clamp-1">
-                                    {/* Bấm vào tên sẽ nhảy vào trang chi tiết */}
                                     <Link href={`/teacher/centers/${center.id}`} className="hover:text-blue-600 transition">
                                         {center.name}
                                     </Link>
                                 </h3>
-                                {/* Icon Link để người dùng biết là bấm được */}
                                 <Link href={`/teacher/centers/${center.id}`} className="text-gray-400 hover:text-blue-600">
                                     <ExternalLink size={20} />
                                 </Link>

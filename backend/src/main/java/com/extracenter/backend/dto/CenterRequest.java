@@ -7,5 +7,5 @@ public class CenterRequest {
     private String name;
     private String description;
     private String phoneNumber;
-    private Long managerId; // ID của giáo viên tạo trung tâm này
+    private Long managerId;
 }

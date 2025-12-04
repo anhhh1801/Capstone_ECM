@@ -1,9 +1,8 @@
 package com.extracenter.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,13 +25,15 @@ public class Center {
     private String description;
 
     @Column(name = "created_date", updatable = false)
-    private LocalDateTime createdDate = LocalDateTime.now(); // Tự động lấy giờ hiện tại
+    private LocalDateTime createdDate = LocalDateTime.now();
 
     private String avatarImg;
 
-    // RELATIONSHIP: Một Center có 1 người quản lý (User)
-    // Chúng ta map cột manager_id trong database
+    // Người quản lý trung tâm
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "manager_id", nullable = false)
+    @JsonIgnoreProperties({ "connectedCenters", "courses", "enrollments", "password", "role" })
     private User manager;
 }

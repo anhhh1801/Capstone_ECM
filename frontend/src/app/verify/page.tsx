@@ -113,12 +113,10 @@ function VerifyContent() {
         );
     }
 
-    // --- RENDER INPUT FORM ---
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
             <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
 
-                {/* Icon & Title */}
                 <div className="text-center mb-8">
                     <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                         <Mail className="h-8 w-8 text-blue-600" />
@@ -130,7 +128,6 @@ function VerifyContent() {
                     </p>
                 </div>
 
-                {/* OTP Inputs */}
                 <div className="flex justify-between gap-2 mb-8">
                     {otp.map((digit, index) => (
                         <input
@@ -146,7 +143,6 @@ function VerifyContent() {
                     ))}
                 </div>
 
-                {/* Verify Button */}
                 <button
                     onClick={handleVerify}
                     disabled={status === "loading" || otp.some(d => !d)}
@@ -163,7 +159,6 @@ function VerifyContent() {
                     )}
                 </button>
 
-                {/* Resend Link */}
                 <div className="mt-6 text-center text-sm">
                     <p className="text-gray-500">
                         Chưa nhận được mã?{" "}

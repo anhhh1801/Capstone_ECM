@@ -1,9 +1,7 @@
 package com.extracenter.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDate;
 
 @Entity
@@ -27,7 +25,7 @@ public class Enrollment {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    // RELATIONSHIP: Có học bổng không? (Có thể null)
+    // RELATIONSHIP: Có học bổng không?
     @ManyToOne
     @JoinColumn(name = "scholarship_id")
     private Scholarship scholarship;

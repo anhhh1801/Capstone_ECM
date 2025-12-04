@@ -21,22 +21,17 @@ public class CenterService {
 
     // 1. Tạo Center mới
     public Center createCenter(CenterRequest request) {
-        // Tìm người quản lý (Teacher)
         User manager = userRepository.findById(request.getManagerId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + request.getManagerId()));
 
-        // Tạo Center
         Center newCenter = new Center();
         newCenter.setName(request.getName());
         newCenter.setDescription(request.getDescription());
         newCenter.setPhoneNumber(request.getPhoneNumber());
-        newCenter.setManager(manager); // Gán quản lý
+        newCenter.setManager(manager);
 
-        // Lưu Center vào DB
         Center savedCenter = centerRepository.save(newCenter);
 
-        // (Logic phụ) Gán luôn ông User này thuộc về Center vừa tạo (nếu logic dự án
-        // yêu cầu)
         manager.getConnectedCenters().add(savedCenter);
         userRepository.save(manager);
 
@@ -85,6 +80,7 @@ public class CenterService {
         // Lưu ý: Nếu trung tâm đã có khóa học, DB sẽ báo lỗi khóa ngoại.
         // Bạn có thể try-catch để báo lỗi thân thiện hơn.
         try {
+            centerRepository.removeAllStudentLinks(centerId);
             centerRepository.deleteById(centerId);
         } catch (Exception e) {
             throw new RuntimeException(

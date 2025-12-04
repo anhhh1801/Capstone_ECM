@@ -1,10 +1,10 @@
 package com.extracenter.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "Course")
@@ -34,49 +34,28 @@ public class Course {
     @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ACCEPTED'")
     private String invitationStatus = "ACCEPTED";
 
-    // Getter & Setter
-    public String getInvitationStatus() {
-        return invitationStatus;
-    }
+    // --- RELATIONSHIPS ---
 
-    public void setInvitationStatus(String invitationStatus) {
-        this.invitationStatus = invitationStatus;
-    }
-
-    public User getPendingTeacher() {
-        return pendingTeacher;
-    }
-
-    public void setPendingTeacher(User pendingTeacher) {
-        this.pendingTeacher = pendingTeacher;
-    }
-
-    // RELATIONSHIP: Course thuộc về 1 Center
+    // 1. Thuộc trung tâm nào
     @ManyToOne
     @JoinColumn(name = "center_id", nullable = false)
     private Center center;
 
-    // RELATIONSHIP: Course do 1 Giáo viên dạy (User)
+    // 2. Giáo viên chính
     @ManyToOne
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
-    // NGƯỜI ĐANG ĐƯỢC MỜI (Chưa có quyền gì cả, chỉ nhận thông báo)
+    // 3. Giáo viên được mời (pending)
     @ManyToOne
-    @JoinColumn(name = "pending_teacher_id") // Lưu ID người được mời
+    @JoinColumn(name = "pending_teacher_id")
     private User pendingTeacher;
 
-    @ManyToMany
-    @JoinTable(name = "student_courses", // Creates a middle table in DB
-            joinColumns = @JoinColumn(name = "course_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
-    private java.util.Set<User> students = new java.util.HashSet<>();
-
-    // Getter & Setter for students
-    public java.util.Set<User> getStudents() {
-        return students;
-    }
-
-    public void setStudents(java.util.Set<User> students) {
-        this.students = students;
-    }
+    // 4. Danh sách đăng ký học (Thay thế cho Set<User> students cũ)
+    // Xóa Course -> Xóa luôn Enrollment
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Enrollment> enrollments;
 }

@@ -1,17 +1,12 @@
 package com.extracenter.backend.service;
 
 import com.extracenter.backend.dto.CourseRequest;
-import com.extracenter.backend.entity.Center;
-import com.extracenter.backend.entity.ClassSlot;
-import com.extracenter.backend.entity.Course;
-import com.extracenter.backend.entity.User;
-import com.extracenter.backend.repository.CenterRepository;
-import com.extracenter.backend.repository.ClassSlotRepository;
-import com.extracenter.backend.repository.CourseRepository;
-import com.extracenter.backend.repository.UserRepository;
+import com.extracenter.backend.entity.*;
+import com.extracenter.backend.repository.*;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,7 +24,11 @@ public class CourseService {
     @Autowired
     private UserRepository userRepository;
 
-    @Transactional // Quan trọng: Nếu lưu Slot bị lỗi, nó sẽ hủy luôn việc lưu Course (Rollback)
+    // THÊM REPOSITORY NÀY ĐỂ QUẢN LÝ VIỆC ĐĂNG KÝ HỌC
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
+    @Transactional
     public Course createCourse(CourseRequest request) {
         // 1. Tìm Center và Teacher
         Center center = centerRepository.findById(request.getCenterId())
@@ -51,16 +50,8 @@ public class CourseService {
 
         Course savedCourse = courseRepository.save(course);
 
-        System.out.println("✅ Đã lưu Course thành công: " + savedCourse.getId());
-
         // 3. Tạo và lưu các ClassSlot (Lịch học)
-        if (request.getSlots() == null) {
-            System.out.println("⚠️ CẢNH BÁO: Danh sách slots bị NULL! Kiểm tra lại JSON gửi lên.");
-        } else if (request.getSlots().isEmpty()) {
-            System.out.println("⚠️ CẢNH BÁO: Danh sách slots bị RỖNG (Empty)!");
-        } else {
-            System.out.println("ℹ️ Tìm thấy " + request.getSlots().size() + " slots để lưu.");
-
+        if (request.getSlots() != null && !request.getSlots().isEmpty()) {
             for (CourseRequest.SlotRequest slotReq : request.getSlots()) {
                 ClassSlot slot = new ClassSlot();
                 slot.setDayOfWeek(slotReq.getDayOfWeek());
@@ -68,12 +59,9 @@ public class CourseService {
                 slot.setEndTime(slotReq.getEndTime());
                 slot.setIsRecurring(true);
                 slot.setCourse(savedCourse);
-
                 classSlotRepository.save(slot);
-                System.out.println("   -> Đã lưu Slot thứ: " + slotReq.getDayOfWeek());
             }
         }
-
         return savedCourse;
     }
 
@@ -89,13 +77,11 @@ public class CourseService {
         return courseRepository.findByCenterId(centerId);
     }
 
-    // Lấy chi tiết 1 khóa (Dùng cho trang Edit)
     public Course getCourseById(Long id) {
         return courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
     }
 
-    // 1. Cập nhật khóa học
     public Course updateCourse(Long courseId, CourseRequest request) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
@@ -106,20 +92,16 @@ public class CourseService {
         course.setDescription(request.getDescription());
         course.setStartDate(request.getStartDate());
         course.setEndDate(request.getEndDate());
-        // Lưu ý: Thường ít khi cho đổi Center hay Teacher khi update, trừ khi có logic
-        // đặc biệt
 
         return courseRepository.save(course);
     }
 
-    // 2. Xóa khóa học
     public void deleteCourse(Long courseId) {
-        // Kiểm tra xem có học viên hay điểm danh chưa thì chặn lại (tùy logic)
-        // Tạm thời xóa thẳng tay
         try {
+            // Khi cấu hình CascadeType.ALL ở Entity, xóa Course sẽ tự động xóa Enrollment
             courseRepository.deleteById(courseId);
         } catch (Exception e) {
-            throw new RuntimeException("Không thể xóa khóa học này vì đã có dữ liệu liên quan (Lịch học, Học viên...)");
+            throw new RuntimeException("Lỗi khi xóa khóa học: " + e.getMessage());
         }
     }
 
@@ -134,11 +116,8 @@ public class CourseService {
             throw new RuntimeException("Người này không phải là Giáo viên!");
         }
 
-        // QUAN TRỌNG: Chỉ gán vào ghế DỰ BỊ (pendingTeacher)
-        // Không được đụng vào ghế chính thức (teacher)
         course.setPendingTeacher(invitedUser);
         course.setInvitationStatus("PENDING");
-
         courseRepository.save(course);
     }
 
@@ -147,30 +126,25 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
 
         if ("ACCEPTED".equals(status)) {
-            // CHẤP NHẬN:
-            // 1. Chuyển người từ ghế dự bị -> ghế chính thức
             course.setTeacher(course.getPendingTeacher());
-
-            // 2. Xóa ghế dự bị
             course.setPendingTeacher(null);
             course.setInvitationStatus("ACCEPTED");
-
         } else if ("REJECTED".equals(status)) {
-            // TỪ CHỐI:
-            // Chỉ cần xóa ghế dự bị là xong. Người dạy cũ (nếu có) vẫn giữ nguyên.
             course.setPendingTeacher(null);
-            course.setInvitationStatus("REJECTED"); // Hoặc set về ACCEPTED để kết thúc trạng thái pending
+            course.setInvitationStatus("REJECTED");
         }
-
         courseRepository.save(course);
     }
 
     public List<Course> getPendingInvitations(Long teacherId) {
-        // Gọi hàm mới bên Repository
         return courseRepository.findPendingInvitations(teacherId);
     }
 
-    @Transactional // Important for ManyToMany updates
+    // =================================================================
+    // PHẦN SỬA ĐỔI QUAN TRỌNG: DÙNG ENROLLMENT THAY VÌ GETSTUDENTS()
+    // =================================================================
+
+    @Transactional
     public void addStudentToCourse(Long courseId, Long studentId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
@@ -178,42 +152,52 @@ public class CourseService {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        if (course.getStudents().contains(student)) {
+        // 1. Kiểm tra xem đã tồn tại Enrollment chưa
+        boolean exists = enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId);
+        if (exists) {
             throw new RuntimeException("Học sinh này đã có trong lớp rồi!");
         }
 
-        course.getStudents().add(student);
+        // 2. Tạo Enrollment mới
+        Enrollment enrollment = new Enrollment();
+        enrollment.setCourse(course);
+        enrollment.setStudent(student);
+        // Có thể set thêm enrollmentDate, scholarship nếu có...
 
+        enrollmentRepository.save(enrollment);
+
+        // 3. Logic phụ: Thêm học sinh vào danh sách quản lý của Center (nếu chưa có)
+        // (Giữ nguyên logic cũ của bạn vì nó hợp lý)
         if (course.getCenter() != null) {
-            student.getConnectedCenters().add(course.getCenter());
-            userRepository.save(student);
-        }
+            // Kiểm tra xem đã kết nối với center chưa, chưa thì thêm
+            boolean isAlreadyInCenter = student.getConnectedCenters().stream()
+                    .anyMatch(c -> c.getId().equals(course.getCenter().getId()));
 
-        courseRepository.save(course);
+            if (!isAlreadyInCenter) {
+                student.getConnectedCenters().add(course.getCenter());
+                userRepository.save(student);
+            }
+        }
     }
 
-    // 2. Remove Student from Course
     @Transactional
     public void removeStudentFromCourse(Long courseId, Long studentId) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+        // 1. Tìm bản ghi Enrollment cụ thể
+        Enrollment enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
+                .orElseThrow(() -> new RuntimeException("Học sinh này không có trong lớp!"));
 
-        User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        if (!course.getStudents().contains(student)) {
-            throw new RuntimeException("Học sinh này không có trong lớp!");
-        }
-
-        course.getStudents().remove(student);
-        courseRepository.save(course);
+        // 2. Xóa bản ghi đó -> Tự động mất liên kết
+        enrollmentRepository.delete(enrollment);
     }
 
-    // 3. Get Students in Course
+    // Lấy danh sách học sinh thông qua Enrollment
     public Set<User> getCourseStudents(Long courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
-        return course.getStudents();
-    }
 
+        // Map từ List<Enrollment> -> Set<User>
+        return course.getEnrollments().stream()
+                .map(Enrollment::getStudent)
+                .collect(Collectors.toSet());
+    }
 }

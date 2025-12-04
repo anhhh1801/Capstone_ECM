@@ -3,6 +3,7 @@ package com.extracenter.backend.controller;
 import com.extracenter.backend.dto.ChangePasswordRequest;
 import com.extracenter.backend.dto.CreateStudentRequest;
 import com.extracenter.backend.dto.LoginRequest;
+import com.extracenter.backend.dto.LoginResponse;
 import com.extracenter.backend.dto.RegisterRequest;
 import com.extracenter.backend.dto.UpdateProfileRequest;
 import com.extracenter.backend.dto.UserStatsResponse;
@@ -56,14 +57,15 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
-            User user = userService.loginUser(request);
+            LoginResponse response = userService.loginUser(request);
 
-            if (user != null) {
-                return ResponseEntity.ok(user);
-            } else {
-                return ResponseEntity.status(401).body("Incorrect email or password!");
-            }
+            return ResponseEntity.ok(response);
+
         } catch (RuntimeException e) {
+            if (e.getMessage().equals("Sai email hoặc mật khẩu!")) {
+                return ResponseEntity.status(401).body(e.getMessage());
+            }
+
             return ResponseEntity.status(403).body(e.getMessage());
         }
     }

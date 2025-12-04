@@ -8,7 +8,15 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-    console.log(`🚀 Calling API: ${config.url}`);
+    const userStr = localStorage.getItem('loginResponse');
+
+    if (userStr) {
+        const userData = JSON.parse(userStr);
+
+        if (userData.token) {
+            config.headers.Authorization = `Bearer ${userData.token}`;
+        }
+    }
     return config;
 }, (error) => {
     return Promise.reject(error);

@@ -1,6 +1,5 @@
 import api from '../utils/axiosConfig';
 
-// Định nghĩa kiểu dữ liệu trả về từ Java (cho gợi ý code thông minh)
 export interface User {
     id: number;
     email: string;
@@ -12,12 +11,15 @@ export interface User {
         id: number;
         name: string;
     };
-    // Thêm các trường khác nếu cần
+}
+
+export interface LoginResponse {
+    user: User;
+    token: string;
 }
 
 export const loginUser = async (email: string, password: string) => {
-    // Gọi vào API /api/users/login bên Spring Boot
-    const response = await api.post<User>('/users/login', { email, password });
+    const response = await api.post<LoginResponse>('/users/login', { email, password });
     return response.data;
 };
 

@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
+
     long countByTeacherId(Long teacherId);
 
     // Tìm tất cả khóa học của 1 Center
@@ -19,21 +20,18 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByTeacherId(Long teacherId);
 
     // Tìm tất cả Giáo viên đang dạy tại 1 Center cụ thể
-    // Dùng DISTINCT để nếu ông A dạy 2 môn Toán, Lý thì chỉ hiện tên ông ấy 1 lần
-    // thôi
     @Query("SELECT DISTINCT c.teacher FROM Course c WHERE c.center.id = :centerId")
     List<User> findTeachersByCenterId(@Param("centerId") Long centerId);
 
     List<Course> findByTeacherIdAndInvitationStatus(Long teacherId, String status);
 
-    // SỬA LẠI HÀM NÀY: Tìm theo pendingTeacher
-    // Thay vì tìm teacherId, ta tìm pendingTeacher.id
+    // Tìm các lời mời dạy (Pending)
     @Query("SELECT c FROM Course c WHERE c.pendingTeacher.id = :teacherId AND c.invitationStatus = 'PENDING'")
     List<Course> findPendingInvitations(@Param("teacherId") Long teacherId);
 
-    // Count unique students enrolled in courses taught by this teacher
-    // (Assuming Course has a list of students or enrollments)
-    @Query("SELECT COUNT(DISTINCT s) FROM Course c JOIN c.students s WHERE c.teacher.id = :teacherId")
+    // Vì Course không còn list "students" nữa, mà dùng list "enrollments".
+    // Ta phải JOIN từ Course -> Enrollments -> Student
+    @Query("SELECT COUNT(DISTINCT e.student) FROM Course c JOIN c.enrollments e WHERE c.teacher.id = :teacherId")
     long countStudentsByTeacherId(@Param("teacherId") Long teacherId);
 
 }

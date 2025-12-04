@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { getCourseById } from "@/services/courseService";
 import toast from "react-hot-toast";
-import CenterTabs from "./components/CenterTabsInCourse";
+import CenterTabsInCourse from "./components/CenterTabsInCourse";
 import CourseEnrollment from "./components/CourseEnrollment"; // Import the component we built earlier
 
 export default function CourseDetailPage() {
@@ -90,7 +90,7 @@ export default function CourseDetailPage() {
             </div>
 
             {/* TAB NAVIGATION (Pass isManager to show/hide the 3rd tab) */}
-            <CenterTabs activeTab={activeTab} setActiveTab={setActiveTab as any} isManager={isManager} />
+            <CenterTabsInCourse activeTab={activeTab} setActiveTab={setActiveTab as any} isManager={isManager} />
 
             {/* --- CONTENT SWITCHING --- */}
 
