@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { User, Mail, Phone, Calendar, Save } from 'lucide-react-native';
+import { colors } from '@/theme';
 
 interface Props {
     user: any;
@@ -14,15 +15,15 @@ export default function ProfileInfo({ user, formData, onChange, onSave, saving }
     if (!user) return null;
 
     return (
-        <View className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <View className="bg-sky-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
             {/* Header Card */}
-            <View className="p-4 border-b border-gray-100 bg-gray-50 flex-row justify-between items-center">
-                <View className="flex-row items-center gap-2">
-                    <User size={20} color="#2563eb" />
-                    <Text className="font-bold text-gray-800">Basic Information</Text>
+            <View className="p-4 border-b border-gray-100 bg-sky-50 flex-row justify-between items-center">
+                    <View className="flex-row items-center gap-2">
+                    <User size={20} color={colors.primary} />
+                    <Text className="font-bold text-primary">Basic Information</Text>
                 </View>
-                <View className="bg-blue-100 px-3 py-1 rounded-full">
-                    <Text className="text-blue-700 text-xs font-bold">{user.role?.name}</Text>
+                <View className="bg-white border-2 border-primary px-3 py-1 rounded-full">
+                    <Text className="text-primary font-bold">{user.role?.name}</Text>
                 </View>
             </View>
 
@@ -30,17 +31,17 @@ export default function ProfileInfo({ user, formData, onChange, onSave, saving }
             <View className="p-4 gap-4">
                 <View className="flex-row gap-4">
                     <View className="flex-1">
-                        <Text className="text-xs font-bold text-gray-500 mb-1">First Name</Text>
+                        <Text className="text-xs font-bold text-primary mb-1">First Name</Text>
                         <TextInput
-                            className="bg-white border border-gray-200 rounded-lg p-3 text-gray-800"
+                            className="bg-white border border-gray-200 rounded-lg p-3 text-foreground"
                             value={formData.firstName}
                             onChangeText={t => onChange('firstName', t)}
                         />
                     </View>
                     <View className="flex-1">
-                        <Text className="text-xs font-bold text-gray-500 mb-1">Last Name</Text>
+                        <Text className="text-xs font-bold text-primary mb-1">Last Name</Text>
                         <TextInput
-                            className="bg-white border border-gray-200 rounded-lg p-3 text-gray-800"
+                            className="bg-white border border-gray-200 rounded-lg p-3 text-foreground"
                             value={formData.lastName}
                             onChangeText={t => onChange('lastName', t)}
                         />
@@ -49,29 +50,29 @@ export default function ProfileInfo({ user, formData, onChange, onSave, saving }
 
                 {/* Read-only Emails */}
                 <View>
-                    <Text className="text-xs font-bold text-gray-500 mb-1">Login Email</Text>
+                        <Text className="text-xs font-bold text-primary mb-1">Login Email</Text>
                     <View className="flex-row items-center bg-gray-100 border border-gray-200 rounded-lg p-3">
-                        <Mail size={16} color="#9ca3af" style={{ marginRight: 8 }} />
-                        <Text className="text-gray-500">{user.email}</Text>
+                        <Mail size={16} color={colors.secondary} style={{ marginRight: 8 }} />
+                        <Text className="text-foreground">{user.email}</Text>
                     </View>
-                    <Text className="text-[10px] text-gray-400 mt-1 italic">Contact Admin to change email.</Text>
+                    <Text className="text-[10px] text-accent mt-1 italic">Contact Admin to change email.</Text>
                 </View>
 
                 <View>
-                    <Text className="text-xs font-bold text-gray-500 mb-1">Personal Email</Text>
+                    <Text className="text-xs font-bold text-primary mb-1">Personal Email</Text>
                     <View className="flex-row items-center bg-gray-100 border border-gray-200 rounded-lg p-3">
-                        <Mail size={16} color="#9ca3af" style={{ marginRight: 8 }} />
-                        <Text className="text-gray-500">{user.personalEmail || "N/A"}</Text>
+                        <Mail size={16} color={colors.secondary} style={{ marginRight: 8 }} />
+                        <Text className="text-foreground">{user.personalEmail || "N/A"}</Text>
                     </View>
                 </View>
 
                 {/* Phone & DOB */}
                 <View>
-                    <Text className="text-xs font-bold text-gray-500 mb-1">Phone Number</Text>
-                    <View className="relative">
-                        <View className="absolute left-3 top-3.5 z-10"><Phone size={16} color="#9ca3af" /></View>
+                    <Text className="text-xs font-bold text-primary mb-1">Phone Number</Text>
+                        <View className="relative">
+                        <View className="absolute left-3 top-3.5 z-10"><Phone size={16} color={colors.secondary} /></View>
                         <TextInput
-                            className="bg-white border border-gray-200 rounded-lg py-3 pl-10 pr-3 text-gray-800"
+                            className="bg-white border border-gray-200 rounded-lg py-3 pl-10 pr-3 text-foreground"
                             value={formData.phoneNumber}
                             onChangeText={t => onChange('phoneNumber', t)}
                             keyboardType="phone-pad"
@@ -80,11 +81,11 @@ export default function ProfileInfo({ user, formData, onChange, onSave, saving }
                 </View>
 
                 <View>
-                    <Text className="text-xs font-bold text-gray-500 mb-1">Date of Birth</Text>
-                    <View className="relative">
-                        <View className="absolute left-3 top-3.5 z-10"><Calendar size={16} color="#9ca3af" /></View>
+                    <Text className="text-xs font-bold text-primary mb-1">Date of Birth</Text>
+                        <View className="relative">
+                        <View className="absolute left-3 top-3.5 z-10"><Calendar size={16} color={colors.secondary} /></View>
                         <TextInput
-                            className="bg-white border border-gray-200 rounded-lg py-3 pl-10 pr-3 text-gray-800"
+                            className="bg-white border border-gray-200 rounded-lg py-3 pl-10 pr-3 text-foreground"
                             value={formData.dateOfBirth}
                             onChangeText={t => onChange('dateOfBirth', t)}
                             placeholder="YYYY-MM-DD"
@@ -96,7 +97,7 @@ export default function ProfileInfo({ user, formData, onChange, onSave, saving }
                 <TouchableOpacity
                     onPress={onSave}
                     disabled={saving}
-                    className="bg-blue-600 py-3 rounded-lg flex-row justify-center items-center mt-2 active:bg-blue-700"
+                    className="bg-primary py-3 rounded-lg flex-row justify-center items-center mt-2 active:bg-primary"
                 >
                     {saving ? <ActivityIndicator color="white" /> : (
                         <>

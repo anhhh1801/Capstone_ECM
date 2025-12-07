@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { LogOut } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '@/theme';
 
 export default function AdminHeader() {
     const navigation = useNavigation<any>();
@@ -35,17 +36,17 @@ export default function AdminHeader() {
     };
 
     return (
-        <View className="mb-4 flex-row justify-between items-center">
+        <View className="mb-4 flex-row justify-between items-center px-4 py-3 bg-primary rounded-xl">
             <View>
-                <Text className="text-2xl font-bold text-gray-800">User Management</Text>
-                <Text className="text-gray-500 text-xs">Admin Dashboard</Text>
+                <Text className="text-2xl font-bold text-white">User Management</Text>
+                <Text className="text-white text-xs">Admin Dashboard</Text>
             </View>
 
             <TouchableOpacity
                 onPress={handleLogout}
-                className="bg-red-50 p-2.5 rounded-xl border border-red-100"
+                className="bg-white p-2 rounded-xl border-2 border-red-500"
             >
-                <LogOut size={20} color="#ef4444" />
+                <LogOut size={24} color={colors.accent} />
             </TouchableOpacity>
         </View>
     );

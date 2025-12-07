@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Mail, CheckCircle, ArrowRight, RefreshCcw } from 'lucide-react-native';
+import { colors } from '@/theme';
 
 // Import API
 import { verifyOtp, resendOtp } from '@/api/authService';
@@ -98,12 +99,12 @@ const Verify = () => {
     // --- RENDER THÀNH CÔNG ---
     if (success) {
         return (
-            <View className="flex-1 bg-gray-50 justify-center items-center p-6">
-                <View className="bg-white w-full p-8 rounded-2xl items-center shadow-sm">
-                    <CheckCircle size={64} color="#22c55e" />
-                    <Text className="text-2xl font-bold text-gray-800 mt-4">Verify Successfully!</Text>
-                    <Text className="text-gray-500 mt-2 text-center">Your account is active now.</Text>
-                    <Text className="text-sm text-gray-400 mt-4">Redirecting...</Text>
+            <View className="flex-1 bg-background justify-center items-center p-6">
+                <View className="bg-sky-50 w-full p-8 rounded-2xl items-center shadow-sm">
+                    <CheckCircle size={64} color={colors.secondary} />
+                        <Text className="text-2xl font-bold text-primary mt-4">Verify Successfully!</Text>
+                        <Text className="text-foreground mt-2 text-center">Your account is active now.</Text>
+                        <Text className="text-primary text-sm mt-4">Redirecting...</Text>
                 </View>
             </View>
         );
@@ -111,7 +112,7 @@ const Verify = () => {
 
     // --- RENDER FORM ---
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-background">
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 className="flex-1"
@@ -120,13 +121,13 @@ const Verify = () => {
 
                     {/* Header */}
                     <View className="items-center mb-10">
-                        <View className="w-16 h-16 bg-blue-100 rounded-full items-center justify-center mb-4">
-                            <Mail size={32} color="#2563eb" />
+                        <View className="w-16 h-16 bg-sky-100 rounded-full items-center justify-center mb-4">
+                            <Mail size={32} color={colors.primary} />
                         </View>
-                        <Text className="text-2xl font-bold text-gray-800">Enter verify code</Text>
-                        <Text className="text-gray-500 mt-2 text-center px-4">
-                            Code OTP was sent to{'\n'}
-                            <Text className="font-bold text-gray-800">{email || "your email"}</Text>
+                        <Text className="text-2xl font-bold text-primary">Enter verify code</Text>
+                        <Text className="text-accent mt-2 text-center px-4">
+                            Code OTP was sent to{"\n"}
+                            <Text className="font-bold text-foreground">{email || "your email"}</Text>
                         </Text>
                     </View>
 
@@ -136,8 +137,7 @@ const Verify = () => {
                             <TextInput
                                 key={index}
                                 ref={(ref) => { inputRefs.current[index] = ref }}
-                                className={`w-12 h-14 border-2 rounded-xl text-center text-2xl font-bold bg-white text-gray-800 ${digit ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                                    }`}
+                                className={`w-12 h-14 border-2 border-primary rounded-xl text-center text-2xl font-bold bg-white text-primary ${digit ? 'border-primary bg-sky-50' : 'border-gray-300'}`}
                                 maxLength={1}
                                 keyboardType="number-pad"
                                 value={digit}
@@ -152,14 +152,14 @@ const Verify = () => {
                     <TouchableOpacity
                         onPress={handleVerify}
                         disabled={loading || otp.some(d => !d)}
-                        className={`w-full py-4 rounded-xl flex-row justify-center items-center space-x-2 ${loading || otp.some(d => !d) ? 'bg-gray-300' : 'bg-gray-900'
+                        className={`w-full py-4 rounded-xl flex-row justify-center items-center space-x-2 ${loading || otp.some(d => !d) ? 'bg-gray-300' : 'bg-primary'
                             }`}
                     >
                         {loading ? (
                             <ActivityIndicator color="white" />
                         ) : (
                             <>
-                                <Text className="text-white font-bold text-lg mr-2">Veriry</Text>
+                                <Text className="text-white font-bold text-lg mr-2">Verify</Text>
                                 <ArrowRight size={20} color="white" />
                             </>
                         )}
@@ -167,10 +167,10 @@ const Verify = () => {
 
                     {/* Resend Link */}
                     <View className="mt-8 items-center">
-                        <Text className="text-gray-500 mb-2">Have not got OTP yet?</Text>
+                        <Text className="text-foreground mb-2">Have not got OTP yet?</Text>
 
                         {timer > 0 ? (
-                            <Text className="text-gray-400 font-medium">
+                            <Text className="text-accent font-medium">
                                 Resend in {timer}s
                             </Text>
                         ) : (
@@ -189,7 +189,7 @@ const Verify = () => {
                         onPress={() => navigation.navigate("Login")}
                         className="mt-6 items-center"
                     >
-                        <Text className="text-gray-400 text-sm">Back to login</Text>
+                        <Text className="text-primary underline text-sm">Back to login</Text>
                     </TouchableOpacity>
 
                 </View>

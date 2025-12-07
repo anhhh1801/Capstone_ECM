@@ -10,6 +10,7 @@ import ProfileInfo from './components/ProfileInfo';
 import DangerZone from './components/DangerZone';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import { deactivateAccount } from '@/api/userService';
+import colors from '@/theme';
 
 const Profile = () => {
     const navigation = useNavigation<any>();
@@ -93,34 +94,34 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
+            <SafeAreaView className="flex-1 justify-center items-center bg-background">
                 <ActivityIndicator size="large" color="#2563eb" />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-background">
             <ScrollView contentContainerStyle={{ padding: 20 }}>
                 <TouchableOpacity
                     onPress={() => navigation.goBack()}
                     className="flex-row items-center mb-4"
                 >
-                    <ArrowLeft size={20} color="#6b7280" />
-                    <Text className="text-gray-500 ml-1">Back</Text>
+                    <ArrowLeft size={20} color={colors.primary} />
+                    <Text className="text-primary ml-1">Back</Text>
                 </TouchableOpacity>
 
                 <View className="flex-row justify-between items-end mb-6">
 
                     <View>
-                        <Text className="text-3xl font-bold text-gray-900">My Profile</Text>
-                        <Text className="text-gray-500 text-sm">Manage your account settings</Text>
+                        <Text className="text-3xl font-bold text-primary">My Profile</Text>
+                        <Text className="text-foreground text-sm">Manage your account settings</Text>
                     </View>
                     <TouchableOpacity
                         onPress={() => setPassModalOpen(true)}
-                        className="bg-gray-900 px-4 py-2 rounded-lg flex-row items-center gap-2"
+                        className="bg-primary border-2 border-primary px-4 py-2 rounded-lg flex-row items-center gap-2"
                     >
-                        <Lock size={14} color="white" />
+                        <Lock size={14} color="#fff" />
                         <Text className="text-white font-bold text-xs">Change Password</Text>
                     </TouchableOpacity>
                 </View>

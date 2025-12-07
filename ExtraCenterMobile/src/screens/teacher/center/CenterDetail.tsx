@@ -13,6 +13,7 @@ import TeacherListTab from './components/TeacherListTab';
 import StudentListTab from './components/StudentListTab';
 import AssignStudentModal from './components/AssignStudentModal';
 import StudentModal from '@/screens/teacher/student/components/StudentModal';
+import colors from '@/theme';
 
 const CenterDetail = () => {
     const route = useRoute<any>();
@@ -87,14 +88,14 @@ const CenterDetail = () => {
 
     if (loading) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-                <ActivityIndicator size="large" color="#2563eb" />
+            <SafeAreaView className="flex-1 justify-center items-center bg-background">
+                <ActivityIndicator size="large" color={colors.primary} />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-background">
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
 
                 {/* 1. Header */}

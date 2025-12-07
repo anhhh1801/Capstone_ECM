@@ -10,6 +10,7 @@ import CourseHeader from './components/CourseHeader';
 import CourseTabs from './components/CourseTabs';
 import GeneralInfoTab from './components/GeneralInfoTab';
 import CourseEnrollmentTab from './components/CourseEnrollmentTab';
+import colors from '@/theme';
 
 const CourseDetail = () => {
     const route = useRoute<any>();
@@ -53,7 +54,7 @@ const CourseDetail = () => {
     if (loading) {
         return (
             <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-                <ActivityIndicator size="large" color="#2563eb" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </SafeAreaView>
         );
     }
@@ -61,13 +62,13 @@ const CourseDetail = () => {
     if (!course) {
         return (
             <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-                <Text className="text-red-500">No Course Exist</Text>
+                <Text className="text-accent">No Course Exist</Text>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-white">
             <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 50 }}>
                 {/* 1. Header */}
                 <CourseHeader course={course} isManager={isManager} />

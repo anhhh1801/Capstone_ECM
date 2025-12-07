@@ -12,6 +12,7 @@ import { getMyCenters } from '@/api/centerService';
 import axiosClient from '@/api/axiosClient';
 import StudentCard from './components/StudentCard';
 import StudentModal from './components/StudentModal';
+import colors from '@/theme';
 
 const StudentManagement = () => {
     const [allStudents, setAllStudents] = useState<any[]>([]);
@@ -139,20 +140,21 @@ const StudentManagement = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-background">
             <View className="flex-1 px-5 pt-2">
 
                 <View className="flex-row justify-between items-center mb-4">
                     <View className="flex-row items-center gap-2">
-                        <Users size={28} color="#2563eb" />
-                        <Text className="text-2xl font-bold text-gray-800">Students</Text>
+                        <Users size={28} color={colors.primary} />
+                        <Text className="text-2xl font-bold text-primary">Students</Text>
                     </View>
                     <TouchableOpacity
                         onPress={openCreateModal}
-                        className="bg-green-600 px-3 py-2 rounded-lg flex-row items-center gap-1 shadow-sm"
-                    >
+                        className="bg-primary px-4 py-2 rounded-lg flex-row items-center">
+
                         <Plus size={18} color="white" />
-                        <Text className="text-white font-bold text-xs">Add New</Text>
+                        <Text className="text-white font-bold ml-1">
+                            Add</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -160,7 +162,7 @@ const StudentManagement = () => {
                 <View className="relative mb-4">
                     <View className="absolute left-3 top-3 z-10"><Search size={20} color="#9ca3af" /></View>
                     <TextInput
-                        className="bg-white border border-gray-200 rounded-xl py-3 pl-10 pr-4 text-gray-700"
+                        className="bg-sky-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 text-foreground"
                         placeholder="Search by name, email..."
                         placeholderTextColor="#9ca3af"
                         value={searchTerm}
@@ -170,7 +172,7 @@ const StudentManagement = () => {
 
                 {/* List */}
                 {loading ? (
-                    <ActivityIndicator size="large" color="#2563eb" className="mt-10" />
+                    <ActivityIndicator size="large" color={colors.primary} className="mt-10" />
                 ) : (
                     <FlatList
                         data={filteredStudents}
@@ -184,7 +186,7 @@ const StudentManagement = () => {
                         )}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
                         ListEmptyComponent={() => (
-                            <Text className="text-center text-gray-400 mt-10">No students found.</Text>
+                            <Text className="text-center text-foreground mt-10">No students found.</Text>
                         )}
                         contentContainerStyle={{ paddingBottom: 80 }}
                     />

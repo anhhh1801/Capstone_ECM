@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Shield, User, GraduationCap } from 'lucide-react-native';
+import colors from '../../../theme';
 
 interface Props {
     activeTab: string;
@@ -24,11 +25,10 @@ export default function AdminTabs({ activeTab, setActiveTab, counts }: Props) {
                         <TouchableOpacity
                             key={tab.key}
                             onPress={() => setActiveTab(tab.key as any)}
-                            className={`mr-6 pb-3 flex-row items-center gap-2 border-b-2 ${isActive ? "border-blue-600" : "border-transparent"
-                                }`}
+                            className={`mr-6 pb-3 pt-3 flex-row items-center gap-2 border-b-2 ${isActive ? 'border-primary' : 'border-transparent'}`}
                         >
-                            <tab.icon size={16} color={isActive ? "#2563eb" : "#9ca3af"} />
-                            <Text className={`font-bold text-sm ${isActive ? "text-blue-600" : "text-gray-500"}`}>
+                            <tab.icon size={16} color={isActive ? colors.primary : '#9ca3af'} />
+                            <Text className={`text-sm ${isActive ? 'text-primary font-bold' : 'text-secondary'}`}>
                                 {tab.label} <Text className="text-xs font-normal">({tab.count})</Text>
                             </Text>
                         </TouchableOpacity>

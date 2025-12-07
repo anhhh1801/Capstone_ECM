@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Lock, Mail } from 'lucide-react-native';
+import { colors } from '@/theme';
 import { cssInterop } from 'nativewind';
 
 cssInterop(SafeAreaView, { className: 'style' });
@@ -93,36 +94,36 @@ const Login = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-indigo-100">
-            <StatusBar barStyle="dark-content" backgroundColor="#e0e7ff" />
+        <SafeAreaView className="flex-1 bg-background">
+            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
             <View className="flex-1 justify-center px-6">
 
-                <View className="bg-white rounded-3xl p-8 shadow-lg">
+                <View className="bg-sky-50 rounded-3xl p-8 shadow-lg">
 
                     <View className="items-center mb-8">
-                        <View className="w-16 h-16 bg-indigo-100 rounded-full items-center justify-center mb-4">
-                            <Lock size={32} color="#4f46e5" />
+                        <View className="w-16 h-16 bg-sky-100 rounded-full items-center justify-center mb-4">
+                            <Lock size={32} color={colors.primary} />
                         </View>
-                        <Text className="text-3xl font-bold text-gray-800">Login</Text>
-                        <Text className="text-gray-500 mt-2">Welcome to ECM</Text>
+                        <Text className="text-3xl font-bold text-primary">Login</Text>
+                        <Text className="text-foreground mt-2">Welcome to ECM</Text>
                     </View>
 
                     <View className="space-y-6">
 
                         {/* Input Email */}
                         <View>
-                            <Text className="mb-2 text-sm font-medium text-gray-700">Email</Text>
+                            <Text className="mb-2 text-sm font-medium text-foreground">ECM Email</Text>
                             <View className="relative">
                                 <View className="absolute top-3 left-3 z-10">
-                                    <Mail size={20} color="#9ca3af" />
+                                    <Mail size={20} color={colors.secondary} />
                                 </View>
                                 <TextInput
                                     value={email}
                                     onChangeText={setEmail}
-                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg p-3 pl-10"
+                                    className="bg-white border border-gray-300 text-foreground text-base rounded-lg p-3 pl-10"
                                     placeholder="name@ecm.edu.vn"
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={colors.foreground}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                 />
@@ -131,17 +132,17 @@ const Login = () => {
 
                         {/* Input Password */}
                         <View>
-                            <Text className="mb-2 text-sm font-medium text-gray-700">Password</Text>
+                            <Text className="mb-2 text-sm font-medium text-foreground">Password</Text>
                             <View className="relative">
                                 <View className="absolute top-3 left-3 z-10">
-                                    <Lock size={20} color="#9ca3af" />
+                                    <Lock size={20} color={colors.secondary} />
                                 </View>
                                 <TextInput
                                     value={password}
                                     onChangeText={setPassword}
-                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg p-3 pl-10"
+                                    className="bg-white border border-gray-300 text-foreground text-base rounded-lg p-3 pl-10"
                                     placeholder="••••••••"
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={colors.foreground}
                                     secureTextEntry
                                 />
                             </View>
@@ -151,8 +152,7 @@ const Login = () => {
                         <TouchableOpacity
                             onPress={handleLogin}
                             disabled={loading}
-                            className={`w-full rounded-lg bg-indigo-600 py-3 items-center mt-4 ${loading ? 'opacity-70' : ''}`}
-                        >
+                            className={`w-full rounded-lg bg-primary py-3 items-center mt-4 ${loading ? 'opacity-70' : ''}`}>
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
@@ -164,9 +164,9 @@ const Login = () => {
 
                     {/* Footer Link */}
                     <View className="mt-6 flex-row justify-center">
-                        <Text className="text-sm text-gray-500">Do not have an account? </Text>
-                        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-                            <Text className="text-sm font-semibold text-indigo-600">Register Now</Text>
+                            <Text className="text-sm text-foreground">Do not have an account? </Text>
+                        <TouchableOpacity onPress={() => navigation.navigate("Register") }>
+                            <Text className="text-sm font-semibold text-accent">Register Now</Text>
                         </TouchableOpacity>
                     </View>
 

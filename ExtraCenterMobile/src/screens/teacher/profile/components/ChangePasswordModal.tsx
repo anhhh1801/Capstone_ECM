@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Modal, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { X, Lock } from 'lucide-react-native';
 import axiosClient from '@/api/axiosClient';
+import { colors } from '@/theme';
 
 interface Props {
     isOpen: boolean;
@@ -50,37 +51,37 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }: Props) 
     return (
         <Modal visible={isOpen} animationType="fade" transparent>
             <View className="flex-1 bg-black/50 justify-center items-center p-6">
-                <View className="bg-white w-full rounded-2xl p-6 shadow-xl">
+                <View className="bg-sky-50 w-full rounded-2xl p-6 shadow-xl">
 
-                    <View className="flex-row justify-between items-center mb-6 border-b border-gray-100 pb-3">
-                        <Text className="text-xl font-bold text-gray-800">Change Password</Text>
-                        <TouchableOpacity onPress={onClose}><X size={24} color="#9ca3af" /></TouchableOpacity>
+                    <View className="flex-row justify-between items-center mb-6 border-b border-sky-100 pb-3">
+                        <Text className="text-xl font-bold text-foreground">Change Password</Text>
+                        <TouchableOpacity onPress={onClose}><X size={24} color={colors.secondary} /></TouchableOpacity>
                     </View>
 
                     <View className="gap-4">
                         <View>
-                            <Text className="text-xs font-bold text-gray-500 mb-1">Current Password</Text>
+                            <Text className="text-xs font-bold text-secondary mb-1">Current Password</Text>
                             <TextInput
                                 secureTextEntry
-                                className="bg-gray-50 border border-gray-200 rounded-lg p-3"
+                                className="bg-white border border-gray-200 rounded-lg p-3 text-foreground"
                                 value={passData.oldPassword}
                                 onChangeText={t => handleChange('oldPassword', t)}
                             />
                         </View>
                         <View>
-                            <Text className="text-xs font-bold text-gray-500 mb-1">New Password</Text>
+                            <Text className="text-xs font-bold text-secondary mb-1">New Password</Text>
                             <TextInput
                                 secureTextEntry
-                                className="bg-gray-50 border border-gray-200 rounded-lg p-3"
+                                className="bg-white border border-gray-200 rounded-lg p-3 text-foreground"
                                 value={passData.newPassword}
                                 onChangeText={t => handleChange('newPassword', t)}
                             />
                         </View>
                         <View>
-                            <Text className="text-xs font-bold text-gray-500 mb-1">Confirm New Password</Text>
+                            <Text className="text-xs font-bold text-secondary mb-1">Confirm New Password</Text>
                             <TextInput
                                 secureTextEntry
-                                className="bg-gray-50 border border-gray-200 rounded-lg p-3"
+                                className="bg-white border border-gray-200 rounded-lg p-3 text-foreground"
                                 value={passData.confirmPassword}
                                 onChangeText={t => handleChange('confirmPassword', t)}
                             />
@@ -89,7 +90,7 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }: Props) 
                         <TouchableOpacity
                             onPress={handleSubmit}
                             disabled={loading}
-                            className="bg-gray-900 py-3 rounded-lg flex-row justify-center items-center mt-2"
+                            className="bg-primary py-3 rounded-lg flex-row justify-center items-center mt-2"
                         >
                             {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Confirm Change</Text>}
                         </TouchableOpacity>

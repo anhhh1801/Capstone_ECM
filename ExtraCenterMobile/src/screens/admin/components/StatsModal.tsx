@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { X, Building2, BookOpen, Users } from 'lucide-react-native';
+import { colors } from '@/theme';
 
 interface Props {
     visible: boolean;
@@ -16,31 +17,31 @@ export default function StatsModal({ visible, onClose, user, stats, loading }: P
     return (
         <Modal visible={visible} transparent animationType="fade">
             <View className="flex-1 bg-black/50 justify-center items-center p-6">
-                <View className="bg-white w-full rounded-2xl p-6 shadow-xl relative">
-                    <TouchableOpacity onPress={onClose} className="absolute top-4 right-4 z-10 p-1 bg-gray-100 rounded-full">
-                        <X size={20} color="#374151" />
+                <View className="bg-sky-50 w-full rounded-2xl p-6 shadow-xl relative">
+                    <TouchableOpacity onPress={onClose} className="absolute top-4 right-4 z-10 p-1 bg-sky-100 rounded-full">
+                        <X size={20} color={colors.foreground} />
                     </TouchableOpacity>
 
-                    <Text className="text-xl font-bold text-gray-800 mb-1 text-center">
+                    <Text className="text-xl font-bold text-foreground mb-1 text-center">
                         {isTeacher ? "Teacher Statistics" : "Student Statistics"}
                     </Text>
-                    <Text className="text-sm text-gray-500 mb-6 text-center">
+                    <Text className="text-sm text-secondary mb-6 text-center">
                         {user?.firstName} {user?.lastName}
                     </Text>
 
                     {loading ? (
-                        <ActivityIndicator size="large" color="#2563eb" className="py-10" />
+                        <ActivityIndicator size="large" color={colors.primary} className="py-10" />
                     ) : stats ? (
                         <View className="gap-4">
                             {/* Dòng 1: Center */}
-                            <View className="flex-row justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                            <View className="flex-row justify-between items-center p-3 bg-sky-100 rounded-lg border border-sky-100">
                                 <View className="flex-row items-center gap-2">
-                                    <Building2 size={18} color="#1d4ed8" />
-                                    <Text className="text-blue-800 font-medium">
+                                    <Building2 size={18} color={colors.primary} />
+                                    <Text className="text-primary font-medium">
                                         {isTeacher ? "Managed Centers" : "Joined Centers"}
                                     </Text>
                                 </View>
-                                <Text className="text-2xl font-bold text-blue-600">{stats.totalCenters}</Text>
+                                <Text className="text-2xl font-bold text-primary">{stats.totalCenters}</Text>
                             </View>
 
                             {/* Dòng 2: Course */}
@@ -69,7 +70,7 @@ export default function StatsModal({ visible, onClose, user, stats, loading }: P
                         <Text className="text-center text-red-400">No data available.</Text>
                     )}
 
-                    <TouchableOpacity onPress={onClose} className="mt-6 bg-gray-900 py-3 rounded-xl items-center">
+                    <TouchableOpacity onPress={onClose} className="mt-6 bg-primary py-3 rounded-xl items-center">
                         <Text className="text-white font-bold">Close</Text>
                     </TouchableOpacity>
                 </View>

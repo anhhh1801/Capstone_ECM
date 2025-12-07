@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import colors from '../../theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Search } from 'lucide-react-native';
 
@@ -114,7 +115,7 @@ const AdminDashboard = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-background">
             <ScrollView
                 contentContainerStyle={{ padding: 20 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchUsers(); }} />}
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
                 <View className="relative mb-4">
                     <View className="absolute left-3 top-3 z-10"><Search size={20} color="#9ca3af" /></View>
                     <TextInput
-                        className="bg-white border border-gray-200 rounded-xl py-3 pl-10 pr-4 text-gray-700"
+                        className="bg-sky-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 text-foreground"
                         placeholder="Search name, email..."
                         value={searchText}
                         onChangeText={setSearchText}

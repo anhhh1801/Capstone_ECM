@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, Modal, TouchableWithoutFeedback } from 'react-native';
+import { colors } from '@/theme';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Building2, BookOpen, Users, LogOut, User } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -12,7 +13,7 @@ import StudentManagement from '@/screens/teacher/student/StudentManagement';
 
 const PlaceholderScreen = ({ title }: { title: string }) => (
     <View className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-lg text-gray-500">Screen: {title}</Text>
+        <Text className="text-lg text-secondary">Screen: {title}</Text>
     </View>
 );
 
@@ -37,14 +38,14 @@ const CustomHeader = () => {
     };
 
     return (
-        <View className="bg-white px-5 py-3 mt-10 flex-row justify-between items-center shadow-sm z-50">
+        <View className="bg-sky-50 px-5 py-3 mt-10 flex-row justify-between items-center shadow-sm z-50">
 
-            <Text className="text-2xl font-extrabold text-indigo-600 tracking-wider">ECM</Text>
+            <Text className="text-2xl font-extrabold text-primary tracking-wider">ECM</Text>
 
             <TouchableOpacity onPress={() => setShowMenu(true)}>
                 <Image
                     source={{ uri: 'https://ui-avatars.com/api/?name=Teacher+Admin&background=random' }}
-                    className="w-10 h-10 rounded-full border-2 border-indigo-100"
+                    className="w-10 h-10 rounded-full border-2 border-sky-100"
                 />
             </TouchableOpacity>
 
@@ -56,16 +57,16 @@ const CustomHeader = () => {
             >
                 <TouchableWithoutFeedback onPress={() => setShowMenu(false)}>
                     <View className="flex-1 bg-black/20">
-                        <View className="absolute top-5 right-5 bg-white rounded-xl shadow-lg w-52 overflow-hidden py-2">
+                        <View className="absolute top-5 right-5 bg-sky-50 rounded-xl shadow-lg w-52 overflow-hidden py-2">
 
-                            <TouchableOpacity onPress={handleProfile} className="flex-row items-center px-4 py-3 border-b border-gray-100 active:bg-gray-50">
-                                <User size={18} color="#4b5563" style={{ marginRight: 10 }} />
-                                <Text className="text-gray-700">Personal Information</Text>
+                            <TouchableOpacity onPress={handleProfile} className="flex-row items-center px-4 py-3 border-b border-sky-100 active:bg-sky-100">
+                                <User size={18} color={colors.foreground} style={{ marginRight: 10 }} />
+                                <Text className="text-primary">Personal Information</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity onPress={handleLogout} className="flex-row items-center px-4 py-3 active:bg-red-50">
-                                <LogOut size={18} color="#ef4444" style={{ marginRight: 10 }} />
-                                <Text className="text-red-500 font-medium">Logout</Text>
+                                <LogOut size={18} color={colors.accent} style={{ marginRight: 10 }} />
+                                <Text className="text-accent font-medium">Logout</Text>
                             </TouchableOpacity>
 
                         </View>

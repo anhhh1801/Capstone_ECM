@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { BookOpen, Users, UserCog } from 'lucide-react-native';
+import colors from '../../../../theme';
 
 interface Props {
     activeTab: string;
@@ -24,11 +25,9 @@ export default function CenterTabs({ activeTab, setActiveTab, isManager }: Props
                         <TouchableOpacity
                             key={tab.key}
                             onPress={() => setActiveTab(tab.key as any)}
-                            className={`mr-6 pb-3 flex-row items-center gap-2 border-b-2 ${isActive ? "border-blue-600" : "border-transparent"
-                                }`}
-                        >
-                            <tab.icon size={18} color={isActive ? "#2563eb" : "#6b7280"} />
-                            <Text className={`font-medium ${isActive ? "text-blue-600" : "text-gray-500"}`}>
+                            className={`mr-6 pb-3 flex-row items-center gap-2 border-b-2 ${isActive ? 'border-primary' : 'border-transparent'}`}>
+                            <tab.icon size={18} color={isActive ? colors.primary : colors.secondary} />
+                            <Text className={`font-medium ${isActive ? 'text-primary' : 'text-secondary'}`}>
                                 {tab.label}
                             </Text>
                         </TouchableOpacity>
