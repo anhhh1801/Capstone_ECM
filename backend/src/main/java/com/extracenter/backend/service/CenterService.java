@@ -70,7 +70,6 @@ public class CenterService {
         center.setName(request.getName());
         center.setDescription(request.getDescription());
         center.setPhoneNumber(request.getPhoneNumber());
-        // Không cho sửa Manager (hoặc tùy logic của bạn)
 
         return centerRepository.save(center);
     }

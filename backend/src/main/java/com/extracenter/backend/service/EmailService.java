@@ -11,38 +11,39 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    // Gửi mail xác nhận (Dùng OTP 6 số)
+    // Send verification email (Using 6-digit OTP)
     public void sendVerificationEmail(String toEmail, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
-        message.setSubject("[ECM] Mã xác thực tài khoản Giáo viên");
+        message.setSubject("[ECM] Teacher Account Verification Code");
 
-        // Nội dung mail chuyên nghiệp hơn
-        String content = "Xin chào,\n\n" +
-                "Cảm ơn bạn đã đăng ký tài khoản tại ECM System.\n" +
-                "Mã xác thực (OTP) của bạn là:\n\n" +
-                "   " + otp + "\n\n" +
-                "Mã này sẽ hết hạn sau 10 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.\n\n" +
-                "Trân trọng,\n" +
-                "Đội ngũ ECM";
+        // Professional English content
+        String content = "Hello,\n\n" +
+                "Thank you for registering with the ECM System.\n" +
+                "Your verification code (OTP) is:\n\n" +
+                "    " + otp + "\n\n" +
+                "This code will expire in 10 minutes. Please do not share this code with anyone.\n\n" +
+                "Best regards,\n" +
+                "The ECM Team";
 
         message.setText(content);
 
         mailSender.send(message);
     }
 
-    // Gửi mail chứa tài khoản & mật khẩu (Bước 2 - Giữ nguyên logic)
+    // Send email with credentials (Step 2 - Logic preserved)
     public void sendCredentialEmail(String toEmail, String newAccountEmail, String password) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
-        message.setSubject("[ECM] Đăng ký thành công - Thông tin đăng nhập");
-        message.setText("Chào mừng giáo viên mới,\n\n" +
-                "Tài khoản của bạn đã được tạo thành công.\n" +
+        message.setSubject("[ECM] Registration Successful - Login Credentials");
+
+        message.setText("Welcome new teacher,\n\n" +
+                "Your account has been successfully created.\n" +
                 "---------------------------------\n" +
-                "Email đăng nhập: " + newAccountEmail + "\n" +
-                "Mật khẩu: " + password + "\n" +
+                "Login Email: " + newAccountEmail + "\n" +
+                "Password: " + password + "\n" +
                 "---------------------------------\n" +
-                "Vui lòng đổi mật khẩu ngay sau khi đăng nhập lần đầu.");
+                "Please change your password immediately after your first login.");
 
         mailSender.send(message);
     }

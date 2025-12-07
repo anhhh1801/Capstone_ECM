@@ -10,6 +10,7 @@ import Register from '@/screens/register/Register';
 import Verify from '@/screens/verify/Verify';
 import TeacherTabs from '@/navigation/TeacherTabs';
 import CenterDetail from '@/screens/teacher/center/CenterDetail';
+import CenterEdit from '@/screens/teacher/center/CenterEdit';
 import CreateCourse from '@/screens/teacher/course/CreateCourse';
 import CourseDetail from '@/screens/teacher/course/CourseDetail';
 import Profile from '@/screens/teacher/profile/Profile';
@@ -31,6 +32,7 @@ function App(): React.JSX.Element {
 
           <Stack.Screen name="TeacherDashboard" component={TeacherTabs} />
           <Stack.Screen name="CenterDetail" component={CenterDetail} />
+          <Stack.Screen name="CenterEdit" component={CenterEdit} />
 
           <Stack.Screen name="CreateCourse" component={CreateCourse} />
           <Stack.Screen name="CourseDetail" component={CourseDetail} />

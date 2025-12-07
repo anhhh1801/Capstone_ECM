@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
     TextInput, ActivityIndicator, Alert, RefreshControl
@@ -6,23 +6,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import { Building2, Plus, Phone, ExternalLink, Bell, X, MapPin, Briefcase, Trash2, Edit, PencilLineIcon } from 'lucide-react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Building2, Plus, Phone, ExternalLink, Bell, X, Briefcase, Trash2, Edit, PencilLineIcon } from 'lucide-react-native';
 
-// Import Services
-import { getMyCenters, createCenter, deleteCenter, Center } from '@/api/centerService'; // Đảm bảo import deleteCenter
+import { getMyCenters, createCenter, deleteCenter, Center } from '@/api/centerService';
 import { getInvitations, respondInvitation, Course } from '@/api/courseService';
-import axiosClient from '@/api/axiosClient'; // Import để gọi API teaching center thủ công nếu chưa có service
+import axiosClient from '@/api/axiosClient';
 
 const CenterManagement = () => {
     const navigation = useNavigation<any>();
 
-    // --- STATE ---
     const [managedCenters, setManagedCenters] = useState<Center[]>([]);
     const [teachingCenters, setTeachingCenters] = useState<Center[]>([]);
     const [invitations, setInvitations] = useState<Course[]>([]);
 
-    // UI State
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<"managed" | "teaching">("managed");
@@ -55,9 +52,13 @@ const CenterManagement = () => {
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchData();
+            return () => {
+            };
+        }, [])
+    );
 
     // Hide the create form whenever the user switches away from the Managed tab
     useEffect(() => {
@@ -320,7 +321,9 @@ const CenterManagement = () => {
                                 <View className="mt-4 pt-3 border-t border-gray-50 flex-row justify-between items-center">
                                     {activeTab === "managed" ? (
                                         <View className="flex-row gap-4">
-                                            <TouchableOpacity className="flex-row items-center gap-1">
+                                            <TouchableOpacity
+                                                onPress={() => navigation.navigate("CenterEdit", { centerId: center.id })}
+                                                className="flex-row items-center gap-1">
                                                 <Edit size={14} color={colors.primary} />
                                                 <Text className="text-primary font-bold text-xs">Edit</Text>
                                             </TouchableOpacity>

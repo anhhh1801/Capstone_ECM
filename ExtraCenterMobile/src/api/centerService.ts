@@ -33,3 +33,16 @@ export const createCenter = async (data: {
     const response = await axiosClient.post('/centers', data);
     return response.data;
 };
+
+export const updateCenter = async (
+    id: number,
+    data: { name: string; description: string; phoneNumber: string; managerId: number }
+) => {
+    const response = await axiosClient.put(`/centers/${id}`, data);
+    return response.data;
+};
+
+export const getCenterById = async (id: number) => {
+    const response = await axiosClient.get(`/centers/${id}`);
+    return response.data;
+};
