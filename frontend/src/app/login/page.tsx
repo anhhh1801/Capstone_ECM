@@ -77,29 +77,28 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-            <Toaster position="top-center" />
+          <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
+           <Toaster position="top-center" />
 
             <LockedAccountModal
                 isOpen={showLockedModal}
                 onClose={() => setShowLockedModal(false)}
             />
 
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl transition-all hover:shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl bg-[var(--color-secondary)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
                 <div className="mb-8 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-main)] text-white">
                         <Lock size={32} />
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-800">Đăng Nhập</h2>
-                    <p className="text-gray-500 mt-2">Chào mừng quay trở lại ECM</p>
+                    <h2 className="header-1">Sign In to ECM</h2>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     {/* Input Email */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Email</label>
                         <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
                                 <Mail size={20} />
                             </div>
                             <input
@@ -107,7 +106,7 @@ export default function LoginPage() {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-3 pl-10 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                                className="block w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-blue-200 transition"
                                 placeholder="name@ecm.edu.vn"
                             />
                         </div>
@@ -115,9 +114,9 @@ export default function LoginPage() {
 
                     {/* Input Password */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">Mật khẩu</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Mật khẩu</label>
                         <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
                                 <Lock size={20} />
                             </div>
                             <input
@@ -125,7 +124,7 @@ export default function LoginPage() {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-3 pl-10 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                                className="block w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-blue-200 transition"
                                 placeholder="••••••••"
                             />
                         </div>
@@ -135,17 +134,17 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full rounded-lg bg-indigo-600 px-5 py-3 text-center text-base font-medium text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition ${loading ? "cursor-not-allowed opacity-70" : ""
+                        className={`w-full rounded-lg bg-[var(--color-main)] border-2 border-[var(--color-main)] px-5 py-3 text-center text-base font-medium text-white hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] hover:border-2 hover:border-[var(--color-main)] focus:ring-4 focus:ring-[var(--color-secondary)] transition ${loading ? "cursor-not-allowed opacity-70" : ""
                             }`}
                     >
-                        {loading ? "Đang xử lý..." : "Đăng nhập ngay"}
+                        {loading ? "Handling..." : "Continue"}
                     </button>
                 </form>
 
                 <p className="mt-6 text-center text-sm text-gray-500">
-                    Chưa có tài khoản?{" "}
-                    <a href={`/register`} className="font-semibold text-indigo-600 hover:underline">
-                        Đăng kí ngay
+                    Don't have an account ?{" "}
+                    <a href={`/register`} className="font-semibold text-[var(--color-main)] underline hover:text-[var(--color-alert)]">
+                        Go to register
                     </a>
                 </p>
             </div>
