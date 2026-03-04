@@ -181,6 +181,7 @@ const UserManagement = () => {
                                     <button
                                         onClick={() => handleViewStats(user)}
                                         className="p-2 bg-[var(--color-main)] text-white rounded text-xs hover:bg-blue-600"
+                                        title="View user statistics"
                                     >
                                         <ChartColumnDecreasingIcon size={26} />
                                     </button>

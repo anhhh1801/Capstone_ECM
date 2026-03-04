@@ -70,9 +70,9 @@ export default function ProfilePage() {
             localStorage.setItem("user", JSON.stringify(updatedUser));
             setUser(updatedUser);
 
-            toast.success("Cập nhật thông tin thành công!");
+            toast.success("Profile updated successfully!");
         } catch (error: any) {
-            toast.error("Lỗi khi cập nhật.");
+            toast.error("Error updating profile.");
         } finally {
             setSaving(false);
         }
@@ -83,7 +83,7 @@ export default function ProfilePage() {
         if (!user) return;
 
         const confirm = window.confirm(
-            "CẢNH BÁO: Bạn có chắc chắn muốn vô hiệu hóa tài khoản?\n\nBạn sẽ không thể đăng nhập lại cho đến khi liên hệ Admin để mở khóa."
+            "WARNING: Are you sure you want to deactivate your account?\n\nYou will not be able to log in again until you contact Admin to unlock it."
         );
 
         if (!confirm) return;
@@ -91,7 +91,7 @@ export default function ProfilePage() {
         try {
             await api.post(`/users/${user.id}/deactivate`);
 
-            toast.success("Tài khoản đã bị vô hiệu hóa.");
+            toast.success("Account has been deactivated.");
 
             // Clear data and kick to login
             localStorage.removeItem("user");
@@ -100,7 +100,7 @@ export default function ProfilePage() {
             }, 1500);
 
         } catch (error) {
-            toast.error("Không thể vô hiệu hóa tài khoản.");
+            toast.error("Unable to deactivate account.");
         }
     };
 
@@ -108,15 +108,15 @@ export default function ProfilePage() {
         if (!user) return;
 
         if (!passData.oldPassword || !passData.newPassword) {
-            toast.error("Vui lòng nhập đầy đủ thông tin.");
+            toast.error("Please fill in all required fields.");
             return;
         }
         if (passData.newPassword !== passData.confirmPassword) {
-            toast.error("Mật khẩu xác nhận không khớp!");
+            toast.error("Password confirmation does not match!");
             return;
         }
         if (passData.newPassword.length < 6) {
-            toast.error("Mật khẩu mới phải có ít nhất 6 ký tự.");
+            toast.error("New password must be at least 6 characters.");
             return;
         }
 
@@ -126,12 +126,12 @@ export default function ProfilePage() {
                 newPassword: passData.newPassword
             });
 
-            toast.success("Đổi mật khẩu thành công!");
+            toast.success("Password changed successfully!");
             setShowPasswordModal(false);
             setPassData({ oldPassword: "", newPassword: "", confirmPassword: "" }); // Reset form
         } catch (error: any) {
             const msg = error.response?.data || "Đổi mật khẩu thất bại.";
-            toast.error(msg);
+            toast.error(msg || "Password change failed.");
         }
     };
 
@@ -144,14 +144,14 @@ export default function ProfilePage() {
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Thông tin cá nhân</h1>
-                    <p className="text-gray-500 text-sm">Quản lý thông tin hiển thị và bảo mật</p>
+                    <h1 className="text-2xl font-bold text-gray-800">Personal Information</h1>
+                    <p className="text-gray-500 text-sm">Manage display information and security</p>
                 </div>
                 <button
                     onClick={() => setShowPasswordModal(true)}
                     className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-black transition text-sm font-medium"
                 >
-                    <Lock size={16} /> Đổi mật khẩu
+                    <Lock size={16} /> Change Password
                 </button>
             </div>
 
@@ -160,7 +160,7 @@ export default function ProfilePage() {
                 <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                         <User size={20} className="text-blue-600" />
-                        Thông tin cơ bản
+                        Basic Information
                     </h3>
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
                         {user?.role.name}
@@ -170,7 +170,7 @@ export default function ProfilePage() {
                 <form onSubmit={handleSave} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* First Name */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Họ</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
                         <input
                             name="firstName"
                             value={formData.firstName}
@@ -181,7 +181,7 @@ export default function ProfilePage() {
 
                     {/* Last Name */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
                         <input
                             name="lastName"
                             value={formData.lastName}
@@ -192,7 +192,7 @@ export default function ProfilePage() {
 
                     {/* Email (Read Only) */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email đăng nhập</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Login Email</label>
                         <div className="relative">
                             <Mail size={16} className="absolute left-3 top-3 text-gray-400" />
                             <input
@@ -201,12 +201,12 @@ export default function ProfilePage() {
                                 className="w-full p-2 pl-10 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                             />
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">Liên hệ Admin để thay đổi email.</p>
+                        <p className="text-xs text-gray-400 mt-1">Contact Admin to change your email.</p>
                     </div>
 
                     {/* Personal Email (Read Only) */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email cá nhân (Liên hệ)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Personal Email (Contact)</label>
                         <div className="relative">
                             <Mail size={16} className="absolute left-3 top-3 text-gray-400" />
                             <input
@@ -219,7 +219,7 @@ export default function ProfilePage() {
 
                     {/* Phone */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
                         <div className="relative">
                             <Phone size={16} className="absolute left-3 top-3 text-gray-400" />
                             <input
@@ -233,7 +233,7 @@ export default function ProfilePage() {
 
                     {/* Date of Birth */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
                         <div className="relative">
                             <Calendar size={16} className="absolute left-3 top-3 text-gray-400" />
                             <input
@@ -254,7 +254,7 @@ export default function ProfilePage() {
                             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50"
                         >
                             <Save size={18} />
-                            {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                            {saving ? "Saving..." : "Save changes"}
                         </button>
                     </div>
                 </form>
@@ -264,13 +264,13 @@ export default function ProfilePage() {
             <div className="bg-red-50 rounded-xl shadow-sm border border-red-100 overflow-hidden">
                 <div className="p-6 border-b border-red-100 flex items-center gap-2 text-red-700">
                     <ShieldAlert size={20} />
-                    <h3 className="font-bold">Vùng nguy hiểm (Danger Zone)</h3>
+                    <h3 className="font-bold">Danger Zone</h3>
                 </div>
                 <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h4 className="font-semibold text-gray-800">Vô hiệu hóa tài khoản</h4>
+                        <h4 className="font-semibold text-gray-800">Deactivate account</h4>
                         <p className="text-sm text-gray-500">
-                            Tài khoản của bạn sẽ bị khóa ngay lập tức. Bạn sẽ không thể đăng nhập cho đến khi Admin kích hoạt lại.
+                            Your account will be locked immediately. You will not be able to log in until an Admin reactivates it.
                         </p>
                     </div>
                     <button
@@ -278,7 +278,7 @@ export default function ProfilePage() {
                         className="flex items-center gap-2 bg-white border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm whitespace-nowrap"
                     >
                         <AlertTriangle size={18} />
-                        Vô hiệu hóa ngay
+                        Deactivate now
                     </button>
                 </div>
             </div>
@@ -287,13 +287,13 @@ export default function ProfilePage() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-xl shadow-xl p-6 w-96 animate-in zoom-in duration-200">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
-                            <h3 className="text-lg font-bold">Đổi mật khẩu</h3>
+                            <h3 className="text-lg font-bold">Change Password</h3>
                             <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-black"><X size={20} /></button>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Mật khẩu cũ</label>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Old password</label>
                                 <input
                                     type="password"
                                     className="w-full p-2 border rounded focus:border-blue-500 outline-none"
@@ -302,7 +302,7 @@ export default function ProfilePage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Mật khẩu mới</label>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">New password</label>
                                 <input
                                     type="password"
                                     className="w-full p-2 border rounded focus:border-blue-500 outline-none"
@@ -311,7 +311,7 @@ export default function ProfilePage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Nhập lại mật khẩu mới</label>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Confirm new password</label>
                                 <input
                                     type="password"
                                     className="w-full p-2 border rounded focus:border-blue-500 outline-none"
@@ -324,7 +324,7 @@ export default function ProfilePage() {
                                 onClick={handleChangePassword}
                                 className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 mt-2"
                             >
-                                Xác nhận đổi
+                                Confirm change
                             </button>
                         </div>
                     </div>

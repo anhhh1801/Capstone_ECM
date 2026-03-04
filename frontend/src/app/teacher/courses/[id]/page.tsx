@@ -39,7 +39,7 @@ export default function CourseDetailPage() {
                 // ------------------------------
 
             } catch (error) {
-                toast.error("Không thể tải thông tin khóa học");
+                toast.error("Unable to load course details");
                 console.error(error);
             } finally {
                 setLoading(false);
@@ -49,8 +49,8 @@ export default function CourseDetailPage() {
         if (courseId) fetchDetail();
     }, [courseId]);
 
-    if (loading) return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu...</div>;
-    if (!course) return <div className="p-10 text-center text-red-500">Khóa học không tồn tại</div>;
+    if (loading) return <div className="p-10 text-center text-gray-500">Loading data...</div>;
+    if (!course) return <div className="p-10 text-center text-red-500">Course not found</div>;
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-10">
@@ -76,7 +76,7 @@ export default function CourseDetailPage() {
                         </div>
                         <p className="text-gray-500 flex items-center gap-2 mt-2">
                             <MapPin size={18} className="text-blue-500" />
-                            {course.center?.name || "Chưa cập nhật trung tâm"}
+                            {course.center?.name || "Center not updated"}
                         </p>
                     </div>
 
@@ -99,16 +99,16 @@ export default function CourseDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-300">
                     <div className="md:col-span-2 space-y-6">
                         <div className="bg-white p-6 rounded-xl shadow-sm border">
-                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Mô tả khóa học</h3>
+                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Course description</h3>
                             <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                                {course.description || "Chưa có mô tả chi tiết cho khóa học này."}
+                                {course.description || "No detailed description is available for this course."}
                             </p>
                         </div>
                     </div>
 
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-xl shadow-sm border">
-                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Thông tin lớp học</h3>
+                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Class information</h3>
 
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3">
@@ -116,7 +116,7 @@ export default function CourseDetailPage() {
                                         <Book size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Môn học</p>
+                                        <p className="text-xs text-gray-500">Subject</p>
                                         <p className="font-medium text-gray-800">{course.subject}</p>
                                     </div>
                                 </div>
@@ -126,7 +126,7 @@ export default function CourseDetailPage() {
                                         <GraduationCap size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Khối lớp</p>
+                                        <p className="text-xs text-gray-500">Grade</p>
                                         <p className="font-medium text-gray-800">Lớp {course.grade}</p>
                                     </div>
                                 </div>
@@ -136,7 +136,7 @@ export default function CourseDetailPage() {
                                         <User size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Giáo viên phụ trách</p>
+                                        <p className="text-xs text-gray-500">Instructor</p>
                                         <p className="font-medium text-gray-800">
                                             {course.teacher?.lastName} {course.teacher?.firstName}
                                         </p>
@@ -148,7 +148,7 @@ export default function CourseDetailPage() {
                                         <Calendar size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Thời gian</p>
+                                        <p className="text-xs text-gray-500">Schedule</p>
                                         <p className="font-medium text-gray-800 text-sm">
                                             {course.startDate} <span className="text-gray-400 mx-1">→</span> {course.endDate}
                                         </p>
@@ -165,7 +165,7 @@ export default function CourseDetailPage() {
                 <div className="animate-in fade-in duration-300">
                     <div className="bg-white p-6 rounded-xl shadow-sm border text-center text-gray-500 py-10">
                         {/* You can create a read-only list here, or reuse CourseEnrollment without buttons */}
-                        <p>Danh sách học viên sẽ hiển thị ở đây (Read Only View)</p>
+                        <p>Student list will appear here (Read Only View)</p>
                         {/* Temporary: reusing enrollment component but maybe we hide actions via props later */}
                         <CourseEnrollment courseId={courseId} />
                     </div>
@@ -176,7 +176,7 @@ export default function CourseDetailPage() {
             {activeTab === "Enrollment" && isManager && (
                 <div className="animate-in fade-in duration-300">
                     <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg mb-4 text-sm text-blue-800">
-                        👋 Xin chào quản lý! Bạn có thể thêm hoặc xóa học sinh khỏi lớp học này.
+                        👋 Hello manager! You can add or remove students from this class.
                     </div>
                     {/* Reuse the component we created in the previous step */}
                     <CourseEnrollment courseId={courseId} />

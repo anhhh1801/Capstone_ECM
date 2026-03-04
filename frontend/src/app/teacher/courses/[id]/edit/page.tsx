@@ -38,7 +38,7 @@ export default function EditCoursePage() {
                 });
                 setCenterId(data.center.id);
             } catch (error) {
-                toast.error("Không tìm thấy khóa học!");
+                toast.error("Course not found!");
                 router.back();
             } finally {
                 setLoading(false);
@@ -52,31 +52,31 @@ export default function EditCoursePage() {
         setSaving(true);
         try {
             await updateCourse(courseId, formData);
-            toast.success("Cập nhật thành công!");
+            toast.success("Updated successfully!");
             // Quay lại trang chi tiết trung tâm
             if (centerId) router.push(`/teacher/centers/${centerId}`);
         } catch (error) {
-            toast.error("Lỗi khi lưu!");
+            toast.error("Error saving!");
         } finally {
             setSaving(false);
         }
     };
 
-    if (loading) return <p className="p-10 text-center">Đang tải dữ liệu...</p>;
+    if (loading) return <p className="p-10 text-center">Loading data...</p>;
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 hover:text-blue-600">
-                <ArrowLeft size={18} /> Hủy bỏ
+                <ArrowLeft size={18} /> Cancel
             </button>
 
             <div className="bg-white p-8 rounded-xl shadow-sm border">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Chỉnh sửa khóa học</h1>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Edit Course</h1>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Tên khóa */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Course name</label>
                         <input
                             type="text" required
                             className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -88,11 +88,11 @@ export default function EditCoursePage() {
                     {/* Môn & Lớp */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Môn học</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                             <input type="text" className="w-full p-2.5 border rounded-lg bg-gray-100 cursor-not-allowed" value={formData.subject} disabled />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Khối lớp</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                             <input
                                 type="number" required min={1} max={12}
                                 className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -105,7 +105,7 @@ export default function EditCoursePage() {
                     {/* Ngày tháng */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
                             <input
                                 type="date" required
                                 className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -114,7 +114,7 @@ export default function EditCoursePage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Ngày kết thúc</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">End date</label>
                             <input
                                 type="date" required
                                 className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -126,7 +126,7 @@ export default function EditCoursePage() {
 
                     {/* Mô tả */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea
                             rows={4}
                             className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -139,7 +139,7 @@ export default function EditCoursePage() {
                         type="submit" disabled={saving}
                         className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2"
                     >
-                        {saving ? "Đang lưu..." : <><Save size={20} /> Lưu thay đổi</>}
+                        {saving ? "Saving..." : <><Save size={20} /> Save changes</>}
                     </button>
                 </form>
             </div>

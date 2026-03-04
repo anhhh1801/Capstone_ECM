@@ -6,15 +6,15 @@ import api from "@/utils/axiosConfig";
 import { getMyCenters, Center } from "@/services/centerService";
 import toast from "react-hot-toast";
 
-// Import các Component con
+// Import child components
 import StudentTable from "./components/StudentTable";
 import { deleteStudent } from "@/services/userService";
 import StudentModal from "./components/StudentModal";
 
 export default function GlobalStudentsPage() {
     // 1. STATE QUẢN LÝ DỮ LIỆU
-    const [allStudents, setAllStudents] = useState<any[]>([]); // Data gốc
-    const [filteredStudents, setFilteredStudents] = useState<any[]>([]); // Data sau khi lọc
+    const [allStudents, setAllStudents] = useState<any[]>([]); // original data
+    const [filteredStudents, setFilteredStudents] = useState<any[]>([]); // filtered data
     const [centers, setCenters] = useState<Center[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -65,10 +65,10 @@ export default function GlobalStudentsPage() {
             setAllStudents(uniqueStudents);
             setFilteredStudents(uniqueStudents);
 
-        } catch (e) {
-            console.error(e);
-            toast.error("Lỗi tải dữ liệu");
-        } finally {
+            } catch (e) {
+                console.error(e);
+                toast.error("Failed to load data");
+            } finally {
             setLoading(false);
         }
     };
@@ -103,17 +103,17 @@ export default function GlobalStudentsPage() {
     }, [searchTerm, selectedCenterId, allStudents]);
 
     const handleDeletePermanently = async (studentId: number) => {
-        const confirmMsg = "CẢNH BÁO: Hành động này sẽ xóa VĨNH VIỄN tài khoản học sinh và toàn bộ dữ liệu học tập liên quan.\n\nBạn có chắc chắn không?";
+        const confirmMsg = "WARNING: This will permanently delete the student account and all related study data.\n\nAre you sure?";
         if (!confirm(confirmMsg)) return;
 
         try {
             await deleteStudent(studentId);
-            toast.success("Đã xóa vĩnh viễn!");
+            toast.success("Permanently deleted!");
 
-            // Cập nhật lại list
+            // Refresh list
             setAllStudents(prev => prev.filter(s => s.id !== studentId));
         } catch (e) {
-            toast.error("Không thể xóa (Có thể do dữ liệu ràng buộc)");
+            toast.error("Unable to delete (may be due to data constraints)");
         }
     };
 
@@ -140,15 +140,15 @@ export default function GlobalStudentsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Users className="text-blue-600" /> Quản lý Học viên (Bể chung)
+                        <Users className="text-blue-600" /> Manage Students (Global Pool)
                     </h1>
-                    <p className="text-gray-500 text-sm">Tổng hợp học viên từ tất cả chi nhánh của bạn</p>
+                    <p className="text-gray-500 text-sm">Aggregates students from all your branches</p>
                 </div>
                 <button
                     onClick={openCreateModal}
                     className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-2 shadow-sm transition"
                 >
-                    <Plus size={20} /> Thêm Học viên Mới
+                    <Plus size={20} /> Add New Student
                 </button>
             </div>
 
@@ -159,7 +159,7 @@ export default function GlobalStudentsPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Tìm tên, email, số điện thoại..."
+                        placeholder="Search name, email, phone..."
                         className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -174,11 +174,11 @@ export default function GlobalStudentsPage() {
                         value={selectedCenterId}
                         onChange={(e) => setSelectedCenterId(e.target.value)}
                     >
-                        <option value="ALL">Tất cả Trung tâm</option>
+                        <option value="ALL">All Centers</option>
                         {centers.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
-                        <option value="NONE">Học viên tự do (Chưa gán)</option>
+                        <option value="NONE">Unassigned Students (Not linked)</option>
                     </select>
                 </div>
             </div>

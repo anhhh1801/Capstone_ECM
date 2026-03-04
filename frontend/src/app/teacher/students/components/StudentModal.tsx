@@ -9,9 +9,9 @@ import toast from "react-hot-toast";
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void; // Reload lại bảng dữ liệu
-    studentToEdit?: any;   // Nếu có cái này -> Chế độ Edit
-    preSelectedCenterId?: number; // Dùng cho chế độ tạo mới tại 1 center cụ thể
+    onSuccess: () => void; // reload parent table data
+    studentToEdit?: any;   // if present -> Edit mode
+    preSelectedCenterId?: number; // used when creating a student inside a specific center
 }
 
 export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit, preSelectedCenterId }: Props) {
@@ -23,7 +23,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
         firstName: "", lastName: "", phoneNumber: "", dateOfBirth: "", centerId: "" as any
     });
 
-    // Load danh sách Center của giáo viên
+    // Load teacher's centers
     useEffect(() => {
         if (isOpen) {
             const fetchCenters = async () => {
@@ -35,11 +35,11 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
         }
     }, [isOpen]);
 
-    // Reset hoặc Fill dữ liệu khi mở Modal
+    // Reset or fill data when opening the modal
     useEffect(() => {
         if (isOpen) {
-            if (studentToEdit) {
-                // CHẾ ĐỘ EDIT: Điền thông tin cũ vào form
+                if (studentToEdit) {
+                // EDIT MODE: Populate existing data into form
                 setForm({
                     firstName: studentToEdit.firstName,
                     lastName: studentToEdit.lastName,
@@ -48,7 +48,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
                     centerId: "" // Không dùng trong edit mode
                 });
             } else {
-                // CHẾ ĐỘ CREATE: Reset form
+                // CREATE MODE: Reset form
                 setForm({
                     firstName: "", lastName: "", phoneNumber: "", dateOfBirth: "",
                     centerId: preSelectedCenterId || ""
@@ -67,21 +67,21 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
             if (studentToEdit) {
                 // UPDATE
                 await updateStudent(studentToEdit.id, form);
-                toast.success("Cập nhật thông tin thành công!");
+                toast.success("Updated successfully!");
             } else {
                 // CREATE
                 if (!form.centerId) {
-                    toast.error("Vui lòng chọn trung tâm quản lý!");
+                    toast.error("Please select a managing center!");
                     setLoading(false);
                     return;
                 }
                 await createStudentAuto(form);
-                toast.success("Tạo học sinh thành công!");
+                toast.success("Student created successfully!");
             }
             onSuccess();
             onClose();
         } catch (error) {
-            toast.error("Có lỗi xảy ra!");
+            toast.error("An error occurred!");
         } finally {
             setLoading(false);
         }
@@ -91,19 +91,19 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
     const handleAddCenter = async (centerIdToAdd: number) => {
         try {
             await assignStudentToCenter(centerIdToAdd, studentToEdit.id);
-            toast.success("Đã thêm vào trung tâm mới");
-            onSuccess(); // Refresh lại list ở ngoài để cập nhật state studentToEdit (nếu cần logic phức tạp hơn thì phải fetch lại detail student)
-        } catch (e) { toast.error("Lỗi thêm trung tâm"); }
+            toast.success("Added to new center");
+            onSuccess(); // Refresh parent list
+        } catch (e) { toast.error("Error adding center"); }
     };
 
     // Xử lý Gỡ Center (Chỉ hiện khi Edit)
     const handleRemoveCenter = async (centerIdToRemove: number) => {
-        if (!confirm("Gỡ học sinh khỏi trung tâm này?")) return;
+        if (!confirm("Remove student from this center?")) return;
         try {
             await removeStudentFromCenter(centerIdToRemove, studentToEdit.id);
-            toast.success("Đã gỡ khỏi trung tâm");
+            toast.success("Removed from center");
             onSuccess();
-        } catch (e) { toast.error("Lỗi gỡ trung tâm"); }
+        } catch (e) { toast.error("Error removing center"); }
     };
 
     // Lọc ra những center mà học sinh CHƯA tham gia để hiện trong dropdown thêm
@@ -117,22 +117,22 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
                 {/* Header */}
                 <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center sticky top-0 z-10">
                     <h3 className="font-bold text-lg text-gray-800">
-                        {studentToEdit ? "Chỉnh sửa Hồ sơ" : "Thêm Học viên Mới"}
+                        {studentToEdit ? "Edit Profile" : "Add New Student"}
                     </h3>
                     <button onClick={onClose}><X size={24} className="text-gray-400 hover:text-red-500" /></button>
                 </div>
 
                 <div className="p-6 space-y-6">
-                    {/* FORM THÔNG TIN CÁ NHÂN */}
+                    {/* PERSONAL INFORMATION FORM */}
                     <form id="student-form" onSubmit={handleSubmit} className="space-y-4">
                         {/* Nếu là CREATE thì phải chọn Center. Nếu là EDIT thì ẩn đi */}
                         {!studentToEdit && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Thuộc Trung tâm <span className="text-red-500">*</span>
+                                    Affiliated Center <span className="text-red-500">*</span>
                                 </label>
                                 {preSelectedCenterId ? (
-                                    <div className="p-2 bg-gray-100 border rounded text-sm">(Đã chọn trung tâm hiện tại)</div>
+                                    <div className="p-2 bg-gray-100 border rounded text-sm">(Selected current center)</div>
                                 ) : (
                                     <select
                                         required
@@ -140,7 +140,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
                                         value={form.centerId}
                                         onChange={e => setForm({ ...form, centerId: Number(e.target.value) })}
                                     >
-                                        <option value="">-- Chọn trung tâm --</option>
+                                        <option value="">-- Select a center --</option>
                                         {centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 )}
@@ -149,20 +149,20 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-sm font-medium">Họ</label>
+                                <label className="text-sm font-medium">Last name</label>
                                 <input required className="w-full p-2 border rounded" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} />
                             </div>
                             <div>
-                                <label className="text-sm font-medium">Tên</label>
+                                <label className="text-sm font-medium">First name</label>
                                 <input required className="w-full p-2 border rounded" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} />
                             </div>
                         </div>
                         <div>
-                            <label className="text-sm font-medium">SĐT</label>
+                            <label className="text-sm font-medium">Phone</label>
                             <input className="w-full p-2 border rounded" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} />
                         </div>
                         <div>
-                            <label className="text-sm font-medium">Ngày sinh</label>
+                            <label className="text-sm font-medium">Date of birth</label>
                             <input required type="date" className="w-full p-2 border rounded" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} />
                         </div>
                     </form>
@@ -171,7 +171,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
                     {studentToEdit && (
                         <div className="border-t pt-6">
                             <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                                <Building2 size={18} /> Trung tâm trực thuộc
+                                <Building2 size={18} /> Affiliated Centers
                             </h4>
 
                             {/* Danh sách center hiện tại */}
@@ -184,7 +184,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
                                             type="button"
                                             onClick={() => handleRemoveCenter(c.id)}
                                             className="text-red-400 hover:text-red-600 p-1"
-                                            title="Gỡ khỏi trung tâm này"
+                                            title="Remove from this center"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -209,7 +209,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
                                         }}
                                         className="bg-green-600 text-white px-3 py-2 rounded text-sm font-bold hover:bg-green-700 flex items-center gap-1"
                                     >
-                                        <Plus size={16} /> Thêm
+                                        <Plus size={16} /> Add
                                     </button>
                                 </div>
                             )}
@@ -219,12 +219,12 @@ export default function StudentModal({ isOpen, onClose, onSuccess, studentToEdit
 
                 {/* Footer */}
                 <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3 sticky bottom-0">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded font-medium">Hủy</button>
+                    <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded font-medium">Cancel</button>
                     <button
                         form="student-form" type="submit" disabled={loading}
                         className="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 transition disabled:bg-gray-400"
                     >
-                        {loading ? "Đang lưu..." : "Lưu thay đổi"}
+                        {loading ? "Saving..." : "Save changes"}
                     </button>
                 </div>
             </div>

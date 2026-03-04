@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Logo from "./Logo";
 import type { User } from "@/services/authService";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, LayoutDashboard } from "lucide-react";
 
 export default function Header() {
     const [user, setUser] = useState<User | null>(null);
@@ -49,15 +49,36 @@ export default function Header() {
                     <Link href="/" className="flex items-center">
                         <Logo className="text-white" />
                     </Link>
-                    <nav className="gap-2 flex items-center">
+                    <nav className="flex items-center gap-2">
                         {user ? (
                             <>
                                 <span className="opacity-80">
                                     {user.email}
                                 </span>
-                                <Link href="/teacher/profile" className="inline-flex items-center">
+                                <Link
+                                    href={
+                                        user.role.name === "TEACHER" ? "/teacher/dashboard" :
+                                            user.role.name === "ADMIN" ? "/admin/users" :
+                                                user.role.name === "STUDENT" ? "/student/dashboard" :
+                                                    "/"
+                                    }
+                                    className="inline-flex items-center"
+                                    title="Dashboard"
+                                    aria-label="Go to dashboard"
+                                >
+                                    <LayoutDashboard size={28} className="hover:text-[var(--color-secondary)]" />
+                                </Link>
+                                <Link
+                                    href={
+                                        user.role.name === "TEACHER" ? "/teacher/profile" :
+                                            user.role.name === "ADMIN" ? "/admin/profile" :
+                                                user.role.name === "STUDENT" ? "/student/profile" :
+                                                    "/"
+                                    }
+                                    className="inline-flex items-center">
                                     <Settings size={32} className="hover:text-[var(--color-secondary)] hover:size-10" />
                                 </Link>
+
                                 <button
                                     onClick={() => setShowLogoutConfirm(true)}
                                     className="inline-flex items-center"

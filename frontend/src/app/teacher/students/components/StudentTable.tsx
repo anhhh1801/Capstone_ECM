@@ -22,15 +22,15 @@ interface Props {
     onEdit: (student: any) => void;
 }
 
-export default function StudentTable({ students, loading, onAssign, onDelete, deleteLabel = "Xóa", onEdit }: Props) {
+export default function StudentTable({ students, loading, onAssign, onDelete, deleteLabel = "Delete", onEdit }: Props) {
     if (loading) {
-        return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu...</div>;
+        return <div className="p-10 text-center text-gray-500">Loading data...</div>;
     }
 
     if (students.length === 0) {
         return (
             <div className="p-10 text-center border border-dashed rounded-xl bg-gray-50 text-gray-500">
-                Không tìm thấy học sinh nào.
+                No students found.
             </div>
         );
     }
@@ -40,10 +40,10 @@ export default function StudentTable({ students, loading, onAssign, onDelete, de
             <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 font-semibold text-gray-700 uppercase text-xs">
                     <tr>
-                        <th className="px-6 py-4">Học viên</th>
-                        <th className="px-6 py-4">Thông tin liên hệ</th>
-                        <th className="px-6 py-4">Trung tâm trực thuộc</th>
-                        <th className="px-6 py-4 text-right">Hành động</th>
+                        <th className="px-6 py-4">Student</th>
+                        <th className="px-6 py-4">Contact Info</th>
+                        <th className="px-6 py-4">Affiliated Centers</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -89,7 +89,7 @@ export default function StudentTable({ students, loading, onAssign, onDelete, de
                                             </span>
                                         ))
                                     ) : (
-                                        <span className="text-xs text-gray-400 italic">Tự do (Chưa gán)</span>
+                                        <span className="text-xs text-gray-400 italic">Unassigned</span>
                                     )}
                                 </div>
                             </td>
@@ -103,7 +103,7 @@ export default function StudentTable({ students, loading, onAssign, onDelete, de
                                             onClick={() => onAssign(student.id)}
                                             className="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-medium border border-blue-200 mr-2"
                                         >
-                                            + Gán Center
+                                            + Assign Center
                                         </button>
                                     )}
                                     <button
@@ -114,10 +114,10 @@ export default function StudentTable({ students, loading, onAssign, onDelete, de
                                         {deleteLabel === "Gỡ" ? <Unlink size={18} /> : <Trash2 size={18} />}
                                     </button>
                                     <button
-                                        onClick={() => onEdit(student)} // Gọi hàm edit
+                                        onClick={() => onEdit(student)} // call edit
                                         className="text-blue-600 hover:text-blue-800 font-medium text-sm mr-3"
                                     >
-                                        Hồ sơ
+                                        Profile
                                     </button>
                                 </div>
                             </td>

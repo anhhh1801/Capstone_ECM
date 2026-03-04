@@ -61,13 +61,13 @@ export default function RegisterPage() {
                             Waiting a confirmation!
                         </span>
                         <button
-                            onClick={async () => {
-                                toast.dismiss(t.id);
-                                await handleResendOld(formData.personalEmail);
-                            }}
-                            className="bg-blue-600 text-white text-xs py-1 px-3 rounded hover:bg-blue-700"
+                          onClick={async () => {
+                            toast.dismiss(t.id);
+                            await handleResendOld(formData.personalEmail);
+                          }}
+                          className="bg-blue-600 text-white text-xs py-1 px-3 rounded hover:bg-blue-700"
                         >
-                            Gửi lại mã OTP & Xác thực ngay
+                          Resend OTP & Verify now
                         </button>
                     </div>
                 ), { duration: 6000, icon: '⚠️' });

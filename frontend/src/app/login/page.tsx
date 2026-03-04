@@ -74,8 +74,8 @@ export default function LoginPage() {
             if (typeof msg === 'string' && msg.includes("ACCOUNT_DEACTIVATED")) {
                 toast((t) => (
                     <div>
-                        <p className="font-bold">Tài khoản đang tạm khóa/chưa xác thực.</p>
-                        <p className="text-sm">Hệ thống đã gửi OTP mới vào email cá nhân của bạn.</p>
+                        <p className="font-bold">Your account is temporarily locked / unverified.</p>
+                        <p className="text-sm">A new OTP has been sent to your email address.</p>
                     </div>
                 ), { duration: 5000, icon: '🔄' });
 
@@ -135,7 +135,7 @@ export default function LoginPage() {
 
                     {/* Input Password */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Mật khẩu</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Password</label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
                                 <Lock size={20} />

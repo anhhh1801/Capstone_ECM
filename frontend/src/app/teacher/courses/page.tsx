@@ -22,7 +22,7 @@ export default function CourseListPage() {
             const data = await getTeacherCourses(user.id);
             setCourses(data);
         } catch (error) {
-            toast.error("Không thể tải danh sách khóa học");
+            toast.error("Unable to load course list");
             console.error(error);
         } finally {
             setLoading(false);
@@ -40,11 +40,11 @@ export default function CourseListPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <BookOpen className="text-blue-600" />
-                    Quản lý Khóa học
+                    Manage Courses
                 </h1>
                 <Link href={`/teacher/courses/create`} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm">
                     <Plus size={20} />
-                    Tạo khóa học mới
+                    Create new course
                 </Link>
             </div>
 
@@ -53,7 +53,7 @@ export default function CourseListPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                     type="text"
-                    placeholder="Tìm kiếm khóa học..."
+                    placeholder="Search courses..."
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
             </div>
@@ -61,22 +61,22 @@ export default function CourseListPage() {
             {/* Bảng danh sách */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 {loading ? (
-                    <div className="p-8 text-center text-gray-500">Đang tải dữ liệu...</div>
+                    <div className="p-8 text-center text-gray-500">Loading data...</div>
                 ) : courses.length === 0 ? (
                     <div className="p-12 text-center text-gray-500 flex flex-col items-center">
                         <BookOpen size={48} className="text-gray-300 mb-4" />
-                        <p>Bạn chưa có khóa học nào.</p>
+                        <p>You don't have any courses yet.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-gray-600">
                             <thead className="bg-gray-50 text-gray-700 font-semibold uppercase text-xs">
                                 <tr>
-                                    <th className="px-6 py-4">Tên khóa học</th>
-                                    <th className="px-6 py-4">Môn học</th>
-                                    <th className="px-6 py-4">Trung tâm</th>
-                                    <th className="px-6 py-4">Trạng thái</th>
-                                    <th className="px-6 py-4 text-right">Hành động</th>
+                                    <th className="px-6 py-4">Course name</th>
+                                    <th className="px-6 py-4">Subject</th>
+                                    <th className="px-6 py-4">Center</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -84,7 +84,7 @@ export default function CourseListPage() {
                                     <tr key={course.id} className="hover:bg-blue-50 transition">
                                         <td className="px-6 py-4 font-medium text-gray-900">
                                             {course.name}
-                                            <span className="block text-xs text-gray-500 mt-0.5">Lớp {course.grade}</span>
+                                            <span className="block text-xs text-gray-500 mt-0.5">Grade {course.grade}</span>
                                         </td>
                                         <td className="px-6 py-4">{course.subject}</td>
                                         <td className="px-6 py-4">{course.center?.name}</td>
@@ -93,7 +93,7 @@ export default function CourseListPage() {
                                                 ? 'bg-green-100 text-green-800'
                                                 : 'bg-gray-100 text-gray-800'
                                                 }`}>
-                                                {course.status === 'ACTIVE' ? 'Đang dạy' : course.status}
+                                                {course.status === 'ACTIVE' ? 'Ongoing' : course.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -101,7 +101,7 @@ export default function CourseListPage() {
                                                 href={`/teacher/courses/${course.id}`}
                                                 className="text-blue-600 hover:text-blue-800 font-medium"
                                             >
-                                                Chi tiết
+                                                Details
                                             </Link>
                                         </td>
                                     </tr>
