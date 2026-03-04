@@ -66,7 +66,7 @@ export default function Header() {
                                     title="Dashboard"
                                     aria-label="Go to dashboard"
                                 >
-                                    <LayoutDashboard size={28} className="hover:text-[var(--color-secondary)]" />
+                                    <LayoutDashboard size={28} className="hover:text-[var(--color-secondary)] hover:size-10" />
                                 </Link>
                                 <Link
                                     href={
