@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerTeacher, resendOtp } from "@/services/authService";
@@ -10,6 +10,25 @@ import { UserPlus, Mail, Phone, User } from "lucide-react";
 export default function RegisterPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+
+    // if already authenticated, redirect
+    useEffect(() => {
+        const stored = localStorage.getItem("loginResponse");
+        if (stored) {
+            try {
+                const { user } = JSON.parse(stored);
+                if (user?.role?.name === "TEACHER") {
+                    router.replace("/teacher/dashboard");
+                } else if (user?.role?.name === "STUDENT") {
+                    router.replace("/student/dashboard");
+                } else if (user?.role?.name === "ADMIN") {
+                    router.replace("/admin/users");
+                } else {
+                    router.replace("/");
+                }
+            } catch (_) {}
+        }
+    }, [router]);
 
     const [formData, setFormData] = useState({
         firstName: "",

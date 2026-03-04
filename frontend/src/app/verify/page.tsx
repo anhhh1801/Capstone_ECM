@@ -11,6 +11,27 @@ function VerifyContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
+    // if user already logged in, skip verification
+    useEffect(() => {
+        const stored = localStorage.getItem("loginResponse");
+        if (stored) {
+            try {
+                const { user } = JSON.parse(stored);
+                if (user?.role?.name) {
+                    if (user.role.name === "TEACHER") {
+                        router.replace("/teacher/dashboard");
+                    } else if (user.role.name === "STUDENT") {
+                        router.replace("/student/dashboard");
+                    } else if (user.role.name === "ADMIN") {
+                        router.replace("/admin/users");
+                    } else {
+                        router.replace("/");
+                    }
+                }
+            } catch (_) {}
+        }
+    }, [router]);
+
     const email = searchParams.get("email");
 
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));

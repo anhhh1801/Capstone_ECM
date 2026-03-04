@@ -7,7 +7,6 @@ import {
     BookOpen,
     CalendarDays,
     Users,
-    LogOut,
     Building2
 } from "lucide-react"; // Bộ icon xịn xò
 import { useEffect, useState } from "react";
@@ -32,10 +31,6 @@ export default function TeacherLayout({
         }
     }, [router]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("user");
-        router.push("/login");
-    };
 
     const menuItems = [
         { name: "Tổng quan", href: "/teacher/dashboard", icon: LayoutDashboard },
@@ -43,7 +38,7 @@ export default function TeacherLayout({
         { name: "Khóa học", href: "/teacher/courses", icon: BookOpen },
         { name: "Lịch dạy", href: "/teacher/schedule", icon: CalendarDays },
         { name: "Học viên", href: "/teacher/students", icon: Users },
-        { name: "Profile", href: "/teacher/profile", icon: Users },
+        // profile and logout moved to global header
     ];
 
     return (
@@ -74,15 +69,7 @@ export default function TeacherLayout({
                     })}
                 </nav>
 
-                <div className="p-4 border-t">
-                    <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg transition"
-                    >
-                        <LogOut size={20} />
-                        Đăng xuất
-                    </button>
-                </div>
+                {/* logout moved to header */}
             </aside>
 
             {/* --- MAIN CONTENT (NỘI DUNG BÊN PHẢI) --- */}
