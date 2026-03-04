@@ -7,6 +7,8 @@
 	--color-alert: #F5360B;      /* alert */
 	--color-soft-white: #F7F9FB; /* soft-white (subtle off-white) */
 	--color-text: #46587D;      /* primary text color */
+    --color-positive: #28A745;   /* positive/confirm */
+    --color-negative: #DC3545;   /* negative/error */
 }
 
 /* Small utility classes for quick use */
