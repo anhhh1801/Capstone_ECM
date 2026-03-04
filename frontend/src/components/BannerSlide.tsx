@@ -20,7 +20,7 @@ export default function BannerSlider() {
   useEffect(() => {
     const interval = setInterval(() => {
       nextSlide();
-    }, 4000);
+    }, 7000);
     return () => clearInterval(interval);
   }, []);
 
@@ -58,7 +58,7 @@ export default function BannerSlider() {
       {/* Prev Button */}
       <button
         onClick={prevSlide}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 p-2 rounded-full"
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 p-2 rounded-full text-[var(--color-secondary)] font-bold"
       >
         ❮
       </button>
@@ -66,7 +66,7 @@ export default function BannerSlider() {
       {/* Next Button */}
       <button
         onClick={nextSlide}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 p-2 rounded-full"
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 p-2 rounded-full text-[var(--color-secondary)] font-bold"
       >
         ❯
       </button>

@@ -24,7 +24,7 @@ export default function Home() {
 
           <Link
             href="/register"
-            className="self-start main-btn"
+            className="self-start main-btn font-bold"
           >
             I'm ready to get started
           </Link>

@@ -5,21 +5,20 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { verifyOtp, resendOtp } from "@/services/authService";
 import { CheckCircle, Loader2, Mail, ArrowRight, RefreshCcw } from "lucide-react";
 import Link from "next/link";
-import { toast } from "react-hot-toast"; // Assuming you use toast, or remove if not
+import { toast } from "react-hot-toast";
 
 function VerifyContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // Get email from URL (e.g. /verify?email=abc@gmail.com)
     const email = searchParams.get("email");
 
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
     const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
-    const [timer, setTimer] = useState(30); // 30s countdown for resend
+    const [timer, setTimer] = useState(30);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    // Countdown Logic
+    // Countdown
     useEffect(() => {
         if (timer > 0) {
             const interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
@@ -27,104 +26,135 @@ function VerifyContent() {
         }
     }, [timer]);
 
-    // Focus first input on load
+    // Focus first input
     useEffect(() => {
         if (inputRefs.current[0]) {
             inputRefs.current[0].focus();
         }
     }, []);
 
-    // Handle Input Change
     const handleChange = (index: number, value: string) => {
-        if (isNaN(Number(value))) return; // Only allow numbers
+        if (isNaN(Number(value))) return;
 
         const newOtp = [...otp];
-        newOtp[index] = value.substring(value.length - 1); // Take last char
+        newOtp[index] = value.substring(value.length - 1);
         setOtp(newOtp);
 
-        // Move to next input
-        if (value && index < 5 && inputRefs.current[index + 1]) {
+        if (value && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
     };
 
-    // Handle Backspace
-    const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Backspace" && !otp[index] && index > 0 && inputRefs.current[index - 1]) {
+    const handleKeyDown = (
+        index: number,
+        e: React.KeyboardEvent<HTMLInputElement>
+    ) => {
+        if (e.key === "Backspace" && !otp[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
         }
     };
 
-    // SUBMIT OTP
     const handleVerify = async () => {
         const code = otp.join("");
+
         if (code.length !== 6) {
-            toast.error("Vui lòng nhập đủ 6 số!");
+            toast.error("Please enter all 6 digits.");
             return;
         }
 
         if (!email) {
-            toast.error("Thiếu thông tin email!");
+            toast.error("Missing email information.");
             return;
         }
 
         setStatus("loading");
+
         try {
             await verifyOtp(email, code);
             setStatus("success");
-            toast.success("Xác thực thành công!");
+            toast.success("Verification successful!");
 
-            // Redirect to login after 2s
             setTimeout(() => router.push("/login"), 2000);
         } catch (error: any) {
             setStatus("idle");
-            const msg = error.response?.data || "Mã xác thực không đúng.";
+            const msg =
+                error.response?.data || "Invalid verification code.";
             toast.error(msg);
         }
     };
 
-    // RESEND OTP
     const handleResend = async () => {
-        if (timer > 0) return;
-        if (!email) return;
+        if (timer > 0 || !email) return;
 
         try {
             await resendOtp(email);
-            toast.success("Đã gửi lại mã OTP mới!");
-            setTimer(30); // Reset timer
-            setOtp(new Array(6).fill("")); // Clear inputs
-            inputRefs.current[0]?.focus(); // Focus start
+            toast.success("A new OTP has been sent!");
+            setTimer(30);
+            setOtp(new Array(6).fill(""));
+            inputRefs.current[0]?.focus();
         } catch (error: any) {
-            toast.error(error.response?.data || "Không thể gửi lại mã.");
+            toast.error(
+                error.response?.data || "Unable to resend OTP."
+            );
         }
     };
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        e.preventDefault();
 
-    // --- RENDER SUCCESS STATE ---
+        const pastedData = e.clipboardData.getData("text").trim();
+
+        if (!/^\d+$/.test(pastedData)) return; // only numbers
+
+        const pastedArray = pastedData.slice(0, 6).split("");
+
+        const newOtp = [...otp];
+
+        pastedArray.forEach((char, index) => {
+            newOtp[index] = char;
+        });
+
+        setOtp(newOtp);
+
+        // focus last filled input
+        const lastIndex = pastedArray.length - 1;
+        inputRefs.current[lastIndex]?.focus();
+    };
+
+    // Success Screen
     if (status === "success") {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
                 <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center animate-in zoom-in duration-300">
                     <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-gray-800">Xác thực thành công!</h2>
-                    <p className="text-gray-500 mt-2">Tài khoản của bạn đã được kích hoạt.</p>
-                    <p className="text-sm text-gray-400 mt-1">Đang chuyển hướng đến trang đăng nhập...</p>
+                    <h2 className="text-2xl font-bold text-gray-800">
+                        Verification Successful!
+                    </h2>
+                    <p className="text-gray-500 mt-2">
+                        Your account has been activated.
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                        Redirecting to login page...
+                    </p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
+            <div className="w-full max-w-md rounded-2xl bg-[var(--color-secondary)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
                 <div className="text-center mb-8">
-                    <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <Mail className="h-8 w-8 text-blue-600" />
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-main)] text-white">
+                        <Mail size={32} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-800">Xác thực tài khoản</h2>
-                    <p className="text-gray-500 mt-2 text-sm">
-                        Mã OTP gồm 6 số đã được gửi đến: <br />
-                        <span className="font-semibold text-gray-800">{email || "Email không xác định"}</span>
+                    <h2 className="header-1">Account Verification</h2>
+
+                    <p className="mb-1 block text-sm font-medium text-[var(--color-text)]">
+                        A <span className="font-bold text-[var(--color-alert)]">6-digit OTP</span> code has been sent to:
+                        <br />
+                        <span className="font-bold text-lg text-[var(--color-main)]">
+                            {email || "Email not provided"}
+                        </span>
                     </p>
                 </div>
 
@@ -132,66 +162,86 @@ function VerifyContent() {
                     {otp.map((digit, index) => (
                         <input
                             key={index}
-                            ref={(el) => { inputRefs.current[index] = el }}
+                            ref={(el) => {
+                                inputRefs.current[index] = el;
+                            }}
                             type="text"
                             maxLength={1}
                             value={digit}
-                            onChange={(e) => handleChange(index, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(index, e)}
-                            className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                            onChange={(e) =>
+                                handleChange(index, e.target.value)
+                            }
+                            onKeyDown={(e) =>
+                                handleKeyDown(index, e)
+                            }
+                            onPaste={handlePaste}
+                            placeholder="-"
+                            aria-label={`OTP digit ${index + 1}`}
+                            className="w-12 h-14 text-center text-2xl font-bold text-[var(--color-text)] border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] rounded-lg focus:border-[var(--color-alert)] focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                         />
                     ))}
                 </div>
 
                 <button
                     onClick={handleVerify}
-                    disabled={status === "loading" || otp.some(d => !d)}
-                    className="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={
+                        status === "loading" || otp.some((d) => !d)
+                    }
+                    className="w-full bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white py-3 rounded-xl font-semibold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] hover:border-[var(--color-main)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {status === "loading" ? (
                         <>
-                            <Loader2 className="animate-spin h-5 w-5" /> Đang xác thực...
+                            <Loader2 className="animate-spin h-5 w-5" />
+                            Verifying...
                         </>
                     ) : (
                         <>
-                            Xác nhận <ArrowRight className="h-5 w-5" />
+                            Confirm
                         </>
                     )}
                 </button>
 
-                <div className="mt-6 text-center text-sm">
-                    <p className="text-gray-500">
-                        Chưa nhận được mã?{" "}
+                <div className="mt-6 text-center">
+                    <p className="text-[var(--color-text)]">
+                        Didn’t receive the code?{" "}
                         {timer > 0 ? (
-                            <span className="text-gray-400 font-medium">
-                                Gửi lại sau {timer}s
+                            <span className="text-[var(--color-alert)] font-medium">
+                                Resend in {timer}s
                             </span>
                         ) : (
                             <button
                                 onClick={handleResend}
-                                className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1"
+                                className="text-[var(--color-main)] font-bold hover:underline inline-flex items-center gap-1"
                             >
-                                <RefreshCcw className="h-3 w-3" /> Gửi lại mã
+                                <RefreshCcw className="h-3 w-3" />
+                                Resend Code
                             </button>
                         )}
                     </p>
                 </div>
 
                 <div className="mt-4 text-center">
-                    <Link href="/login" className="text-sm text-gray-400 hover:text-gray-600">
-                        Quay lại đăng nhập
+                    <Link
+                        href="/login"
+                        className="text-sm text-[var(--color-alert)] hover:underline"
+                    >
+                        Back to Login
                     </Link>
                 </div>
-
             </div>
         </div>
     );
 }
 
-// Wrapper for Suspense (Next.js requirement)
 export default function VerifyPage() {
     return (
-        <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+        <Suspense
+            fallback={
+                <div className="flex h-screen items-center justify-center">
+                    Loading...
+                </div>
+            }
+        >
             <VerifyContent />
         </Suspense>
     );
