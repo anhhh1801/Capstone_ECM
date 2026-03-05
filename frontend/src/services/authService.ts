@@ -55,3 +55,8 @@ export const resendOtp = async (email: string) => {
     const response = await api.post(`/users/resend-otp?email=${email}`);
     return response.data;
 };
+
+// Logout function
+export const logoutUser = () => {
+    localStorage.removeItem("loginResponse");
+};

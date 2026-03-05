@@ -43,15 +43,13 @@ export default function LoginPage() {
 
         try {
             const loginResponse = await loginUser(email, password);
-            localStorage.setItem("loginResponse", JSON.stringify(loginResponse));
+            localStorage.setItem("loginResponse", JSON.stringify({ ...loginResponse, loginTime: Date.now() }));
 
             const user = loginResponse.user;
 
             toast.success(`Hello ${user.firstName} ${user.lastName}!`);
 
             localStorage.setItem("user", JSON.stringify(user));
-
-            localStorage
 
             setTimeout(() => {
                 if (user.role.name === "TEACHER") {
