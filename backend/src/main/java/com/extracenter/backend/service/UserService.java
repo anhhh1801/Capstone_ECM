@@ -1,5 +1,11 @@
 package com.extracenter.backend.service;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.extracenter.backend.dto.ChangePasswordRequest;
 import com.extracenter.backend.dto.CreateStudentRequest;
 import com.extracenter.backend.dto.LoginRequest;
@@ -16,15 +22,7 @@ import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.RoleRepository;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.repository.VerificationTokenRepository;
-import com.extracenter.backend.service.EmailUtils;
 import com.extracenter.backend.utils.JwtUtils;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 public class UserService {
@@ -95,6 +93,14 @@ public class UserService {
     public User updateProfile(Long id, UpdateProfileRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại!"));
+
+        // Validate firstName and lastName
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            throw new RuntimeException("First name cannot be empty!");
+        }
+        if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+            throw new RuntimeException("Last name cannot be empty!");
+        }
 
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());

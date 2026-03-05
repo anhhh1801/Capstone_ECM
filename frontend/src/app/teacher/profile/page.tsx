@@ -4,14 +4,27 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/utils/axiosConfig";
 import toast, { Toaster } from "react-hot-toast";
-import { User, Phone, Mail, Calendar, Save, AlertTriangle, ShieldAlert, Lock, X } from "lucide-react";
+import axios from "axios";
+import {
+    User,
+    Phone,
+    Mail,
+    Calendar,
+    Save,
+    AlertTriangle,
+    ShieldAlert,
+    Lock,
+    X,
+    Eye,
+    EyeClosed,
+} from "lucide-react";
 
 interface UserProfile {
     id: number;
     firstName: string;
     lastName: string;
-    email: string; // Login email
-    personalEmail: string; // Contact email
+    email: string;
+    personalEmail: string;
     phoneNumber: string;
     dateOfBirth: string;
     role: { name: string };
@@ -20,37 +33,50 @@ interface UserProfile {
 
 export default function ProfilePage() {
     const router = useRouter();
+
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [passData, setPassData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    const [showPersonalEmail, setShowPersonalEmail] = useState(false);
+    const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+
+    const [passData, setPassData] = useState({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
 
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         phoneNumber: "",
-        dateOfBirth: ""
+        dateOfBirth: "",
     });
 
+    const isEmpty = (value?: string) => {
+        return !value || value.trim() === "";
+    };
+
     useEffect(() => {
-        // 1. Get ID from localStorage
         const storedUser = localStorage.getItem("user");
+
         if (!storedUser) {
             router.push("/login");
             return;
         }
+
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
 
-        // 2. Initialize Form
         setFormData({
             firstName: parsedUser.firstName || "",
             lastName: parsedUser.lastName || "",
             phoneNumber: parsedUser.phoneNumber || "",
-            dateOfBirth: parsedUser.dateOfBirth || ""
+            dateOfBirth: parsedUser.dateOfBirth || "",
         });
+
         setLoading(false);
     }, [router]);
 
@@ -61,45 +87,48 @@ export default function ProfilePage() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+
         setSaving(true);
 
         try {
             const response = await api.put(`/users/${user.id}/profile`, formData);
 
             const updatedUser = { ...user, ...response.data };
+
             localStorage.setItem("user", JSON.stringify(updatedUser));
             setUser(updatedUser);
 
             toast.success("Profile updated successfully!");
-        } catch (error: any) {
-            toast.error("Error updating profile.");
-        } finally {
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data || "Failed to update profile.");
+            } else {
+                toast.error("Unexpected error occurred.");
+            }
+        }
+        finally {
             setSaving(false);
         }
     };
 
-    // HANDLE DEACTIVATE ACCOUNT
     const handleDeactivate = async () => {
+        setShowDeactivateModal(true);
+    };
+
+    const confirmDeactivate = async () => {
         if (!user) return;
-
-        const confirm = window.confirm(
-            "WARNING: Are you sure you want to deactivate your account?\n\nYou will not be able to log in again until you contact Admin to unlock it."
-        );
-
-        if (!confirm) return;
 
         try {
             await api.post(`/users/${user.id}/deactivate`);
 
-            toast.success("Account has been deactivated.");
+            toast.success("Account deactivated.");
 
-            // Clear data and kick to login
             localStorage.removeItem("user");
+
             setTimeout(() => {
                 router.push("/login");
             }, 1500);
-
-        } catch (error) {
+        } catch {
             toast.error("Unable to deactivate account.");
         }
     };
@@ -108,223 +137,334 @@ export default function ProfilePage() {
         if (!user) return;
 
         if (!passData.oldPassword || !passData.newPassword) {
-            toast.error("Please fill in all required fields.");
+            toast.error("Please fill in all fields.");
             return;
         }
+
         if (passData.newPassword !== passData.confirmPassword) {
-            toast.error("Password confirmation does not match!");
+            toast.error("Password confirmation does not match.");
             return;
         }
+
         if (passData.newPassword.length < 6) {
-            toast.error("New password must be at least 6 characters.");
+            toast.error("Password must be at least 6 characters.");
             return;
         }
 
         try {
             await api.put(`/users/${user.id}/change-password`, {
                 oldPassword: passData.oldPassword,
-                newPassword: passData.newPassword
+                newPassword: passData.newPassword,
             });
 
             toast.success("Password changed successfully!");
+
             setShowPasswordModal(false);
-            setPassData({ oldPassword: "", newPassword: "", confirmPassword: "" }); // Reset form
+            setPassData({ oldPassword: "", newPassword: "", confirmPassword: "" });
         } catch (error: any) {
-            const msg = error.response?.data || "Đổi mật khẩu thất bại.";
-            toast.error(msg || "Password change failed.");
+            toast.error(error.response?.data || "Password change failed.");
         }
     };
 
-    if (loading) return <div className="p-8">Loading profile...</div>;
+    if (loading) return <div className="p-10 text-center">Loading profile...</div>;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-8 bg-[var(--color-soft-white)] p-8 rounded-xl shadow-sm">
+
             <Toaster />
 
-            {/* Header */}
+            {/* HEADER */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Personal Information</h1>
-                    <p className="text-gray-500 text-sm">Manage display information and security</p>
+                    <h1 className="text-2xl font-bold text-[var(--color-text)]">
+                        Personal Information
+                    </h1>
+                    <p className="text-sm text-[var(--color-text)]/70">
+                        Manage your personal details and security
+                    </p>
                 </div>
+
                 <button
                     onClick={() => setShowPasswordModal(true)}
-                    className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-black transition text-sm font-medium"
+                    className="flex items-center gap-2 bg-[var(--color-main)] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] border-2 border-[var(--color-main)] transition"
                 >
                     <Lock size={16} /> Change Password
                 </button>
             </div>
 
-            {/* CARD 1: Basic Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                        <User size={20} className="text-blue-600" />
+            {/* PROFILE CARD */}
+            <div className="bg-white rounded-xl shadow-sm border-2 border-[var(--color-main)]/20 overflow-hidden">
+
+                <div className="p-6 border-b border-[var(--color-main)]/20 bg-[var(--color-soft-white)] flex justify-between items-center">
+                    <h3 className="font-bold flex items-center gap-2 text-[var(--color-text)]">
+                        <User size={20} className="text-[var(--color-main)]" />
                         Basic Information
                     </h3>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+
+                    <span className="px-3 py-1 bg-[var(--color-secondary)]/20 text-[var(--color-main)] text-xl font-bold rounded-full">
                         {user?.role.name}
                     </span>
                 </div>
 
-                <form onSubmit={handleSave} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* First Name */}
+                <form
+                    onSubmit={handleSave}
+                    className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6"
+                >
+                    {/* FIRST NAME */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            Last name
+                        </label>
                         <input
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
+                            className={`w-full p-3 pl-10 border-2 rounded-lg outline-none 
+                                    ${isEmpty(formData.firstName)
+                                    ? "border-[var(--color-negative)]"
+                                    : "border-[var(--color-main)]"}
+                                        focus:ring-2 focus:ring-[var(--color-secondary)]`} />
                     </div>
 
-                    {/* Last Name */}
+                    {/* LAST NAME */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            First name
+                        </label>
                         <input
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
+                            className={`w-full p-3 pl-10 border-2 rounded-lg outline-none 
+                                    ${isEmpty(formData.lastName)
+                                    ? "border-[var(--color-negative)]"
+                                    : "border-[var(--color-main)]"}
+                                        focus:ring-2 focus:ring-[var(--color-secondary)]`} />
                     </div>
 
-                    {/* Email (Read Only) */}
+                    {/* LOGIN EMAIL */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Login Email</label>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            Login Email
+                        </label>
+
                         <div className="relative">
-                            <Mail size={16} className="absolute left-3 top-3 text-gray-400" />
+                            <Mail
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]"
+                            />
+
                             <input
                                 value={user?.email}
                                 disabled
-                                className="w-full p-2 pl-10 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                                className="w-full p-3 pl-10 border-2 border-gray-300 rounded-lg bg-gray-100 text-gray-500"
                             />
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">Contact Admin to change your email.</p>
                     </div>
 
-                    {/* Personal Email (Read Only) */}
+                    {/* PERSONAL EMAIL */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Personal Email (Contact)</label>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            Personal Email
+                        </label>
+
                         <div className="relative">
-                            <Mail size={16} className="absolute left-3 top-3 text-gray-400" />
+                            <Mail
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]"
+                            />
+
                             <input
+                                type={showPersonalEmail ? "text" : "password"}
                                 value={user?.personalEmail || ""}
                                 disabled
-                                className="w-full p-2 pl-10 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                                className={`w-full p-3 pl-10 pr-10 border-2 rounded-lg bg-gray-100 text-gray-500
+                                        ${isEmpty(user?.personalEmail)
+                                        ? "border-[var(--color-negative)]"
+                                        : "border-gray-300"}`}
                             />
+
+                            {/* SHOW / HIDE BUTTON */}
+                            <button
+                                type="button"
+                                onClick={() => setShowPersonalEmail(!showPersonalEmail)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+                            >
+                                {showPersonalEmail ? <Eye size={20} /> : <EyeClosed size={20} />}
+                            </button>
                         </div>
                     </div>
 
-                    {/* Phone */}
+                    {/* PHONE */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            Phone Number
+                        </label>
+
                         <div className="relative">
-                            <Phone size={16} className="absolute left-3 top-3 text-gray-400" />
+                            <Phone
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]"
+                            />
+
                             <input
                                 name="phoneNumber"
                                 value={formData.phoneNumber}
                                 onChange={handleChange}
-                                className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                className={`w-full p-3 pl-10 border-2 rounded-lg outline-none 
+                                    ${isEmpty(formData.phoneNumber)
+                                        ? "border-[var(--color-negative)]"
+                                        : "border-[var(--color-main)]"}
+                                        focus:ring-2 focus:ring-[var(--color-secondary)]`}
                             />
                         </div>
                     </div>
 
-                    {/* Date of Birth */}
+                    {/* DOB */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            Date of Birth
+                        </label>
+
                         <div className="relative">
-                            <Calendar size={16} className="absolute left-3 top-3 text-gray-400" />
+                            <Calendar
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]"
+                            />
+
                             <input
                                 type="date"
                                 name="dateOfBirth"
                                 value={formData.dateOfBirth}
                                 onChange={handleChange}
-                                className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
+                                className={`w-full p-3 pl-10 border-2 rounded-lg outline-none 
+                                    ${isEmpty(formData.dateOfBirth)
+                                        ? "border-[var(--color-negative)]"
+                                        : "border-[var(--color-main)]"}
+                                        focus:ring-2 focus:ring-[var(--color-secondary)]`} />
                         </div>
                     </div>
 
-                    {/* Submit Button */}
-                    <div className="md:col-span-2 flex justify-end mt-4">
+                    {/* SAVE BUTTON */}
+                    <div className="md:col-span-2 pt-4">
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+                            className="w-full bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white py-3 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition flex items-center justify-center gap-2"
                         >
                             <Save size={18} />
-                            {saving ? "Saving..." : "Save changes"}
+                            {saving ? "Saving..." : "Save Changes"}
                         </button>
                     </div>
                 </form>
             </div>
 
-            {/* CARD 2: DANGER ZONE */}
-            <div className="bg-red-50 rounded-xl shadow-sm border border-red-100 overflow-hidden">
-                <div className="p-6 border-b border-red-100 flex items-center gap-2 text-red-700">
-                    <ShieldAlert size={20} />
-                    <h3 className="font-bold">Danger Zone</h3>
+            {/* DANGER ZONE */}
+            <div className="bg-[var(--color-negative)]/10 rounded-xl border-2 border-[var(--color-negative)]/30 p-6 flex justify-between items-center">
+
+                <div>
+                    <h3 className="font-bold text-[var(--color-negative)]">
+                        Danger Zone
+                    </h3>
+
+                    <p className="text-sm text-[var(--color-text)]/70">
+                        Deactivate your account. You cannot login again until admin
+                        reactivates it.
+                    </p>
                 </div>
-                <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h4 className="font-semibold text-gray-800">Deactivate account</h4>
-                        <p className="text-sm text-gray-500">
-                            Your account will be locked immediately. You will not be able to log in until an Admin reactivates it.
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleDeactivate}
-                        className="flex items-center gap-2 bg-white border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm whitespace-nowrap"
-                    >
-                        <AlertTriangle size={18} />
-                        Deactivate now
-                    </button>
-                </div>
+
+                <button
+                    onClick={handleDeactivate}
+                    className="flex items-center gap-2 border-2 border-[var(--color-negative)] text-[var(--color-negative)] px-4 py-2 rounded-lg hover:bg-[var(--color-negative)] hover:text-white transition"
+                >
+                    <AlertTriangle size={18} />
+                    Deactivate
+                </button>
             </div>
 
+            {/* PASSWORD MODAL */}
             {showPasswordModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-xl p-6 w-96 animate-in zoom-in duration-200">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+                    <div className="bg-white rounded-xl p-6 w-96 shadow-lg">
+
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
-                            <h3 className="text-lg font-bold">Change Password</h3>
-                            <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-black"><X size={20} /></button>
+                            <h3 className="font-bold text-lg">Change Password</h3>
+
+                            <button onClick={() => setShowPasswordModal(false)}>
+                                <X />
+                            </button>
                         </div>
 
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Old password</label>
-                                <input
-                                    type="password"
-                                    className="w-full p-2 border rounded focus:border-blue-500 outline-none"
-                                    value={passData.oldPassword}
-                                    onChange={(e) => setPassData({ ...passData, oldPassword: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">New password</label>
-                                <input
-                                    type="password"
-                                    className="w-full p-2 border rounded focus:border-blue-500 outline-none"
-                                    value={passData.newPassword}
-                                    onChange={(e) => setPassData({ ...passData, newPassword: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Confirm new password</label>
-                                <input
-                                    type="password"
-                                    className="w-full p-2 border rounded focus:border-blue-500 outline-none"
-                                    value={passData.confirmPassword}
-                                    onChange={(e) => setPassData({ ...passData, confirmPassword: e.target.value })}
-                                />
-                            </div>
+
+                            <input
+                                type="password"
+                                placeholder="Old password"
+                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-alert)]"
+                                value={passData.oldPassword}
+                                onChange={(e) =>
+                                    setPassData({ ...passData, oldPassword: e.target.value })
+                                }
+                            />
+
+                            <input
+                                type="password"
+                                placeholder="New password"
+                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-alert)]"
+                                value={passData.newPassword}
+                                onChange={(e) =>
+                                    setPassData({ ...passData, newPassword: e.target.value })
+                                }
+                            />
+
+                            <input
+                                type="password"
+                                placeholder="Confirm password"
+                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-alert)]"
+                                value={passData.confirmPassword}
+                                onChange={(e) =>
+                                    setPassData({
+                                        ...passData,
+                                        confirmPassword: e.target.value,
+                                    })
+                                }
+                            />
 
                             <button
                                 onClick={handleChangePassword}
-                                className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 mt-2"
+                                className="w-full bg-[var(--color-main)] text-white py-3 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] border-2 border-[var(--color-main)] transition"
                             >
-                                Confirm change
+                                Confirm Change
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* DEACTIVATE MODAL */}
+            {showDeactivateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl p-6 w-[400px] text-center shadow-lg">
+                        <h2 className="text-xl font-bold mb-3 text-[var(--color-negative)]">Deactivate Account</h2>
+                        <p className="text-gray-600 mb-6">
+                            WARNING: Are you sure you want to deactivate your account?<br /><br />
+                            You will not be able to log in again until an Admin reactivates it.
+                        </p>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setShowDeactivateModal(false)}
+                                className="flex-1 bg-[var(--color-soft-white)] border-2 border-[var(--color-main)] text-[var(--color-main)] px-4 py-2 rounded-lg font-semibold hover:bg-[var(--color-main)] hover:text-white transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeactivate}
+                                className="flex-1 bg-[var(--color-negative)] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[var(--color-negative-hover)] hover:text-[var(--color-alert)] border-2 border-[var(--color-negative)] transition"
+                            >
+                                Deactivate
                             </button>
                         </div>
                     </div>
