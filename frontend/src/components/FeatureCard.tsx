@@ -5,7 +5,7 @@ import Image, { StaticImageData } from "next/image";
 type FeatureCardProps = {
   title: string;
   image: StaticImageData | string;
-  description: string;
+  description: string | React.ReactNode;
 };
 
 export default function FeatureCard({

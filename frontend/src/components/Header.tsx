@@ -37,7 +37,7 @@ export default function Header() {
         <header className="text-white shadow-md">
             <div className="flex justify-between items-center container mx-auto bg-[var(--color-soft-white)] text-[var(--color-text)] font-bold p-2">
                 <Link href="/" className="text-3xl">
-                    Extra Center Manager
+                    Tutoring Center Management Application
                 </Link>
 
                 <p className="text-sm font-normal opacity-70">

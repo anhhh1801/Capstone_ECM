@@ -9,10 +9,10 @@ export default function Home() {
       <div className="flex flex-col lg:flex-row justify-center pt-12 pb-12 gap-12 container mx-auto">
         <div className="lg:w-2/5 flex flex-col justify-center items-left">
           <div>
-            <h1 className="header-1">
+            <h1 className="font-semibold text-xl ">
               EASILY MANAGE YOUR OWN TUTOR CENTER WITH
             </h1>
-            <h1 className="header-1">
+            <h1 className="header-1 color-[var(--color-main)] mb-4">
               EXTRA CENTER MANAGER
             </h1>
           </div>
@@ -40,24 +40,55 @@ export default function Home() {
         </h2>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-8 max-w-7xl mx-auto px-6">
           <FeatureCard
-            title="Manage your students and teachers stats"
+            title="Student Management"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Create and manage student profiles</li>
+                <li>Track enrollment and classes</li>
+                <li>Monitor academic progress</li>
+                <li>Store student records securely</li>
+              </ul>
+            }
           />
+
           <FeatureCard
-            title="Manage your students and teachers stats"
+            title="Teacher Management"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Add and manage teacher profiles</li>
+                <li>Assign teachers to classes</li>
+                <li>Manage teaching schedules</li>
+                <li>Track workload and performance</li>
+              </ul>
+            }
           />
+
           <FeatureCard
-            title="Manage your students and teachers stats"
+            title="Class & Schedule Management"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Create and organize classes</li>
+                <li>Assign students and teachers</li>
+                <li>Manage weekly schedules</li>
+                <li>Avoid timetable conflicts</li>
+              </ul>
+            }
           />
+
           <FeatureCard
-            title="Manage your students and teachers stats"
+            title="Reports & Analytics"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Generate performance reports</li>
+                <li>Track attendance statistics</li>
+                <li>Analyze center activities</li>
+                <li>Support data-driven decisions</li>
+              </ul>
+            }
           />
         </div>
       </div>
@@ -67,17 +98,40 @@ export default function Home() {
           <FeatureCard
             title="Create an account and Log in to your dashboard"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Register a new account in seconds</li>
+                <li>Securely log in to your personal dashboard</li>
+                <li>Access all management tools in one place</li>
+                <li>Start setting up your tutoring center</li>
+              </ul>
+            }
           />
+
           <FeatureCard
             title="Set up your tutor center's profile and preferences"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Add your tutoring center information</li>
+                <li>Configure subjects and available courses</li>
+                <li>Set operating hours and schedules</li>
+                <li>Customize system preferences</li>
+              </ul>
+            }
           />
+
           <FeatureCard
             title="Start adding your students, teachers, schedules and finances"
             image={cardImg}
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+            description={
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Add student and teacher profiles</li>
+                <li>Create classes and assign schedules</li>
+                <li>Track tuition fees and payments</li>
+                <li>Monitor activities and performance</li>
+              </ul>
+            }
           />
         </div>
       </div>
