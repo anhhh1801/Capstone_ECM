@@ -35,7 +35,7 @@ export default function AssignStudentModal({ isOpen, onClose, centerId, onSucces
                 { id: 99, firstName: "Test", lastName: "User", email: searchTerm, phoneNumber: "0999" }
             ]);
         } catch (e) {
-            toast.error("Không tìm thấy");
+            toast.error("Not found");
         } finally {
             setSearching(false);
         }
@@ -45,11 +45,11 @@ export default function AssignStudentModal({ isOpen, onClose, centerId, onSucces
     const handleAssign = async (studentId: number) => {
         try {
             await api.post(`/centers/${centerId}/assign-student?studentId=${studentId}`);
-            toast.success("Đã thêm vào trung tâm!");
+            toast.success("Added to center!");
             onSuccess();
             onClose();
         } catch (error) {
-            toast.error("Lỗi: Học sinh này có thể đã ở trong trung tâm rồi");
+            toast.error("Error: This student may already be in the center");
         }
     };
 
@@ -57,14 +57,14 @@ export default function AssignStudentModal({ isOpen, onClose, centerId, onSucces
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden min-h-[300px]">
                 <div className="px-6 py-4 border-b flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800">Tìm học sinh từ Bể chung</h3>
+                    <h3 className="font-bold text-gray-800">Find students from the common pool</h3>
                     <button onClick={onClose}><X size={20} /></button>
                 </div>
                 <div className="p-4">
                     <div className="flex gap-2 mb-4">
                         <input
                             className="flex-1 p-2 border rounded"
-                            placeholder="Nhập chính xác Email hoặc SĐT..."
+                            placeholder="Enter exact Email or Phone..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                         />
@@ -87,7 +87,7 @@ export default function AssignStudentModal({ isOpen, onClose, centerId, onSucces
                                 </button>
                             </div>
                         ))}
-                        {results.length === 0 && !searching && <p className="text-center text-gray-400 text-sm">Nhập email để tìm kiếm học sinh tự do.</p>}
+                        {results.length === 0 && !searching && <p className="text-center text-gray-400 text-sm">Enter email to search for free students.</p>}
                     </div>
                 </div>
             </div>

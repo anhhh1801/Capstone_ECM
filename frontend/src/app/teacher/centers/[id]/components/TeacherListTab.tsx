@@ -11,8 +11,8 @@ export default function TeacherListTab({ teachers, isManager }: Props) {
         return (
             <div className="flex flex-col items-center justify-center p-10 text-red-500 border border-red-100 bg-red-50 rounded-xl">
                 <ShieldAlert size={48} className="mb-4" />
-                <h3 className="font-bold">Không có quyền truy cập</h3>
-                <p>Chỉ quản lý trung tâm mới xem được mục này.</p>
+                <h3 className="font-bold">No access</h3>
+                <p>Only center managers can view this section.</p>
             </div>
         );
     }
@@ -20,7 +20,7 @@ export default function TeacherListTab({ teachers, isManager }: Props) {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-700">Danh sách Giáo viên ({teachers.length})</h3>
+                <h3 className="font-bold text-gray-700">Teacher List ({teachers.length})</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {teachers.map((t) => (

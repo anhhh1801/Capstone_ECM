@@ -15,11 +15,11 @@ export default function CenterHeader({ center, isManager }: Props) {
                     <h1 className="text-2xl font-bold text-gray-800">{center.name}</h1>
                     {isManager ? (
                         <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
-                            <ShieldCheck size={12} /> QUẢN LÝ
+                            <ShieldCheck size={12} /> MANAGER
                         </span>
                     ) : (
                         <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">
-                            GIÁO VIÊN MỜI
+                            INVITED TEACHER
                         </span>
                     )}
                 </div>
