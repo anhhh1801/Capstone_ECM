@@ -1,14 +1,19 @@
 package com.extracenter.backend.service;
 
-import com.extracenter.backend.dto.CenterRequest;
-import com.extracenter.backend.entity.Center;
-import com.extracenter.backend.entity.User;
-import com.extracenter.backend.repository.CenterRepository;
-import com.extracenter.backend.repository.UserRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.Grade;
+import com.extracenter.backend.entity.Subject;
+import com.extracenter.backend.entity.User;
+import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.GradeRepository;
+import com.extracenter.backend.repository.SubjectRepository;
+import com.extracenter.backend.repository.UserRepository;
 
 @Service
 public class CenterService {
@@ -18,6 +23,12 @@ public class CenterService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SubjectRepository subjectRepository;
+
+    @Autowired
+    private GradeRepository gradeRepository;
 
     // 1. Tạo Center mới
     public Center createCenter(CenterRequest request) {
@@ -55,6 +66,91 @@ public class CenterService {
     // 1. Lấy danh sách trung tâm tôi đi dạy (Teaching)
     public List<Center> getCentersTeaching(Long teacherId) {
         return centerRepository.findCentersTeachingByTeacherId(teacherId);
+    }
+
+    // Subject / Grade management for a Center
+    public List<Subject> getSubjectsByCenter(Long centerId) {
+        return subjectRepository.findByCenterId(centerId);
+    }
+
+    public Subject createSubject(Long centerId, String name, String description) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại!"));
+
+        Subject subject = new Subject();
+        subject.setName(name);
+        subject.setDescription(description);
+        subject.setCenter(center);
+
+        return subjectRepository.save(subject);
+    }
+
+    public Subject updateSubject(Long centerId, Long subjectId, String name, String description) {
+        Subject subject = subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new RuntimeException("Môn học không tồn tại!"));
+
+        if (!subject.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Môn học không thuộc trung tâm này.");
+        }
+
+        subject.setName(name);
+        subject.setDescription(description);
+
+        return subjectRepository.save(subject);
+    }
+
+    public void deleteSubject(Long centerId, Long subjectId) {
+        Subject subject = subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new RuntimeException("Môn học không tồn tại!"));
+
+        if (!subject.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Môn học không thuộc trung tâm này.");
+        }
+
+        subjectRepository.delete(subject);
+    }
+
+    public List<Grade> getGradesByCenter(Long centerId) {
+        return gradeRepository.findByCenterId(centerId);
+    }
+
+    public Grade createGrade(Long centerId, String name, Integer value, String description) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại!"));
+
+        Grade grade = new Grade();
+        grade.setName(name);
+        grade.setValue(value);
+        grade.setDescription(description);
+        grade.setCenter(center);
+
+        return gradeRepository.save(grade);
+    }
+
+    public Grade updateGrade(Long centerId, Long gradeId, String name, Integer value, String description) {
+        Grade grade = gradeRepository.findById(gradeId)
+                .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại!"));
+
+        if (!grade.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Khối lớp không thuộc trung tâm này.");
+        }
+
+        grade.setName(name);
+        grade.setValue(value);
+        grade.setDescription(description);
+
+        return gradeRepository.save(grade);
+    }
+
+    public void deleteGrade(Long centerId, Long gradeId) {
+        Grade grade = gradeRepository.findById(gradeId)
+                .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại!"));
+
+        if (!grade.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Khối lớp không thuộc trung tâm này.");
+        }
+
+        gradeRepository.delete(grade);
     }
 
     // 2. Cập nhật Trung tâm

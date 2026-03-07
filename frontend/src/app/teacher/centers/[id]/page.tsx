@@ -13,6 +13,8 @@ import CenterHeader from "./components/CenterHeader";
 import CenterTabs from "./components/CenterTabs";
 import CourseListTab from "./components/CourseListTab";
 import TeacherListTab from "./components/TeacherListTab";
+import SubjectListTab from "./components/SubjectListTab";
+import GradeListTab from "./components/GradeListTab";
 import StudentTable from "../../students/components/StudentTable";
 import StudentModal from "../../students/components/StudentModal";
 import AssignStudentModal from "./components/AssignStudentModal";
@@ -24,7 +26,7 @@ export default function CenterDetailPage() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [centerInfo, setCenterInfo] = useState<any>(null);
     const [isManager, setIsManager] = useState(false);
-    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers">("courses");
+    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades">("courses");
     const [loading, setLoading] = useState(true);
 
     const [courses, setCourses] = useState<Course[]>([]);
@@ -111,7 +113,7 @@ export default function CenterDetailPage() {
             <div className="bg-[var(--color-soft-white)] p-4 rounded-xl">
                 <CenterTabs
                     activeTab={activeTab}
-                    setActiveTab={setActiveTab as any}
+                    setActiveTab={setActiveTab}
                     isManager={isManager}
                 />
             </div>
@@ -126,6 +128,14 @@ export default function CenterDetailPage() {
                         isManager={isManager}
                         onUpdate={fetchData}
                     />
+                )}
+
+                {activeTab === "subjects" && (
+                    <SubjectListTab centerId={centerId} isManager={isManager} />
+                )}
+
+                {activeTab === "grades" && (
+                    <GradeListTab centerId={centerId} isManager={isManager} />
                 )}
 
                 {activeTab === "teachers" && (

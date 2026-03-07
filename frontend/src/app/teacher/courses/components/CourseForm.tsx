@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Building2, BookOpen, Calendar } from "lucide-react";
-import { Center } from "@/services/centerService";
+import { Save, Building2, BookOpen, Calendar, Plus } from "lucide-react";
+import { Center, CenterSubject, CenterGrade, getCenterSubjects, getCenterGrades, createCenterSubject, createCenterGrade } from "@/services/centerService";
+import toast from "react-hot-toast";
 
 export interface CourseFormData {
     name: string;
@@ -39,12 +40,38 @@ export default function CourseForm({
     };
 
     const [formData, setFormData] = useState<CourseFormData>(defaultData);
+    const [subjects, setSubjects] = useState<CenterSubject[]>([]);
+    const [grades, setGrades] = useState<CenterGrade[]>([]);
+
+    const fetchCenterOptions = async (centerId?: number) => {
+        if (!centerId) {
+            setSubjects([]);
+            setGrades([]);
+            return;
+        }
+
+        try {
+            const [subjectData, gradeData] = await Promise.all([
+                getCenterSubjects(centerId),
+                getCenterGrades(centerId),
+            ]);
+            setSubjects(subjectData);
+            setGrades(gradeData);
+        } catch (error) {
+            console.error(error);
+            toast.error("Không thể tải danh sách môn hoặc khối lớp.");
+        }
+    };
 
     useEffect(() => {
         if (initialData) {
             setFormData(prev => ({ ...prev, ...initialData }));
         }
     }, [initialData]);
+
+    useEffect(() => {
+        fetchCenterOptions(formData.centerId);
+    }, [formData.centerId]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -115,9 +142,38 @@ export default function CourseForm({
             {/* SUBJECT + GRADE */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label className="block text-sm font-bold text-[var(--color-text)] mb-2">
-                        Môn học
-                    </label>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                        <label className="block text-sm font-bold text-[var(--color-text)]">
+                            Môn học
+                        </label>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (!formData.centerId) {
+                                    toast.error("Vui lòng chọn trung tâm trước.");
+                                    return;
+                                }
+
+                                const name = prompt("Tên môn học mới:");
+                                if (!name || !name.trim()) return;
+                                const description = prompt("Mô tả (tùy chọn):") || "";
+
+                                try {
+                                    const newly = await createCenterSubject(formData.centerId, { name, description });
+                                    setSubjects(prev => [newly, ...prev]);
+                                    setFormData(prev => ({ ...prev, subject: newly.name }));
+                                    toast.success("Đã thêm môn học mới.");
+                                } catch (error) {
+                                    console.error(error);
+                                    toast.error("Không thể thêm môn học.");
+                                }
+                            }}
+                            className="flex items-center gap-1 text-xs text-[var(--color-main)] hover:underline"
+                        >
+                            <Plus size={14} />
+                            Thêm mới
+                        </button>
+                    </div>
 
                     <div className="relative">
                         <select
@@ -131,11 +187,11 @@ export default function CourseForm({
                        focus:ring-2 focus:ring-[var(--color-secondary)]"
                         >
                             <option value="">-- Chọn môn --</option>
-                            <option value="Toán">Toán</option>
-                            <option value="Lý">Vật Lý</option>
-                            <option value="Hóa">Hóa Học</option>
-                            <option value="Anh">Tiếng Anh</option>
-                            <option value="Văn">Ngữ Văn</option>
+                            {subjects.map(subject => (
+                                <option key={subject.id} value={subject.name}>
+                                    {subject.name}
+                                </option>
+                            ))}
                         </select>
 
                         {/* Custom Arrow */}
@@ -146,20 +202,76 @@ export default function CourseForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                        Khối lớp <span className="text-[var(--color-negative)]">*</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className="block text-sm font-medium text-[var(--color-text)]">
+                            Khối lớp <span className="text-[var(--color-negative)]">*</span>
+                        </label>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (!formData.centerId) {
+                                    toast.error("Vui lòng chọn trung tâm trước.");
+                                    return;
+                                }
+
+                                const valueStr = prompt("Nhập số khối (ví dụ: 10):");
+                                if (!valueStr) return;
+                                const value = Number(valueStr);
+                                if (Number.isNaN(value)) {
+                                    toast.error("Khối lớp phải là số.");
+                                    return;
+                                }
+
+                                const name = prompt("Tên hiển thị cho khối (tùy chọn):", `Khối ${value}`) || `Khối ${value}`;
+                                const description = prompt("Mô tả (tùy chọn):") || "";
+
+                                try {
+                                    const newly = await createCenterGrade(formData.centerId, { name, value, description });
+                                    setGrades(prev => [newly, ...prev]);
+                                    setFormData(prev => ({ ...prev, grade: newly.value ?? prev.grade }));
+                                    toast.success("Đã thêm khối lớp mới.");
+                                } catch (error) {
+                                    console.error(error);
+                                    toast.error("Không thể thêm khối lớp.");
+                                }
+                            }}
+                            className="flex items-center gap-1 text-xs text-[var(--color-main)] hover:underline"
+                        >
+                            <Plus size={14} />
+                            Thêm mới
+                        </button>
+                    </div>
+
                     <div className="relative">
-                        <BookOpen size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]" />
-                        <input
-                            required
-                            type="number"
-                            min={1}
-                            max={12}
-                            value={formData.grade}
-                            onChange={e => setFormData({ ...formData, grade: Number(e.target.value) })}
-                            className="w-full p-3 pl-10 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
-                        />
+                        {grades.length > 0 ? (
+                            <select
+                                required
+                                value={formData.grade}
+                                onChange={e => setFormData({ ...formData, grade: Number(e.target.value) })}
+                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none appearance-none transition bg-white text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-secondary)]"
+                            >
+                                <option value={0}>-- Chọn khối --</option>
+                                {grades.map(grade => (
+                                    <option key={grade.id} value={grade.value ?? 0}>
+                                        {grade.name}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                required
+                                type="number"
+                                min={1}
+                                max={12}
+                                value={formData.grade}
+                                onChange={e => setFormData({ ...formData, grade: Number(e.target.value) })}
+                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
+                            />
+                        )}
+
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-main)]">
+                            ▼
+                        </div>
                     </div>
                 </div>
             </div>
