@@ -114,9 +114,23 @@ public class CenterService {
         return gradeRepository.findByCenterId(centerId);
     }
 
+    private void validateAge(Integer age, String fieldName) {
+        if (age != null) {
+            if (age < 3 || age > 100) {
+                throw new RuntimeException(fieldName + " must be between 3 and 100.");
+            }
+        }
+    }
+
     public Grade createGrade(Long centerId, String name, Integer fromAge, Integer toAge, String description) {
         Center center = centerRepository.findById(centerId)
                 .orElseThrow(() -> new RuntimeException("Center does not exist!"));
+
+        validateAge(fromAge, "From age");
+        validateAge(toAge, "To age");
+        if (fromAge != null && toAge != null && fromAge > toAge) {
+            throw new RuntimeException("From age must be less than or equal to To age.");
+        }
 
         Grade grade = new Grade();
         grade.setName(name);
@@ -134,6 +148,12 @@ public class CenterService {
 
         if (!grade.getCenter().getId().equals(centerId)) {
             throw new RuntimeException("Grade does not belong to this center.");
+        }
+
+        validateAge(fromAge, "From age");
+        validateAge(toAge, "To age");
+        if (fromAge != null && toAge != null && fromAge > toAge) {
+            throw new RuntimeException("From age must be less than or equal to To age.");
         }
 
         grade.setName(name);

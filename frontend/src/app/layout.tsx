@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SessionManager from "@/components/SessionManage";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       >
         <Header />
         <SessionManager />
+        <Toaster position="top-right" />
 
         {/* QUAN TRỌNG */}
         <main className="flex-1 flex flex-col">

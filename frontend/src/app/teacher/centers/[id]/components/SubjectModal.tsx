@@ -24,6 +24,7 @@ export default function SubjectModal({
   onSuccess,
   subject,
 }: Props) {
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -38,12 +39,14 @@ export default function SubjectModal({
   }, [subject]);
 
   const handleSubmit = async () => {
+
     if (!name.trim()) {
-      toast.error("Subject name is required");
+      toast.error("Subject name is required.");
       return;
     }
 
     try {
+
       if (subject) {
         await updateCenterSubject(centerId, subject.id, {
           name,
@@ -60,6 +63,7 @@ export default function SubjectModal({
 
       onSuccess();
       onClose();
+
     } catch {
       toast.error("Operation failed");
     }
@@ -68,57 +72,77 @@ export default function SubjectModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-[400px] space-y-4 shadow-xl">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
 
-        <div className="flex justify-between items-center">
-          <h2 className="font-bold text-lg">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-6 animate-in fade-in zoom-in">
+
+        {/* Header */}
+        <div className="flex justify-between items-center border-b pb-3">
+          <h2 className="text-lg font-bold text-[var(--color-text)]">
             {subject ? "Edit Subject" : "Create Subject"}
           </h2>
-          <button onClick={onClose}>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100 transition"
+          >
             <X size={20} />
           </button>
         </div>
 
-        <div className="space-y-3">
+        {/* Form */}
+        <div className="space-y-4">
 
           <div>
-            <label className="text-sm font-medium">Subject Name</label>
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+              Subject Name
+            </label>
+
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              placeholder="Example: Mathematics"
+              className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium">Description</label>
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+              Description
+            </label>
+
             <textarea
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              placeholder="Optional description"
+              className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
             />
           </div>
 
         </div>
 
-        <div className="flex justify-end gap-2">
+        {/* Footer */}
+        <div className="flex justify-end gap-3 pt-2 border-t">
+
           <button
             onClick={onClose}
-            className="border px-4 py-2 rounded-lg"
+            className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
           >
             Cancel
           </button>
 
           <button
             onClick={handleSubmit}
-            className="bg-[var(--color-main)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-secondary)]"
+            className="bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
           >
             Save
           </button>
+
         </div>
 
       </div>
+
     </div>
   );
 }

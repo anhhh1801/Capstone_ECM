@@ -35,7 +35,7 @@ export default function Header() {
     return (
 
         <header className="text-white shadow-md">
-            <div className="flex justify-between items-center container mx-auto bg-[var(--color-soft-white)] text-[var(--color-text)] font-bold p-2">
+            <div className="flex justify-between items-center container mx-auto bg-[var(--color-soft-white)] text-[var(--color-text)] font-bold py-2">
                 <Link href="/" className="text-3xl">
                     Tutoring Center Management Application
                 </Link>

@@ -60,6 +60,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
 
     return (
         <div className="space-y-4">
+
             <GradeModal
                 centerId={centerId}
                 isOpen={isModalOpen}
@@ -67,7 +68,10 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                 onSuccess={fetch}
                 grade={editingGrade}
             />
+
+            {/* HEADER */}
             <div className="flex items-center justify-between">
+
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                     <Plus size={18} className="text-[var(--color-main)]" />
                     Grades
@@ -79,61 +83,98 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                             setEditingGrade(null);
                             setModalOpen(true);
                         }}
+                        className="flex items-center gap-2 bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
                     >
+                        <Plus size={16} />
                         Add Grade
                     </button>
                 )}
+
             </div>
 
+            {/* EMPTY STATE */}
             {grades.length === 0 ? (
-                <div className="p-10 text-center text-gray-500">No grades created yet.</div>
+                <div className="p-10 text-center text-gray-500 border rounded-lg">
+                    No grades created yet.
+                </div>
             ) : (
+
                 <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm overflow-hidden">
+
                     <table className="w-full text-left text-sm">
+
+                        {/* TABLE HEADER */}
                         <thead className="bg-[var(--color-main)] text-white uppercase text-xs">
                             <tr>
                                 <th className="px-6 py-4">Name</th>
-                                <th className="px-6 py-4">Age range</th>
+                                <th className="px-6 py-4">Age Range</th>
                                 <th className="px-6 py-4">Description</th>
                                 {isManager && <th className="px-6 py-4 text-right">Actions</th>}
                             </tr>
                         </thead>
+
+                        {/* TABLE BODY */}
                         <tbody className="divide-y divide-gray-100">
-                            {grades.map(grade => (
+
+                            {grades.map((grade) => (
+
                                 <tr key={grade.id} className="hover:bg-blue-50 transition">
-                                    <td className="px-6 py-4 text-[var(--color-text)]">{grade.name}</td>
+
+                                    <td className="px-6 py-4 font-semibold text-[var(--color-text)]">
+                                        {grade.name}
+                                    </td>
+
                                     <td className="px-6 py-4 text-[var(--color-text)]">
                                         {grade.fromAge != null && grade.toAge != null
-                                            ? `${grade.fromAge}–${grade.toAge}`
+                                            ? `${grade.fromAge} – ${grade.toAge}`
                                             : "-"}
                                     </td>
-                                    <td className="px-6 py-4 text-[var(--color-text)]">{grade.description || "-"}</td>
+
+                                    <td className="px-6 py-4 text-gray-600">
+                                        {grade.description || "-"}
+                                    </td>
+
                                     {isManager && (
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
+
+                                            <div className="flex justify-end items-center gap-2">
+
+                                                {/* EDIT */}
                                                 <button
                                                     onClick={() => {
                                                         setEditingGrade(grade);
                                                         setModalOpen(true);
                                                     }}
+                                                    className="p-2 bg-[var(--color-secondary)] text-white rounded-lg hover:bg-[var(--color-main)] transition"
                                                 >
                                                     <Edit2Icon size={18} />
                                                 </button>
+
+                                                {/* DELETE */}
                                                 <button
                                                     onClick={() => handleDelete(grade)}
                                                     className="p-2 bg-[var(--color-alert)] text-white rounded-lg hover:bg-red-700 transition"
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
+
                                             </div>
+
                                         </td>
                                     )}
+
                                 </tr>
+
                             ))}
+
                         </tbody>
+
                     </table>
+
                 </div>
+
             )}
+
         </div>
     );
 }
