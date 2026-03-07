@@ -28,3 +28,9 @@ export const createCenter = async (data: {
     const response = await api.post('/centers', data);
     return response.data;
 };
+
+// Lấy danh sách giáo viên của trung tâm
+export const getCenterTeachers = async (centerId: number) => {
+    const response = await api.get(`/centers/${centerId}/teachers`);
+    return response.data;
+};

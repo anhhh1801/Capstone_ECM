@@ -108,7 +108,7 @@ export default function CenterDetailPage() {
             <CenterHeader center={centerInfo} isManager={isManager} />
 
             {/* TABS */}
-            <div className="bg-[var(--color-soft-white)] p-4 rounded-xl border border-[var(--color-main)]">
+            <div className="bg-[var(--color-soft-white)] p-4 rounded-xl">
                 <CenterTabs
                     activeTab={activeTab}
                     setActiveTab={setActiveTab as any}

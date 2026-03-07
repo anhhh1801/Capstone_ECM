@@ -202,26 +202,30 @@ export default function CenterManagementPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex border-b border-[var(--color-text)] gap-6">
-                <button
-                    onClick={() => setActiveTab("managed")}
-                    className={`pb-3 font-medium flex items-center gap-2 border-b-2 transition ${activeTab === "managed"
-                        ? "border-[var(--color-main)] text-[var(--color-main)]"
-                        : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
-                        }`}
-                >
-                    <Building2 size={18} /> Managed by Me ({managedCenters.length})
-                </button>
+            <div className="bg-[var(--color-soft-white)] p-4 rounded-xl">
+                <div className="flex border-b border-[var(--color-text)] gap-6">
+                    <button
+                        onClick={() => setActiveTab("managed")}
+                        className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
+                        ${activeTab === "managed"
+                                ? "border-[var(--color-main)] text-[var(--color-main)]"
+                                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+                            }`}
+                    >
+                        <Building2 size={18} /> Managed by Me ({managedCenters.length})
+                    </button>
 
-                <button
-                    onClick={() => setActiveTab("teaching")}
-                    className={`pb-3 font-medium flex items-center gap-2 border-b-2 transition ${activeTab === "teaching"
-                        ? "border-[var(--color-main)] text-[var(--color-main)]"
-                        : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
-                        }`}
-                >
-                    <Briefcase size={18} /> Teaching At ({teachingCenters.length})
-                </button>
+                    <button
+                        onClick={() => setActiveTab("teaching")}
+                        className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
+                            ${activeTab === "teaching"
+                                ? "border-[var(--color-main)] text-[var(--color-main)]"
+                                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+                            }`}
+                    >
+                        <Briefcase size={18} /> Teaching At ({teachingCenters.length})
+                    </button>
+                </div>
             </div>
 
             {/* Delete Modal */}
