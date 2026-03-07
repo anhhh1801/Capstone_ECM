@@ -13,10 +13,18 @@ export default function EditCoursePage() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState({
+    const [course, setCourse] = useState<any>(null);
+    const [formData, setFormData] = useState<{
+        name: string;
+        subjectId?: number;
+        gradeId?: number;
+        description: string;
+        startDate: string;
+        endDate: string;
+    }>({
         name: "",
-        subject: "",
-        grade: 0,
+        subjectId: undefined,
+        gradeId: undefined,
         description: "",
         startDate: "",
         endDate: ""
@@ -28,10 +36,11 @@ export default function EditCoursePage() {
         const fetchDetail = async () => {
             try {
                 const data = await getCourseById(courseId);
+                setCourse(data);
                 setFormData({
                     name: data.name,
-                    subject: data.subject,
-                    grade: data.grade,
+                    subjectId: data.subject?.id,
+                    gradeId: data.grade?.id,
                     description: data.description,
                     startDate: data.startDate,
                     endDate: data.endDate
@@ -89,15 +98,24 @@ export default function EditCoursePage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                            <input type="text" className="w-full p-2.5 border rounded-lg bg-gray-100 cursor-not-allowed" value={formData.subject} disabled />
+                            <input
+                                type="text"
+                                className="w-full p-2.5 border rounded-lg bg-gray-100 cursor-not-allowed"
+                                value={course?.subject?.name ?? ""}
+                                disabled
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                             <input
-                                type="number" required min={1} max={12}
-                                className="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                value={formData.grade}
-                                onChange={e => setFormData({ ...formData, grade: Number(e.target.value) })}
+                                type="text"
+                                className="w-full p-2.5 border rounded-lg bg-gray-100 cursor-not-allowed"
+                                value={
+                                    course?.grade
+                                        ? `${course.grade.name}${course.grade.fromAge != null && course.grade.toAge != null ? ` (age ${course.grade.fromAge}-${course.grade.toAge})` : ""}`
+                                        : ""
+                                }
+                                disabled
                             />
                         </div>
                     </div>

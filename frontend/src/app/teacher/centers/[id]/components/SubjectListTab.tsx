@@ -38,47 +38,47 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
     }, [centerId]);
 
     const handleCreate = async () => {
-        const name = prompt("Tên môn học mới:");
+        const name = prompt("New subject name:");
         if (!name || !name.trim()) return;
 
-        const description = prompt("Mô tả (tùy chọn):") || "";
+        const description = prompt("Description (optional):") || "";
 
         try {
             await createCenterSubject(centerId, { name: name.trim(), description });
-            toast.success("Thêm môn học thành công.");
+            toast.success("Subject added successfully.");
             fetch();
         } catch (error) {
             console.error(error);
-            toast.error("Không thể thêm môn học.");
+            toast.error("Could not add subject.");
         }
     };
 
     const handleEdit = async (subject: CenterSubject) => {
-        const name = prompt("Tên môn học:", subject.name);
+        const name = prompt("Subject name:", subject.name);
         if (!name || !name.trim()) return;
 
-        const description = prompt("Mô tả (tùy chọn):", subject.description || "") || "";
+        const description = prompt("Description (optional):", subject.description || "") || "";
 
         try {
             await updateCenterSubject(centerId, subject.id, { name: name.trim(), description });
-            toast.success("Cập nhật môn học thành công.");
+            toast.success("Subject updated successfully.");
             fetch();
         } catch (error) {
             console.error(error);
-            toast.error("Không thể cập nhật môn học.");
+            toast.error("Could not update subject.");
         }
     };
 
     const handleDelete = async (subject: CenterSubject) => {
-        if (!confirm(`Xóa môn học "${subject.name}"?`)) return;
+        if (!confirm(`Delete subject "${subject.name}"?`)) return;
 
         try {
             await deleteCenterSubject(centerId, subject.id);
-            toast.success("Đã xóa môn học.");
+            toast.success("Subject deleted.");
             fetch();
         } catch (error) {
             console.error(error);
-            toast.error("Không thể xóa môn học.");
+            toast.error("Could not delete subject.");
         }
     };
 

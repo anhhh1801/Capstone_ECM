@@ -98,12 +98,12 @@ export default function CourseListPage() {
                                                 {course.name}
                                             </div>
                                             <span className="block text-xs text-[var(--color-text)]/70 mt-1">
-                                                Grade {course.grade}
+                                                Grade {course.grade?.name || "-"}
                                             </span>
                                         </td>
 
                                         <td className="px-6 py-4">
-                                            {course.subject}
+                                            {course.subject?.name || "-"}
                                         </td>
 
                                         <td className="px-6 py-4 break-words">

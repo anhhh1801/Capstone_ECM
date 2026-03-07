@@ -1,16 +1,17 @@
 package com.extracenter.backend.dto;
 
-import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+
+import lombok.Data;
 
 @Data
 public class CourseRequest {
     // 1. Thông tin chung của khóa học
     private String name;
-    private String subject;
-    private Integer grade;
+    private Long subjectId;
+    private Long gradeId;
     private String description;
     private LocalDate startDate;
     private LocalDate endDate;

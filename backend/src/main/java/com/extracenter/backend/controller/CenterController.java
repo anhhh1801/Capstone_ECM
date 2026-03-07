@@ -165,7 +165,11 @@ public class CenterController {
     @PostMapping("/{centerId}/grades")
     public ResponseEntity<?> createGrade(@PathVariable Long centerId, @RequestBody GradeRequest request) {
         try {
-            Grade grade = centerService.createGrade(centerId, request.getName(), request.getValue(), request.getDescription());
+            Grade grade = centerService.createGrade(centerId,
+                    request.getName(),
+                    request.getFromAge(),
+                    request.getToAge(),
+                    request.getDescription());
             return ResponseEntity.ok(grade);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -177,7 +181,12 @@ public class CenterController {
     @PutMapping("/{centerId}/grades/{gradeId}")
     public ResponseEntity<?> updateGrade(@PathVariable Long centerId, @PathVariable Long gradeId, @RequestBody GradeRequest request) {
         try {
-            Grade grade = centerService.updateGrade(centerId, gradeId, request.getName(), request.getValue(), request.getDescription());
+            Grade grade = centerService.updateGrade(centerId,
+                    gradeId,
+                    request.getName(),
+                    request.getFromAge(),
+                    request.getToAge(),
+                    request.getDescription());
             return ResponseEntity.ok(grade);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

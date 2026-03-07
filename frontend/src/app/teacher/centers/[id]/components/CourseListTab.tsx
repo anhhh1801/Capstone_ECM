@@ -95,14 +95,21 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
 
                                     {/* SUBJECT */}
                                     <td className="px-6 py-4 text-[var(--color-text)]">
-                                        {course.subject}
+                                        {course.subject?.name || "-"}
                                     </td>
 
                                     {/* GRADE */}
                                     <td className="px-6 py-4">
-                                        <span className="px-2 py-1 rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
-                                            Grade {course.grade}
-                                        </span>
+                                        {course.grade ? (
+                                            <span className="px-2 py-1 rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
+                                                {course.grade.name}
+                                                {course.grade.fromAge != null && course.grade.toAge != null && (
+                                                    <span className="text-xs ml-1">(age {course.grade.fromAge}-{course.grade.toAge})</span>
+                                                )}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-gray-500">-</span>
+                                        )}
                                     </td>
 
                                     {/* TEACHER */}

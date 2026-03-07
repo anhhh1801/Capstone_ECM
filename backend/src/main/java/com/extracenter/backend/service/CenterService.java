@@ -114,29 +114,31 @@ public class CenterService {
         return gradeRepository.findByCenterId(centerId);
     }
 
-    public Grade createGrade(Long centerId, String name, Integer value, String description) {
+    public Grade createGrade(Long centerId, String name, Integer fromAge, Integer toAge, String description) {
         Center center = centerRepository.findById(centerId)
-                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("Center does not exist!"));
 
         Grade grade = new Grade();
         grade.setName(name);
-        grade.setValue(value);
+        grade.setFromAge(fromAge);
+        grade.setToAge(toAge);
         grade.setDescription(description);
         grade.setCenter(center);
 
         return gradeRepository.save(grade);
     }
 
-    public Grade updateGrade(Long centerId, Long gradeId, String name, Integer value, String description) {
+    public Grade updateGrade(Long centerId, Long gradeId, String name, Integer fromAge, Integer toAge, String description) {
         Grade grade = gradeRepository.findById(gradeId)
-                .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("Grade does not exist!"));
 
         if (!grade.getCenter().getId().equals(centerId)) {
-            throw new RuntimeException("Khối lớp không thuộc trung tâm này.");
+            throw new RuntimeException("Grade does not belong to this center.");
         }
 
         grade.setName(name);
-        grade.setValue(value);
+        grade.setFromAge(fromAge);
+        grade.setToAge(toAge);
         grade.setDescription(description);
 
         return gradeRepository.save(grade);

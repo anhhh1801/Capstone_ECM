@@ -23,14 +23,18 @@ public class Grade {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    //Can be whatever the center wants, e.g. "Grade 1", "Grade 2", "Kindergarten", etc.
     @Column(nullable = false)
     private String name;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Optional numeric value (e.g. 10, 11, 12)
-    private Integer value;
+    @Column(nullable = true)
+    private Integer fromAge;
+
+    @Column(nullable = true)
+    private Integer toAge;
 
     @ManyToOne
     @JoinColumn(name = "center_id", nullable = false)

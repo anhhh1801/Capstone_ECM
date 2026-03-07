@@ -121,7 +121,7 @@ export default function CenterManagementPage() {
                             <div key={inv.id} className="bg-[var(--color-soft-white)] p-3 rounded-lg border border-[var(--color-alert)] flex justify-between items-center shadow-sm">
                                 <div>
                                     <p className="font-bold text-[var(--color-text)]">
-                                        {inv.name} (Grade {inv.grade})
+                                        {inv.name} (Grade {inv.grade ? inv.grade.name : "-"})
                                     </p>
                                     <p className="text-sm text-[var(--color-text)]">
                                         At: {inv.center?.name}

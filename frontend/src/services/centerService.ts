@@ -39,7 +39,8 @@ export interface CenterGrade {
     id: number;
     name: string;
     description?: string;
-    value?: number;
+    fromAge?: number;
+    toAge?: number;
 }
 
 // Lấy danh sách giáo viên của trung tâm
@@ -79,13 +80,13 @@ export const getCenterGrades = async (centerId: number) => {
 };
 
 // Tạo khối lớp cho trung tâm
-export const createCenterGrade = async (centerId: number, data: { name: string; value?: number; description?: string }) => {
+export const createCenterGrade = async (centerId: number, data: { name: string; fromAge?: number; toAge?: number; description?: string }) => {
     const response = await api.post(`/centers/${centerId}/grades`, data);
     return response.data as CenterGrade;
 };
 
-// Cập nhật khối lớp của trung tâm
-export const updateCenterGrade = async (centerId: number, gradeId: number, data: { name: string; value?: number; description?: string }) => {
+// Update existing grade
+export const updateCenterGrade = async (centerId: number, gradeId: number, data: { name: string; fromAge?: number; toAge?: number; description?: string }) => {
     const response = await api.put(`/centers/${centerId}/grades/${gradeId}`, data);
     return response.data as CenterGrade;
 };

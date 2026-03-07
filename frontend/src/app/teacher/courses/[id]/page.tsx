@@ -59,7 +59,7 @@ export default function CourseDetailPage() {
                 onClick={() => router.back()}
                 className="flex items-center gap-2 text-gray-500 hover:text-blue-600 text-sm transition"
             >
-                <ArrowLeft size={18} /> Quay lại danh sách
+                <ArrowLeft size={18} /> Back to list
             </button>
 
             <div className="bg-white p-8 rounded-xl shadow-sm border relative overflow-hidden">
@@ -84,7 +84,7 @@ export default function CourseDetailPage() {
                         href={`/teacher/courses/${courseId}/edit`}
                         className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-100 font-medium transition"
                     >
-                        <Edit size={18} /> Chỉnh sửa
+                        <Edit size={18} /> Edit
                     </Link>
                 </div>
             </div>
@@ -117,7 +117,7 @@ export default function CourseDetailPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500">Subject</p>
-                                        <p className="font-medium text-gray-800">{course.subject}</p>
+                                        <p className="font-medium text-gray-800">{course.subject?.name || "-"}</p>
                                     </div>
                                 </div>
 
@@ -127,7 +127,18 @@ export default function CourseDetailPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500">Grade</p>
-                                        <p className="font-medium text-gray-800">Lớp {course.grade}</p>
+                                        <p className="font-medium text-gray-800">
+                                            {course.grade ? (
+                                                <>
+                                                    {course.grade.name}
+                                                    {course.grade.fromAge != null && course.grade.toAge != null && (
+                                                        <span className="text-sm text-gray-500"> (age {course.grade.fromAge}-{course.grade.toAge})</span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                "-"
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
 

@@ -37,7 +37,7 @@ function CreateCourseLogic() {
             : data.centerId;
 
         if (!finalCenterId) {
-            toast.error("Vui lòng chọn Trung tâm!");
+            toast.error("Please select a center!");
             return;
         }
 
@@ -52,10 +52,10 @@ function CreateCourseLogic() {
                 teacherId: user.id,
             });
 
-            toast.success("Tạo khóa học thành công!");
+            toast.success("Course created successfully!");
             router.push(`/teacher/centers/${finalCenterId}`);
         } catch (error: any) {
-            toast.error(error.response?.data || "Có lỗi xảy ra khi tạo khóa học");
+            toast.error(error.response?.data || "An error occurred while creating the course");
         } finally {
             setLoading(false);
         }
@@ -69,16 +69,16 @@ function CreateCourseLogic() {
                 className="flex items-center gap-2 text-[var(--color-text)] hover:text-[var(--color-main)] font-medium transition"
             >
                 <ArrowLeft size={20} />
-                Quay lại
+                Back
             </button>
 
             <div>
                 <h1 className="text-3xl font-bold text-[var(--color-text)] flex items-center gap-2">
                     <BookOpen className="text-[var(--color-main)]" />
-                    Tạo khóa học mới
+                    Create new course
                 </h1>
                 <p className="text-[var(--color-text)]/70 mt-2">
-                    Thiết lập thông tin lớp học và gán vào trung tâm quản lý.
+                    Set up class information and assign it to a center.
                 </p>
             </div>
 
@@ -89,8 +89,8 @@ function CreateCourseLogic() {
                 isCenterLocked={!!centerIdParam}
                 initialData={{
                     name: "",
-                    subject: "",
-                    grade: 10,
+                    subjectId: undefined,
+                    gradeId: undefined,
                     description: "",
                     startDate: "",
                     endDate: "",
@@ -105,7 +105,7 @@ function CreateCourseLogic() {
 
 export default function CreateCoursePage() {
     return (
-        <Suspense fallback={<p className="text-center p-10">Đang tải giao diện...</p>}>
+        <Suspense fallback={<p className="text-center p-10">Loading interface...</p>}>
             <CreateCourseLogic />
         </Suspense>
     );
