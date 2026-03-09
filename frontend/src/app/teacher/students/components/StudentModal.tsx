@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Building2, Plus, Trash2 } from "lucide-react";
 import {
     createStudentAuto,
@@ -29,6 +29,11 @@ export default function StudentModal({
 
     const [centers, setCenters] = useState<Center[]>([]);
     const [loading, setLoading] = useState(false);
+    const [connectedCenters, setConnectedCenters] = useState<any[]>([]);
+    const originalConnectedCentersRef = useRef<any[]>([]);
+    const [pendingAddCenterIds, setPendingAddCenterIds] = useState<number[]>([]);
+    const [pendingRemoveCenterIds, setPendingRemoveCenterIds] = useState<number[]>([]);
+    const [newCenterId, setNewCenterId] = useState<number | "">("");
 
     const [form, setForm] = useState({
         firstName: "",
@@ -61,6 +66,13 @@ export default function StudentModal({
                 dateOfBirth: studentToEdit.dateOfBirth || "",
                 centerId: ""
             });
+
+            const centers = studentToEdit.connectedCenters ?? [];
+            setConnectedCenters(centers);
+            originalConnectedCentersRef.current = centers;
+            setPendingAddCenterIds([]);
+            setPendingRemoveCenterIds([]);
+            setNewCenterId("");
         } else {
             setForm({
                 firstName: "",
@@ -69,6 +81,12 @@ export default function StudentModal({
                 dateOfBirth: "",
                 centerId: preSelectedCenterId || ""
             });
+
+            setConnectedCenters([]);
+            originalConnectedCentersRef.current = [];
+            setPendingAddCenterIds([]);
+            setPendingRemoveCenterIds([]);
+            setNewCenterId("");
         }
 
     }, [isOpen, studentToEdit, preSelectedCenterId]);
@@ -86,6 +104,19 @@ export default function StudentModal({
 
                 await updateStudent(studentToEdit.id, form);
                 toast.success("Student updated successfully.");
+
+                // Apply pending center changes only when the user clicks Save
+                if (pendingRemoveCenterIds.length) {
+                    await Promise.all(
+                        pendingRemoveCenterIds.map(id => removeStudentFromCenter(id, studentToEdit.id))
+                    );
+                }
+
+                if (pendingAddCenterIds.length) {
+                    await Promise.all(
+                        pendingAddCenterIds.map(id => assignStudentToCenter(id, studentToEdit.id))
+                    );
+                }
 
             } else {
 
@@ -109,37 +140,26 @@ export default function StudentModal({
         }
     };
 
-    const handleAddCenter = async (centerIdToAdd: number) => {
-        try {
+    const handleAddCenter = (centerIdToAdd: number) => {
+        const center = centers.find(c => c.id === centerIdToAdd);
+        if (!center) return;
 
-            await assignStudentToCenter(centerIdToAdd, studentToEdit.id);
-
-            toast.success("Center added.");
-            onSuccess();
-
-        } catch {
-            toast.error("Failed to add center.");
-        }
+        setConnectedCenters(prev => [...prev, center]);
+        setPendingAddCenterIds(prev => Array.from(new Set([...prev, centerIdToAdd])));
+        setPendingRemoveCenterIds(prev => prev.filter(id => id !== centerIdToAdd));
+        setNewCenterId("");
     };
 
-    const handleRemoveCenter = async (centerIdToRemove: number) => {
-
+    const handleRemoveCenter = (centerIdToRemove: number) => {
         if (!confirm("Remove student from this center?")) return;
 
-        try {
-
-            await removeStudentFromCenter(centerIdToRemove, studentToEdit.id);
-
-            toast.success("Center removed.");
-            onSuccess();
-
-        } catch {
-            toast.error("Failed to remove center.");
-        }
+        setConnectedCenters(prev => prev.filter(c => c.id !== centerIdToRemove));
+        setPendingRemoveCenterIds(prev => Array.from(new Set([...prev, centerIdToRemove])));
+        setPendingAddCenterIds(prev => prev.filter(id => id !== centerIdToRemove));
     };
 
     const availableCenters = centers.filter(c =>
-        !studentToEdit?.connectedCenters?.some((cc: any) => cc.id === c.id)
+        !connectedCenters.some((cc: any) => cc.id === c.id)
     );
 
     return (
@@ -327,8 +347,14 @@ export default function StudentModal({
 
                                     <select
                                         id="add-center-select"
-                                        className="flex-1 p-3 border-2 border-[var(--color-main)] rounded-lg"
+                                        value={newCenterId}
+                                        onChange={(e) =>
+                                            setNewCenterId(e.target.value ? Number(e.target.value) : "")
+                                        }
+                                        className="w-full max-w-full min-w-0 p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white truncate"
                                     >
+
+                                        <option value="">Select center</option>
 
                                         {availableCenters.map(c => (
                                             <option key={c.id} value={c.id}>
@@ -341,8 +367,8 @@ export default function StudentModal({
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            const select = document.getElementById("add-center-select") as HTMLSelectElement;
-                                            handleAddCenter(Number(select.value));
+                                            if (!newCenterId) return;
+                                            handleAddCenter(Number(newCenterId));
                                         }}
                                         className="flex items-center gap-1 bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
                                     >
@@ -353,35 +379,35 @@ export default function StudentModal({
                                 </div>
 
                             )}
-
                         </div>
-
                     )}
 
                     <div className="flex justify-end gap-3 pt-4 border-t">
 
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
-                        >
-                            Cancel
-                        </button>
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                                >
+                                    Cancel
+                                </button>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition disabled:opacity-50"
-                        >
-                            {loading ? "Saving..." : "Save"}
-                        </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition disabled:opacity-50"
+                                >
+                                    {loading ? "Saving..." : "Save"}
+                                </button>
 
-                    </div>
+                            </div>
 
-                </form>
+                        </form>
 
+            
             </div>
 
         </div>
+
     );
 }
