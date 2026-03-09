@@ -100,11 +100,10 @@ export default function CourseDetailPage() {
                             </h1>
 
                             <span
-                                className={`px-3 py-1 rounded text-xs font-semibold border ${
-                                    course.status === "ACTIVE"
+                                className={`px-3 py-1 rounded text-xs font-semibold border ${course.status === "ACTIVE"
                                         ? "bg-green-50 text-green-700 border-green-200"
                                         : "bg-gray-100 text-gray-600 border-gray-200"
-                                }`}
+                                    }`}
                             >
                                 {course.status || "ACTIVE"}
                             </span>
@@ -221,7 +220,7 @@ export default function CourseDetailPage() {
 
                                                     {course.grade.fromAge != null &&
                                                         course.grade.toAge !=
-                                                            null && (
+                                                        null && (
                                                             <span className="ml-1">
                                                                 {" "}
                                                                 (age{" "}
@@ -311,11 +310,7 @@ export default function CourseDetailPage() {
             {/* STUDENTS */}
             {activeTab === "Students" && (
 
-                <div className="bg-[var(--color-soft-white)] border border-[var(--color-main)] p-6 rounded-xl shadow-sm text-center text-gray-500">
-
-                    <p className="mb-4">
-                        Student list
-                    </p>
+                <div>
 
                     <CourseEnrollment courseId={courseId} />
 
