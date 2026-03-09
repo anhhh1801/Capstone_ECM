@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Edit2Icon, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterGrade,
-    createCenterGrade,
     deleteCenterGrade,
     getCenterGrades,
-    updateCenterGrade,
 } from "@/services/centerService";
 import GradeModal from "./GradeModal";
 
@@ -21,7 +19,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
     const [grades, setGrades] = useState<CenterGrade[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetch = async () => {
+    const fetch = useCallback(async () => {
         try {
             setLoading(true);
             const res = await getCenterGrades(centerId);
@@ -32,11 +30,11 @@ export default function GradeListTab({ centerId, isManager }: Props) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [centerId]);
 
     useEffect(() => {
         fetch();
-    }, [centerId]);
+    }, [fetch]);
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);

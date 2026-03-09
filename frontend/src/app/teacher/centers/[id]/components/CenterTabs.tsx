@@ -1,4 +1,4 @@
-import { BookOpen, Building2, Users, UserCog } from "lucide-react";
+import { BookOpen, Building2, Users, UserCog, BookA, BookPlus } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 
 type TabKey = "courses" | "students" | "teachers" | "subjects" | "grades";
@@ -44,7 +44,7 @@ export default function CenterTabs({ activeTab, setActiveTab, isManager }: Props
                                 : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
                             }`}
                     >
-                        <BookOpen size={18} /> Subjects
+                        <BookA size={18} /> Subjects
                     </button>
 
                     <button
@@ -55,7 +55,7 @@ export default function CenterTabs({ activeTab, setActiveTab, isManager }: Props
                                 : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
                             }`}
                     >
-                        <Building2 size={18} /> Grades
+                        <BookPlus size={18} /> Grades
                     </button>
 
                     <button

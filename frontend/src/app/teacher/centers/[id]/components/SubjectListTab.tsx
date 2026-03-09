@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Edit2Icon, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterSubject,
-    createCenterSubject,
     deleteCenterSubject,
     getCenterSubjects,
-    updateCenterSubject,
 } from "@/services/centerService";
+import SubjectModal from "./SubjectModal";
 
 interface Props {
     centerId: number;
@@ -20,7 +19,10 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
     const [subjects, setSubjects] = useState<CenterSubject[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetch = async () => {
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
+
+    const fetch = useCallback(async () => {
         try {
             setLoading(true);
             const res = await getCenterSubjects(centerId);
@@ -31,42 +33,20 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [centerId]);
 
     useEffect(() => {
         fetch();
-    }, [centerId]);
+    }, [fetch]);
 
-    const handleCreate = async () => {
-        const name = prompt("New subject name:");
-        if (!name || !name.trim()) return;
-
-        const description = prompt("Description (optional):") || "";
-
-        try {
-            await createCenterSubject(centerId, { name: name.trim(), description });
-            toast.success("Subject added successfully.");
-            fetch();
-        } catch (error) {
-            console.error(error);
-            toast.error("Could not add subject.");
-        }
+    const handleCreate = () => {
+        setEditingSubject(null);
+        setModalOpen(true);
     };
 
-    const handleEdit = async (subject: CenterSubject) => {
-        const name = prompt("Subject name:", subject.name);
-        if (!name || !name.trim()) return;
-
-        const description = prompt("Description (optional):", subject.description || "") || "";
-
-        try {
-            await updateCenterSubject(centerId, subject.id, { name: name.trim(), description });
-            toast.success("Subject updated successfully.");
-            fetch();
-        } catch (error) {
-            console.error(error);
-            toast.error("Could not update subject.");
-        }
+    const handleEdit = (subject: CenterSubject) => {
+        setEditingSubject(subject);
+        setModalOpen(true);
     };
 
     const handleDelete = async (subject: CenterSubject) => {
@@ -88,6 +68,17 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
 
     return (
         <div className="space-y-4">
+            <SubjectModal
+                centerId={centerId}
+                isOpen={isModalOpen}
+                onClose={() => setModalOpen(false)}
+                onSuccess={() => {
+                    setModalOpen(false);
+                    fetch();
+                }}
+                subject={editingSubject}
+            />
+
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                     <Plus size={18} className="text-[var(--color-main)]" />
@@ -107,42 +98,58 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
             {subjects.length === 0 ? (
                 <div className="p-10 text-center text-gray-500">No subjects created yet.</div>
             ) : (
-                <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm overflow-hidden">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-[var(--color-main)] text-white uppercase text-xs">
-                            <tr>
-                                <th className="px-6 py-4">Name</th>
-                                <th className="px-6 py-4">Description</th>
-                                {isManager && <th className="px-6 py-4 text-right">Actions</th>}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {subjects.map(subject => (
-                                <tr key={subject.id} className="hover:bg-blue-50 transition">
-                                    <td className="px-6 py-4 font-semibold text-[var(--color-text)]">{subject.name}</td>
-                                    <td className="px-6 py-4 text-[var(--color-text)]">{subject.description || "-"}</td>
-                                    {isManager && (
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(subject)}
-                                                    className="p-2 bg-[var(--color-secondary)] text-white rounded-lg hover:bg-[var(--color-main)] transition"
-                                                >
-                                                    <Edit2Icon size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(subject)}
-                                                    className="p-2 bg-[var(--color-alert)] text-white rounded-lg hover:bg-red-700 transition"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {subjects.length === 0 ? (
+                        <div className="col-span-full p-10 text-center text-gray-500 bg-white rounded-xl border">
+                            No subjects created yet.
+                        </div>
+                    ) : (
+                        subjects.map(subject => (
+
+                            <div
+                                key={subject.id}
+                                className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                            >
+
+                                {/* ACTION BAR */}
+                                {isManager && (
+                                    <div className="flex justify-end items-center gap-2 bg-[var(--color-main)] p-2 border-b border-[var(--color-main)]">
+
+                                        <button
+                                            onClick={() => handleEdit(subject)}
+                                            className="p-2 border-2 bg-[var(--color-secondary)] text-white border-[var(--color-secondary)] rounded hover:bg-white hover:text-[var(--color-secondary)] transition"
+                                        >
+                                            <Edit2Icon size={18} />
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleDelete(subject)}
+                                            className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+
+                                    </div>
+                                )}
+
+                                {/* SUBJECT CONTENT */}
+                                <div className="p-4 flex flex-col flex-1">
+
+                                    <h4 className="font-bold text-[var(--color-text)]">
+                                        {subject.name}
+                                    </h4>
+
+                                    <div className="text-sm text-[var(--color-text)] mt-2">
+                                        <span className="font-medium">Description:</span>{" "}
+                                        {subject.description || "-"}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        ))
+                    )}
                 </div>
             )}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Phone, Building2, Unlink, Trash2 } from "lucide-react";
+import { Mail, Phone, Building2, Unlink, Trash2, Edit2Icon } from "lucide-react";
 
 interface Student {
     id: number;
@@ -155,14 +155,14 @@ export default function StudentTable({
 
                                     <button
                                         onClick={() => onEdit(student)}
-                                        className="text-[var(--color-secondary)] hover:text-[var(--color-main)] font-medium text-sm"
+                                        className="p-2 border-2 bg-[var(--color-secondary)] text-white border-[var(--color-secondary)] rounded hover:bg-white hover:text-[var(--color-secondary)] transition"
                                     >
-                                        Profile
+                                        <Edit2Icon size={18} />
                                     </button>
 
                                     <button
                                         onClick={() => onDelete(student.id)}
-                                        className="text-[var(--color-alert)] hover:bg-[var(--color-alert)] hover:text-white p-2 rounded transition"
+                                        className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                         title={deleteLabel}
                                     >
                                         {deleteLabel === "Remove"

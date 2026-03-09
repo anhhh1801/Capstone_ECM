@@ -7,43 +7,47 @@ interface Props {
 }
 
 export default function CenterTabsInCourse({ activeTab, setActiveTab, isManager }: Props) {
+
+    const tabStyle = (tab: string) =>
+        `px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
+        ${
+            activeTab === tab
+                ? "border-[var(--color-main)] text-[var(--color-main)]"
+                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+        }`;
+
     return (
-        <div className="border-b border-gray-200 flex gap-6 mb-6">
+        <div className="flex border-b border-[var(--color-text)] gap-6">
+
+            {/* GENERAL INFO */}
             <button
                 onClick={() => setActiveTab("General Info")}
-                className={`pb-3 font-medium text-sm flex items-center gap-2 transition relative ${activeTab === "General Info" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
-                    }`}
+                className={tabStyle("General Info")}
             >
-                <BookOpen size={18} /> Thông tin chung
-                {activeTab === "General Info" && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
-                )}
+                <BookOpen size={18} />
+                General Info
             </button>
 
+            {/* STUDENTS */}
             <button
                 onClick={() => setActiveTab("Students")}
-                className={`pb-3 font-medium text-sm flex items-center gap-2 transition relative ${activeTab === "Students" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
-                    }`}
+                className={tabStyle("Students")}
             >
-                <Users size={18} /> Học viên
-                {activeTab === "Students" && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
-                )}
+                <Users size={18} />
+                Students
             </button>
 
-            {/* Only show this tab if isManager is TRUE */}
+            {/* ENROLLMENT (Manager only) */}
             {isManager && (
                 <button
                     onClick={() => setActiveTab("Enrollment")}
-                    className={`pb-3 font-medium text-sm flex items-center gap-2 transition relative ${activeTab === "Enrollment" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
-                        }`}
+                    className={tabStyle("Enrollment")}
                 >
-                    <UserCog size={18} /> Quản lý ghi danh
-                    {activeTab === "Enrollment" && (
-                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
-                    )}
+                    <UserCog size={18} />
+                    Enrollment
                 </button>
             )}
+
         </div>
     );
 }

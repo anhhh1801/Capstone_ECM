@@ -13,7 +13,7 @@ interface Props {
     centerId: number;
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (grade?: CenterGrade) => void;
     grade?: CenterGrade | null;
 }
 
@@ -84,12 +84,13 @@ export default function GradeModal({
             if (grade) {
                 await updateCenterGrade(centerId, grade.id, payload);
                 toast.success("Grade updated successfully.");
+                onSuccess(grade);
             } else {
-                await createCenterGrade(centerId, payload);
+                const newly = await createCenterGrade(centerId, payload);
                 toast.success("Grade created successfully.");
+                onSuccess(newly);
             }
 
-            onSuccess();
             onClose();
 
         } catch (error) {

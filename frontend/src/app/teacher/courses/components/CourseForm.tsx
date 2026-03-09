@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Building2, BookOpen, Calendar, Plus } from "lucide-react";
-import { Center, CenterSubject, CenterGrade, getCenterSubjects, getCenterGrades, createCenterSubject, createCenterGrade } from "@/services/centerService";
+import { Save, Building2, Calendar, Plus } from "lucide-react";
+import { Center, CenterSubject, CenterGrade, getCenterSubjects, getCenterGrades } from "@/services/centerService";
+import SubjectModal from "../../centers/[id]/components/SubjectModal";
+import GradeModal from "../../centers/[id]/components/GradeModal";
 import toast from "react-hot-toast";
 
 export interface CourseFormData {
@@ -47,6 +49,31 @@ export default function CourseForm({
     const [subjects, setSubjects] = useState<CenterSubject[]>([]);
     const [grades, setGrades] = useState<CenterGrade[]>([]);
 
+    const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+    const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+    const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
+    const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
+
+    const handleSubjectModalSuccess = (newSubject?: CenterSubject) => {
+        if (formData.centerId) {
+            fetchCenterOptions(formData.centerId);
+        }
+        if (newSubject) {
+            setFormData(prev => ({ ...prev, subjectId: newSubject.id }));
+        }
+        setIsSubjectModalOpen(false);
+    };
+
+    const handleGradeModalSuccess = (newGrade?: CenterGrade) => {
+        if (formData.centerId) {
+            fetchCenterOptions(formData.centerId);
+        }
+        if (newGrade) {
+            setFormData(prev => ({ ...prev, gradeId: newGrade.id }));
+        }
+        setIsGradeModalOpen(false);
+    };
+
     const fetchCenterOptions = async (centerId?: number) => {
         if (!centerId) {
             setSubjects([]);
@@ -87,6 +114,26 @@ export default function CourseForm({
             onSubmit={handleSubmit}
             className="space-y-6 bg-[var(--color-soft-white)] p-8 rounded-xl shadow-sm"
         >
+
+            {formData.centerId && (
+                <>
+                    <SubjectModal
+                        centerId={formData.centerId}
+                        isOpen={isSubjectModalOpen}
+                        onClose={() => setIsSubjectModalOpen(false)}
+                        onSuccess={handleSubjectModalSuccess}
+                        subject={editingSubject}
+                    />
+
+                    <GradeModal
+                        centerId={formData.centerId}
+                        isOpen={isGradeModalOpen}
+                        onClose={() => setIsGradeModalOpen(false)}
+                        onSuccess={handleGradeModalSuccess}
+                        grade={editingGrade}
+                    />
+                </>
+            )}
 
             {/* CENTER SELECT */}
             <div className="p-4 rounded-lg bg-white">
@@ -152,25 +199,14 @@ export default function CourseForm({
                         </label>
                         <button
                             type="button"
-                            onClick={async () => {
+                            onClick={() => {
                                 if (!formData.centerId) {
                                     toast.error("Please select a center first.");
                                     return;
                                 }
 
-                                const name = prompt("New subject name:");
-                                if (!name || !name.trim()) return;
-                                const description = prompt("Description (optional):") || "";
-
-                                try {
-                                    const newly = await createCenterSubject(formData.centerId, { name, description });
-                                    setSubjects(prev => [newly, ...prev]);
-                                    setFormData(prev => ({ ...prev, subjectId: newly.id }));
-                                    toast.success("Subject added successfully.");
-                                } catch (error) {
-                                    console.error(error);
-                                    toast.error("Could not add subject.");
-                                }
+                                setEditingSubject(null);
+                                setIsSubjectModalOpen(true);
                             }}
                             className="flex items-center gap-1 text-xs text-[var(--color-main)] hover:underline"
                         >
@@ -214,47 +250,14 @@ export default function CourseForm({
                         </label>
                         <button
                             type="button"
-                            onClick={async () => {
+                            onClick={() => {
                                 if (!formData.centerId) {
                                     toast.error("Please select a center first.");
                                     return;
                                 }
 
-                                const fromAgeStr = prompt("From age (optional):");
-                                if (fromAgeStr === null) return;
-                                const toAgeStr = prompt("To age (optional):");
-                                if (toAgeStr === null) return;
-
-                                const fromAge = fromAgeStr.trim() === "" ? undefined : Number(fromAgeStr);
-                                const toAge = toAgeStr.trim() === "" ? undefined : Number(toAgeStr);
-
-                                if (fromAgeStr.trim() !== "" && Number.isNaN(fromAge)) {
-                                    toast.error("From age must be a number.");
-                                    return;
-                                }
-                                if (toAgeStr.trim() !== "" && Number.isNaN(toAge)) {
-                                    toast.error("To age must be a number.");
-                                    return;
-                                }
-
-                                const nameInput = prompt("Grade display name (optional):", "") || "";
-                                const description = prompt("Description (optional):") || "";
-                                const name = nameInput.trim() || (fromAge != null && toAge != null ? `Grade ${fromAge}-${toAge}` : "Grade");
-
-                                try {
-                                    const newly = await createCenterGrade(formData.centerId, {
-                                        name,
-                                        fromAge,
-                                        toAge,
-                                        description,
-                                    });
-                                    setGrades(prev => [newly, ...prev]);
-                                    setFormData(prev => ({ ...prev, gradeId: newly.id }));
-                                    toast.success("Grade added successfully.");
-                                } catch (error) {
-                                    console.error(error);
-                                    toast.error("Could not add grade.");
-                                }
+                                setEditingGrade(null);
+                                setIsGradeModalOpen(true);
                             }}
                             className="flex items-center gap-1 text-xs text-[var(--color-main)] hover:underline"
                         >

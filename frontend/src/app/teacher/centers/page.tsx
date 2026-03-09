@@ -192,7 +192,7 @@ export default function CenterManagementPage() {
                         <div className="col-span-2 text-right">
                             <button
                                 type="submit"
-                                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium"
+                                className="bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition disabled:opacity-50"
                             >
                                 <SaveIcon className="inline" />
                             </button>

@@ -39,7 +39,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 {isManager && (
                     <Link
                         href={`/teacher/courses/create?centerId=${centerId}`}
-                        className="flex items-center gap-2 bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
+                        className="flex items-center gap-2 bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
                     >
                         <Plus size={16} />
                         Create Course
@@ -47,146 +47,120 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 )}
             </div>
 
-            {/* TABLE */}
-            <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm overflow-hidden">
+            {/* CARD LIST */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
-                <table className="w-full text-left text-sm">
+                {courses.length === 0 ? (
+                    <div className="col-span-full p-10 text-center text-gray-500 bg-white rounded-xl border">
+                        {isManager
+                            ? "No courses created yet."
+                            : "You haven't been assigned any courses."}
+                    </div>
+                ) : (
+                    courses.map(course => (
 
-                    {/* HEADER */}
-                    <thead className="bg-[var(--color-main)] text-white uppercase text-xs">
-                        <tr>
-                            <th className="px-6 py-4">Course</th>
-                            <th className="px-6 py-4">Subject</th>
-                            <th className="px-6 py-4">Grade</th>
-                            {isManager && <th className="px-6 py-4">Teacher</th>}
-                            <th className="px-6 py-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
+                        <div
+                            key={course.id}
+                            className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                        >
 
-                    <tbody className="divide-y divide-gray-100">
+                            {/* ACTIONS */}
+                            <div className="flex justify-end items-center gap-2 bg-[var(--color-main)] p-2 border-b border-[var(--color-main)]">
 
-                        {courses.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} className="p-10 text-center text-gray-500">
-                                    {isManager
-                                        ? "No courses created yet."
-                                        : "You haven't been assigned any courses."}
-                                </td>
-                            </tr>
-                        ) : (
-                            courses.map(course => (
-
-                                <tr
-                                    key={course.id}
-                                    className="hover:bg-blue-50 transition"
+                                <Link
+                                    href={`/teacher/courses/${course.id}`}
+                                    className="p-2 border-2 bg-[var(--color-secondary)] text-white border-[var(--color-secondary)] rounded hover:bg-white hover:text-[var(--color-secondary)] transition"
                                 >
+                                    <Info size={18} />
+                                </Link>
 
-                                    {/* COURSE */}
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-[var(--color-text)]">
-                                                {course.name}
-                                            </span>
-                                            <span className="text-xs text-gray-500">
-                                                ID: {course.id}
-                                            </span>
-                                        </div>
-                                    </td>
+                                {isManager && (
+                                    <>
+                                        <Link
+                                            href={`/teacher/courses/${course.id}/edit`}
+                                            className="p-2 border-2 bg-[var(--color-text)] text-white border-[var(--color-text)] rounded hover:bg-white hover:text-[var(--color-text)] transition"
+                                        >
+                                            <Settings size={18} />
+                                        </Link>
 
-                                    {/* SUBJECT */}
-                                    <td className="px-6 py-4 text-[var(--color-text)]">
-                                        {course.subject?.name || "-"}
-                                    </td>
+                                        <button
+                                            onClick={() => handleDelete(course.id)}
+                                            className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </>
+                                )}
 
-                                    {/* GRADE */}
-                                    <td className="px-6 py-4">
-                                        {course.grade ? (
-                                            <span className="px-2 py-1 rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
-                                                {course.grade.name}
-                                                {course.grade.fromAge != null && course.grade.toAge != null && (
-                                                    <span className="text-xs ml-1">(age {course.grade.fromAge}-{course.grade.toAge})</span>
-                                                )}
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-gray-500">-</span>
-                                        )}
-                                    </td>
+                            </div>
+                            {/* COURSE TITLE */}
+                            <div className="p-2 flex flex-col flex-1">
+                                <h4 className="font-bold text-[var(--color-text)]">
+                                    {course.name}
+                                </h4>
 
-                                    {/* TEACHER */}
-                                    {isManager && (
-                                        <td className="px-6 py-4">
+                                {/* SUBJECT */}
+                                <div className="text-sm text-[var(--color-text)] mb-2">
+                                    <span className="font-medium">Subject:</span>{" "}
+                                    {course.subject?.name || "-"}
+                                </div>
 
-                                            <div className="flex flex-col text-sm">
-
-                                                {course.teacher ? (
-                                                    <span className="font-medium text-[var(--color-text)]">
-                                                        {course.teacher.lastName} {course.teacher.firstName}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400 italic">
-                                                        Not assigned
+                                {/* GRADE */}
+                                <div className="mb-3">
+                                    {course.grade ? (
+                                        <span className="px-2 py-1 rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
+                                            {course.grade.name}
+                                            {course.grade.fromAge != null &&
+                                                course.grade.toAge != null && (
+                                                    <span className="ml-1">
+                                                        (age {course.grade.fromAge}-{course.grade.toAge})
                                                     </span>
                                                 )}
-
-                                                {course.invitationStatus === "PENDING" && (
-                                                    <span className="text-xs text-[var(--color-alert)] italic">
-                                                        Pending invitation
-                                                    </span>
-                                                )}
-
-                                                <button
-                                                    onClick={() => setInviteCourseId(course.id)}
-                                                    className="text-xs text-[var(--color-main)] hover:underline flex items-center gap-1 mt-1"
-                                                >
-                                                    <Mail size={12} />
-                                                    Change Teacher
-                                                </button>
-                                            </div>
-
-                                        </td>
+                                        </span>
+                                    ) : (
+                                        <span className="px-2 py-1 rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">-</span>
                                     )}
+                                </div>
 
-                                    {/* ACTIONS */}
-                                    <td className="px-6 py-4 text-right">
+                                {/* TEACHER */}
+                                {isManager && (
+                                    <div className="text-sm mb-2">
+                                        
+                                        {course.teacher ? (
+                                            <div className="text-[var(--color-text)]">
+                                                <span className="font-medium">Teacher:</span>{" "} {course.teacher.lastName} {course.teacher.firstName}
+                                            </div>
+                                        ) : (
+                                            <div className="text-gray-400 italic">
+                                                Not assigned
+                                            </div>
+                                        )}
 
-                                        <div className="flex justify-end items-center gap-2">
+                                        {course.invitationStatus === "PENDING" && (
+                                            <div className="text-xs text-[var(--color-alert)] italic">
+                                                Pending invitation
+                                            </div>
+                                        )}
 
-                                            <Link
-                                                href={`/teacher/courses/${course.id}`}
-                                                className="p-1 border-2 bg-[var(--color-secondary)] hover:bg-[var(--color-main)] text-[var(--color-soft-white)] hover:bg-[var(--color-soft-white)] hover:text-[var(--color-secondary)] hover:border-2 border-[var(--color-secondary)] rounded transition"
-                                            >
-                                                <Info size={24} />
-                                            </Link>
+                                        <button
+                                            onClick={() => setInviteCourseId(course.id)}
+                                            className="text-xs text-[var(--color-main)] hover:underline flex items-center gap-1 mt-1"
+                                        >
+                                            <Mail size={12} />
+                                            Change Teacher
+                                        </button>
 
-                                            {isManager && (
-                                                <>
-                                                    <Link
-                                                        href={`/teacher/courses/${course.id}/edit`}
-                                                        className="p-1 border-2 bg-[var(--color-text)] hover:bg-[var(--color-main)] text-[var(--color-soft-white)] hover:bg-[var(--color-soft-white)] hover:text-[var(--color-text)] hover:border-2 border-[var(--color-text)] rounded transition"
-                                                    >
-                                                        <Settings size={24} />
-                                                    </Link>
+                                    </div>
+                                )}
+                            </div>
 
-                                                    <button
-                                                        onClick={() => handleDelete(course.id)}
-                                                        className="p-2 bg-[var(--color-alert)] hover:bg-[var(--color-main)] text-[var(--color-soft-white)] hover:bg-red-700 rounded transition"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </button>
-                                                </>
-                                            )}
 
-                                        </div>
 
-                                    </td>
+                        </div>
 
-                                </tr>
+                    ))
+                )}
 
-                            ))
-                        )}
-
-                    </tbody>
-                </table>
             </div>
 
             {/* CHANGE TEACHER MODAL */}

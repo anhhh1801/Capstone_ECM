@@ -13,7 +13,7 @@ interface Props {
   centerId: number;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (subject?: CenterSubject) => void;
   subject?: CenterSubject | null;
 }
 
@@ -53,15 +53,16 @@ export default function SubjectModal({
           description,
         });
         toast.success("Subject updated successfully");
+        onSuccess(subject);
       } else {
-        await createCenterSubject(centerId, {
+        const newly = await createCenterSubject(centerId, {
           name,
           description,
         });
         toast.success("Subject created successfully");
+        onSuccess(newly);
       }
 
-      onSuccess();
       onClose();
 
     } catch {

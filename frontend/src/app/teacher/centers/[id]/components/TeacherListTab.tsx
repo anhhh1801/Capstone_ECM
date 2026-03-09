@@ -18,24 +18,70 @@ export default function TeacherListTab({ teachers, isManager }: Props) {
     }
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-700">Teacher List ({teachers.length})</h3>
+        <div className="space-y-4">
+
+            {/* HEADER */}
+            <div className="flex justify-between items-center">
+                <h3 className="font-bold text-[var(--color-text)]">
+                    Teacher List ({teachers.length})
+                </h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {teachers.map((t) => (
-                    <div key={t.id} className="bg-white p-4 border rounded flex gap-4 shadow-sm">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl">
-                            {t.lastName[0]}
-                        </div>
-                        <div>
-                            <p className="font-bold text-gray-800">{t.firstName} {t.lastName}</p>
-                            <p className="text-sm text-gray-500">{t.email}</p>
-                            <p className="text-sm text-gray-500">{t.phoneNumber || "SĐT: ---"}</p>
-                        </div>
+
+            {/* TABLE */}
+            <div className="bg-[var(--color-soft-white)] border border-[var(--color-main)] rounded-xl shadow-sm overflow-hidden">
+
+                {teachers.length === 0 ? (
+                    <div className="p-10 text-center text-gray-500">
+                        No teachers found.
                     </div>
-                ))}
+                ) : (
+
+                    <table className="w-full text-sm text-left">
+
+                        {/* HEADER */}
+                        <thead className="bg-[var(--color-main)] text-white text-xs uppercase">
+                            <tr>
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Email</th>
+                                <th className="px-6 py-4">Phone</th>
+                            </tr>
+                        </thead>
+
+                        {/* BODY */}
+                        <tbody className="divide-y divide-gray-100">
+
+                            {teachers.map((t) => (
+                                <tr
+                                    key={t.id}
+                                    className="hover:bg-blue-50 transition"
+                                >
+
+                                    {/* NAME */}
+                                    <td className="px-6 py-4 font-semibold text-[var(--color-text)]">
+                                        {t.firstName} {t.lastName}
+                                    </td>
+
+                                    {/* EMAIL */}
+                                    <td className="px-6 py-4 text-[var(--color-text)]">
+                                        {t.email}
+                                    </td>
+
+                                    {/* PHONE */}
+                                    <td className="px-6 py-4 text-gray-500">
+                                        {t.phoneNumber || "---"}
+                                    </td>
+
+                                </tr>
+                            ))}
+
+                        </tbody>
+
+                    </table>
+
+                )}
+
             </div>
+
         </div>
     );
 }
