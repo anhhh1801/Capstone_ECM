@@ -1,51 +1,154 @@
 package com.extracenter.backend.controller;
 
 import com.extracenter.backend.dto.ScheduleResponse;
+import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/schedule")
+@CrossOrigin(origins = "*")
 public class ScheduleController {
 
     @Autowired
     private ClassSlotRepository classSlotRepository;
 
-    // API: Lấy lịch của Giáo Viên
-    // GET: http://localhost:8080/api/schedule/teacher/1
+    @Autowired
+    private ClassSessionRepository classSessionRepository;
+
+    // ==========================================
+    // 1. GENERAL WEEKLY RULES (ClassSlot)
+    // ==========================================
+
     @GetMapping("/teacher/{teacherId}")
-    public ResponseEntity<List<ScheduleResponse>> getTeacherSchedule(@PathVariable Long teacherId) {
+    public ResponseEntity<List<ScheduleResponse>> getTeacherScheduleRules(@PathVariable Long teacherId) {
         List<ClassSlot> slots = classSlotRepository.findByTeacherId(teacherId);
         return ResponseEntity.ok(mapToResponse(slots));
     }
 
-    // API: Lấy lịch của Học Viên
-    // GET: http://localhost:8080/api/schedule/student/5
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<List<ScheduleResponse>> getStudentSchedule(@PathVariable Long studentId) {
+    public ResponseEntity<List<ScheduleResponse>> getStudentScheduleRules(@PathVariable Long studentId) {
         List<ClassSlot> slots = classSlotRepository.findByStudentId(studentId);
         return ResponseEntity.ok(mapToResponse(slots));
     }
 
-    // Hàm phụ: Chuyển đổi từ Entity sang DTO gọn gàng
+    // ==========================================
+    // 2. ACTUAL CALENDAR DATES (ClassSession)
+    // ==========================================
+
+    @GetMapping("/teacher/{teacherId}/sessions")
+    public ResponseEntity<List<ScheduleResponse>> getTeacherSessions(
+            @PathVariable Long teacherId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        List<ClassSession> sessions = classSessionRepository.findByTeacherIdAndDateRange(teacherId, startDate, endDate);
+        return ResponseEntity.ok(mapToSessionResponse(sessions));
+    }
+
+    @GetMapping("/student/{studentId}/sessions")
+    public ResponseEntity<List<ScheduleResponse>> getStudentSessions(
+            @PathVariable Long studentId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        List<ClassSession> sessions = classSessionRepository.findByStudentIdAndDateRange(studentId, startDate, endDate);
+        return ResponseEntity.ok(mapToSessionResponse(sessions));
+    }
+
+    // ==========================================
+    // HELPER MAPPERS (Fixed using @Builder!)
+    // ==========================================
+
+    // Mapper for ClassSlot (Weekly Rules)
     private List<ScheduleResponse> mapToResponse(List<ClassSlot> slots) {
-        List<ScheduleResponse> responseList = new ArrayList<>();
-        for (ClassSlot slot : slots) {
-            responseList.add(new ScheduleResponse(
-                    slot.getCourse().getId(),
-                    slot.getCourse().getName(),
-                    slot.getDayOfWeek(),
-                    slot.getStartTime(),
-                    slot.getEndTime(),
-                    "Room A01", // Hardcode tạm, sau này lấy từ slot.getClassroom()
-                    slot.getCourse().getTeacher().getFirstName() + " " + slot.getCourse().getTeacher().getLastName()));
-        }
-        return responseList;
+        return slots.stream().map(slot -> {
+
+            // Safe variable extraction
+            String teacherName = "Chưa phân công";
+            String subjectName = "N/A";
+            Long courseId = null;
+            String courseName = "Unknown Course";
+
+            if (slot.getCourse() != null) {
+                courseId = slot.getCourse().getId();
+                courseName = slot.getCourse().getName();
+                subjectName = slot.getCourse().getSubject(); // Assuming Course has getSubject()
+
+                if (slot.getCourse().getTeacher() != null) {
+                    teacherName = slot.getCourse().getTeacher().getFirstName() + " " +
+                            slot.getCourse().getTeacher().getLastName();
+                }
+            }
+
+            // FIX: Explicitly assign to a typed variable to resolve Java compiler inference
+            // errors!
+            ScheduleResponse response = ScheduleResponse.builder()
+                    .courseId(courseId)
+                    .courseName(courseName)
+                    .subject(subjectName)
+                    .dayOfWeek(slot.getDayOfWeek().getValue())
+                    .startTime(slot.getStartTime())
+                    .endTime(slot.getEndTime())
+                    .roomName("Room A01")
+                    .teacherName(teacherName)
+                    .status("Weekly Rule") // Custom status for generic rules
+                    // Note: sessionId and date remain null automatically!
+                    .build();
+
+            return response;
+
+        }).collect(Collectors.toList());
+    }
+
+    // Mapper for ClassSession (Actual Dates)
+    private List<ScheduleResponse> mapToSessionResponse(List<ClassSession> sessions) {
+        return sessions.stream().map(session -> {
+
+            String teacherName = "Chưa phân công";
+            String subjectName = "N/A";
+            Long courseId = null;
+            String courseName = "Unknown Course";
+
+            if (session.getCourse() != null) {
+                courseId = session.getCourse().getId();
+                courseName = session.getCourse().getName();
+                subjectName = session.getCourse().getSubject();
+
+                if (session.getCourse().getTeacher() != null) {
+                    teacherName = session.getCourse().getTeacher().getFirstName() + " " +
+                            session.getCourse().getTeacher().getLastName();
+                }
+            }
+
+            // FIX: Explicitly assign to a typed variable to resolve Java compiler inference
+            // errors!
+            ScheduleResponse response = ScheduleResponse.builder()
+                    .sessionId(session.getId()) // Populated!
+                    .courseId(courseId)
+                    .courseName(courseName)
+                    .subject(subjectName)
+                    .date(session.getDate()) // Populated!
+                    .dayOfWeek(session.getDate().getDayOfWeek().getValue()) // Extracts 1-7 from the date
+                    .startTime(session.getStartTime())
+                    .endTime(session.getEndTime())
+                    .roomName("Room A01")
+                    .teacherName(teacherName)
+                    .status(session.getStatus())
+                    .build();
+
+            return response;
+
+        }).collect(Collectors.toList());
     }
 }

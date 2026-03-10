@@ -1,4 +1,4 @@
-package com.extracenter.backend.service;
+package com.extracenter.backend.utils;
 
 import java.text.Normalizer;
 import java.util.regex.Pattern;

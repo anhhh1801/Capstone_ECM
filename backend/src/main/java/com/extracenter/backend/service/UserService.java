@@ -1,30 +1,19 @@
 package com.extracenter.backend.service;
 
-import com.extracenter.backend.dto.ChangePasswordRequest;
-import com.extracenter.backend.dto.CreateStudentRequest;
-import com.extracenter.backend.dto.LoginRequest;
-import com.extracenter.backend.dto.LoginResponse;
-import com.extracenter.backend.dto.RegisterRequest;
-import com.extracenter.backend.dto.UpdateProfileRequest;
-import com.extracenter.backend.dto.UserStatsResponse;
-import com.extracenter.backend.entity.Center;
-import com.extracenter.backend.entity.Role;
-import com.extracenter.backend.entity.User;
-import com.extracenter.backend.entity.VerificationToken;
-import com.extracenter.backend.repository.CenterRepository;
-import com.extracenter.backend.repository.CourseRepository;
-import com.extracenter.backend.repository.RoleRepository;
-import com.extracenter.backend.repository.UserRepository;
-import com.extracenter.backend.repository.VerificationTokenRepository;
-import com.extracenter.backend.service.EmailUtils;
+import com.extracenter.backend.dto.*;
+import com.extracenter.backend.entity.*;
+import com.extracenter.backend.repository.*;
+import com.extracenter.backend.utils.EmailUtils;
 import com.extracenter.backend.utils.JwtUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -44,57 +33,73 @@ public class UserService {
     @Autowired
     private JwtUtils jwtUtils;
 
+    /**
+     * Authenticates a user and returns a token with filtered user info.
+     */
     public LoginResponse loginUser(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
+                .orElseThrow(() -> new RuntimeException("Invalid email or password!"));
 
-        if (user != null) {
-            if (!user.getPassword().equals(request.getPassword())) {
-                throw new RuntimeException("Sai email hoặc mật khẩu!");
-            }
-
-            if (user.isLocked()) {
-                throw new RuntimeException(
-                        "Your account is locked by admin. Please contact admin@ecm.edu.vn.");
-            }
-
-            if (!user.isEnabled()) {
-
-                VerificationToken existingToken = tokenRepository.findByUser(user);
-
-                if (existingToken != null && existingToken.getExpiryDate().isAfter(java.time.LocalDateTime.now())) {
-                    throw new RuntimeException("PENDING_VERIFICATION");
-                }
-
-                if (existingToken != null)
-                    tokenRepository.delete(existingToken);
-
-                String otp = generateOTP();
-                VerificationToken newToken = new VerificationToken(user, otp);
-                tokenRepository.save(newToken);
-
-                emailService.sendVerificationEmail(user.getPersonalEmail(), otp);
-
-                throw new RuntimeException("ACCOUNT_DEACTIVATED");
-            }
-
-            String token = jwtUtils.generateToken(user);
-
-            return new LoginResponse(token, user);
+        // SECURITY WARNING: In a production app, use BCryptPasswordEncoder here!
+        if (!user.getPassword().equals(request.getPassword())) {
+            throw new RuntimeException("Invalid email or password!");
         }
-        throw new RuntimeException("Sai email hoặc mật khẩu!");
+
+        if (user.isLocked()) {
+            throw new RuntimeException("Your account is locked. Please contact admin@ecm.edu.vn.");
+        }
+
+        if (!user.isEnabled()) {
+            handleResendingOtp(user);
+            throw new RuntimeException("ACCOUNT_DEACTIVATED");
+        }
+
+        String token = jwtUtils.generateToken(user);
+
+        // 1. Map Entity collection to a List of IDs using Java Streams
+        List<Long> centerIds = user.getConnectedCenters().stream()
+                .map(Center::getId)
+                .collect(Collectors.toList());
+
+        // 2. Map Entity to DTO to avoid leaking sensitive data (like password) to the
+        // frontend
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getRole().getName(),
+                centerIds // Passing the newly created list of IDs!
+        );
+
+        return new LoginResponse(token, userInfo);
     }
 
-    public User deactivateAccount(Long id) {
-        User user = userRepository.findById(id).orElse(null);
+    /**
+     * Private helper to handle OTP logic during login attempts for disabled
+     * accounts.
+     */
+    private void handleResendingOtp(User user) {
+        VerificationToken existingToken = tokenRepository.findByUser(user).orElse(null);
 
-        user.setEnabled(false);
-        return userRepository.save(user);
-    };
+        if (existingToken != null && existingToken.getExpiryDate().isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("PENDING_VERIFICATION");
+        }
+
+        if (existingToken != null) {
+            tokenRepository.delete(existingToken);
+        }
+
+        String otp = generateOTP();
+        VerificationToken newToken = new VerificationToken(user, otp);
+        tokenRepository.save(newToken);
+
+        emailService.sendVerificationEmail(user.getPersonalEmail(), otp);
+    }
 
     public User updateProfile(Long id, UpdateProfileRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("User not found!"));
 
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
@@ -106,55 +111,109 @@ public class UserService {
 
     public void changePassword(Long userId, ChangePasswordRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("User not found!"));
 
         if (!user.getPassword().equals(request.getOldPassword())) {
-            throw new RuntimeException("Mật khẩu cũ không chính xác!");
+            throw new RuntimeException("Incorrect old password!");
         }
         user.setPassword(request.getNewPassword());
-
         userRepository.save(user);
     }
 
-    // Lock or Unlock User
     public String toggleUserLock(Long adminId, Long targetUserId) {
-        // Optional: Check if adminId is actually an ADMIN
-        User admin = userRepository.findById(adminId).orElseThrow();
-        if (!admin.getRole().getName().equals("ADMIN")) {
-            throw new RuntimeException("Bạn không có quyền thực hiện thao tác này!");
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin not found!"));
+        if (!"ADMIN".equals(admin.getRole().getName())) {
+            throw new RuntimeException("You do not have permission to perform this action!");
         }
 
         User targetUser = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Target user not found!"));
 
-        // Toggle status
         boolean newStatus = !targetUser.isLocked();
         targetUser.setLocked(newStatus);
         userRepository.save(targetUser);
 
-        return newStatus ? "Đã khóa tài khoản này." : "Đã mở khóa tài khoản này.";
+        return newStatus ? "Account has been locked." : "Account has been unlocked.";
     }
 
     public UserStatsResponse getUserStats(Long adminId, Long targetUserId) {
-        // Optional: Check permission
-        User admin = userRepository.findById(adminId).orElseThrow();
-        if (!admin.getRole().getName().equals("ADMIN")) {
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin not found!"));
+
+        if (!"ADMIN".equals(admin.getRole().getName())) {
             throw new RuntimeException("Unauthorized");
         }
 
-        // Calculate Stats
         long centers = userRepository.countCentersByUserId(targetUserId);
         long courses = courseRepository.countByTeacherId(targetUserId);
         long students = courseRepository.countStudentsByTeacherId(targetUserId);
 
-        return new UserStatsResponse(targetUserId, centers, courses, students);
+        return UserStatsResponse.builder()
+                .userId(targetUserId)
+                .totalCenters(centers)
+                .totalCourses(courses)
+                .totalStudents(students)
+                .totalTeachers(userRepository.countByRoleName("TEACHER"))
+                .build();
     }
 
-    // 3. Tạo học sinh nhanh (Auto Email)
-    // Sửa lại hàm tạo học sinh
+    @Transactional
+    public User updateStudent(Long id, CreateStudentRequest request) {
+        User student = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found!"));
+
+        student.setFirstName(request.getFirstName());
+        student.setLastName(request.getLastName());
+        student.setPhoneNumber(request.getPhoneNumber());
+        student.setDateOfBirth(request.getDateOfBirth());
+
+        return userRepository.save(student);
+    }
+
+    // 2. Deactivate an Account (e.g., Soft delete or suspending a user)
+    @Transactional
+    public User deactivateAccount(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+
+        user.setEnabled(false); // Locks the user out of logging in
+        return userRepository.save(user);
+    }
+
+    // 3. Resend OTP to the user's personal email
+    @Transactional
+    public String resendOtp(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email not found!"));
+
+        if (user.isEnabled()) {
+            throw new RuntimeException("This account is already activated!");
+        }
+
+        // Find existing token or create a new one safely
+        VerificationToken token = tokenRepository.findByUser(user).orElse(null);
+        String newOtp = generateOTP();
+
+        if (token == null) {
+            token = new VerificationToken(user, newOtp);
+        } else {
+            token.setToken(newOtp);
+            token.setExpiryDate(java.time.LocalDateTime.now().plusMinutes(10)); // Reset timer
+        }
+
+        tokenRepository.save(token);
+        emailService.sendVerificationEmail(user.getPersonalEmail(), newOtp);
+
+        return "A new OTP has been sent to your email.";
+    }
+
+    @Transactional
     public User createStudentAutoEmail(CreateStudentRequest request) {
-        // 1. Logic sinh email (giữ nguyên)
         String finalEmail = generateUniqueEcmEmail(request.getFirstName(), request.getLastName());
+
+        Center center = centerRepository.findById(request.getCenterId())
+                .orElseThrow(() -> new RuntimeException("Center not found!"));
 
         User newUser = new User();
         newUser.setFirstName(request.getFirstName());
@@ -165,67 +224,70 @@ public class UserService {
         newUser.setDateOfBirth(request.getDateOfBirth());
         newUser.setPassword("ecm123");
         newUser.setEnabled(true);
-
-        Role studentRole = roleRepository.findByName("STUDENT").orElseThrow();
-        newUser.setRole(studentRole);
-
-        if (request.getCenterId() == null) {
-            throw new RuntimeException("Lỗi: Chưa chọn trung tâm quản lý học sinh này!");
-        }
-
-        Center center = centerRepository.findById(request.getCenterId())
-                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại"));
         newUser.getConnectedCenters().add(center);
+
+        Role studentRole = roleRepository.findByName("STUDENT")
+                .orElseThrow(() -> new RuntimeException("Student role not found!"));
+        newUser.setRole(studentRole);
 
         return userRepository.save(newUser);
     }
 
-    // (Bonus) Hàm thêm học sinh cũ vào trung tâm mới (dùng khi add vào lớp)
+    @Transactional
     public void connectStudentToCenter(Long studentId, Long centerId) {
-        User student = userRepository.findById(studentId).orElseThrow();
-        Center center = centerRepository.findById(centerId).orElseThrow();
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found!"));
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found!"));
 
+        // FIX: Use the Set<Center> connectedCenters
         student.getConnectedCenters().add(center);
         userRepository.save(student);
     }
 
-    private String generateOTP() {
-        int randomPin = (int) (Math.random() * 900000) + 100000;
-        return String.valueOf(randomPin);
+    @Transactional
+    public void removeStudentFromCenter(Long studentId, Long centerId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found!"));
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found!"));
+
+        // Safely remove the center from the student's Many-To-Many set
+        student.getConnectedCenters().remove(center);
+
+        // Save the student to update the join table (student_centers)
+        userRepository.save(student);
     }
 
-    // 4. GIAI ĐOẠN 1: Giáo viên đăng ký tạm (Gửi mail verify)
+    @Transactional
     public String registerTeacher(RegisterRequest request) {
         Optional<User> existingUserOpt = userRepository.findByEmail(request.getPersonalEmail());
 
         if (existingUserOpt.isPresent()) {
             User existingUser = existingUserOpt.get();
-            VerificationToken waitingVerifyToken = tokenRepository.findByUser(existingUser);
+            VerificationToken waitingVerifyToken = tokenRepository.findByUser(existingUser).orElse(null);
 
             if (waitingVerifyToken != null) {
                 throw new RuntimeException("PENDING_VERIFICATION");
             }
             if (existingUser.isEnabled()) {
-                throw new RuntimeException("Email này đã được đăng ký và đang hoạt động!");
+                throw new RuntimeException("This email is already registered and active!");
             } else {
-                throw new RuntimeException("Email này đã được đăng ký nhưng đang ngưng hoạt động!");
+                throw new RuntimeException("This email is registered but deactivated.");
             }
-
         }
 
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
-
         user.setPersonalEmail(request.getPersonalEmail());
         user.setEmail(request.getPersonalEmail());
-
         user.setPassword(java.util.UUID.randomUUID().toString());
         user.setEnabled(false);
+        user.setCreatedDate(LocalDateTime.now());
 
-        user.setCreatedDate(java.time.LocalDateTime.now());
-
-        Role teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
+        Role teacherRole = roleRepository.findByName("TEACHER")
+                .orElseThrow(() -> new RuntimeException("Teacher role not found!"));
         user.setRole(teacherRole);
 
         userRepository.save(user);
@@ -236,71 +298,30 @@ public class UserService {
 
         emailService.sendVerificationEmail(user.getPersonalEmail(), otp);
 
-        return "Đã gửi mail xác nhận. Vui lòng kiểm tra hòm thư!";
+        return "Verification email sent.";
     }
 
-    // NEW FUNCTION: Resend OTP (Replaces the old one)
-    public String resendOtp(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại!"));
-
-        if (user.isEnabled()) {
-            throw new RuntimeException("Tài khoản này đã được kích hoạt rồi!");
-        }
-
-        // Find existing token
-        VerificationToken token = tokenRepository.findByUser(user);
-
-        // Generate NEW OTP
-        String newOtp = generateOTP();
-
-        if (token == null) {
-            // Should rarely happen, but create new if missing
-            token = new VerificationToken(user, newOtp);
-        } else {
-            // UPDATE existing token
-            token.setToken(newOtp);
-            token.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // Reset timer
-        }
-
-        tokenRepository.save(token); // Save updates
-
-        // Send Email
-        emailService.sendVerificationEmail(user.getPersonalEmail(), newOtp);
-
-        return "Mã OTP mới đã được gửi lại vào email của bạn.";
-    }
-
-    // 5. GIAI ĐOẠN 2: Xác thực & Tạo tài khoản thật
+    @Transactional
     public String verifyAccount(String email, String otp) {
-        User user = userRepository.findByEmail(email).orElse(null); // Or findByEmail depending on your logic
-        if (user == null) {
-            return "Email không tồn tại!";
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email not found!"));
 
         if (user.isEnabled()) {
-            return "Tài khoản này đã được kích hoạt rồi!";
+            return "This account is already activated!";
         }
 
-        // Find the token associated with this user
-        VerificationToken vt = tokenRepository.findByUser(user);
+        VerificationToken vt = tokenRepository.findByUser(user).orElse(null);
 
         if (vt == null || !vt.getToken().equals(otp) || vt.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return "Mã OTP không đúng hoặc đã hết hạn!";
+            throw new RuntimeException("Invalid or expired OTP!");
         }
-        if (!user.getEmail().equals(user.getPersonalEmail())) {
 
-            // CASE 1: OLD USER REACTIVATING
-            // We ONLY set enabled = true.
-            // We do NOT generate a new email or password.
+        if (!user.getEmail().equals(user.getPersonalEmail())) {
             user.setEnabled(true);
             userRepository.save(user);
             tokenRepository.delete(vt);
-
-            return "Xác thực thành công! Tài khoản của bạn đã được kích hoạt lại.";
-
+            return "Account reactivated.";
         } else {
-
             String finalEmail = generateUniqueEcmEmail(user.getFirstName(), user.getLastName());
             user.setEmail(finalEmail);
             user.setPassword("ecm123");
@@ -310,63 +331,29 @@ public class UserService {
             tokenRepository.delete(vt);
 
             emailService.sendCredentialEmail(user.getPersonalEmail(), finalEmail, "ecm123");
-
-            return "Xác thực thành công! Tài khoản của bạn là: " + finalEmail;
+            return "Success! Your ECM email is: " + finalEmail;
         }
-    };
+    }
 
-    // --- HÀM PRIVATE (SUPPORT) ---
+    private String generateOTP() {
+        int randomPin = (int) (Math.random() * 900000) + 100000;
+        return String.valueOf(randomPin);
+    }
 
-    // Hàm này giúp tránh lặp code sinh email ở 2 nơi
     private String generateUniqueEcmEmail(String firstName, String lastName) {
         String prefix = EmailUtils.generateEmailPrefix(firstName, lastName);
-        String emailDomain = "@ecm.edu.vn";
-        String finalEmail = prefix + emailDomain;
+        String finalEmail = prefix + "@ecm.edu.vn";
 
         int count = 0;
         while (userRepository.existsByEmail(finalEmail)) {
             count++;
-            finalEmail = prefix + count + emailDomain;
+            finalEmail = prefix + count + "@ecm.edu.vn";
         }
         return finalEmail;
     }
 
-    // Gỡ học sinh khỏi trung tâm (Unlink)
-    public void removeStudentFromCenter(Long studentId, Long centerId) {
-        User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Học sinh không tồn tại"));
-
-        Center center = centerRepository.findById(centerId)
-                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại"));
-
-        // Xóa center khỏi danh sách liên kết của student
-        student.getConnectedCenters().remove(center);
-
-        // Lưu lại (JPA sẽ tự xóa dòng trong bảng trung gian student_centers)
-        userRepository.save(student);
-    }
-
-    // Xóa vĩnh viễn học sinh (Hard Delete)
+    @Transactional
     public void deleteStudentPermanently(Long studentId) {
-        // Có thể cần check xem học sinh có đang nợ phí hay đang học dở không
-        // Tạm thời xóa thẳng tay (Cascade sẽ xóa enrollment liên quan nếu cấu hình
-        // đúng)
         userRepository.deleteById(studentId);
-    }
-
-    // Cập nhật thông tin học sinh
-    public User updateStudent(Long id, CreateStudentRequest request) {
-        User student = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Học sinh không tồn tại"));
-
-        // Chỉ cho phép sửa các thông tin cơ bản
-        student.setFirstName(request.getFirstName());
-        student.setLastName(request.getLastName());
-        student.setPhoneNumber(request.getPhoneNumber());
-        student.setDateOfBirth(request.getDateOfBirth());
-
-        // Lưu ý: Không cho phép đổi Email hay Password ở đây
-
-        return userRepository.save(student);
     }
 }

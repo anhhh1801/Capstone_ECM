@@ -3,12 +3,18 @@ package com.extracenter.backend.repository;
 import com.extracenter.backend.entity.Attendance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
-import java.time.LocalDate;
+import java.util.Optional;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
-    // Tìm danh sách điểm danh của 1 buổi cụ thể (để xem lại hoặc sửa)
-    List<Attendance> findByClassSlotIdAndDate(Long classSlotId, LocalDate date);
 
-    // Kiểm tra xem buổi này đã điểm danh chưa?
-    boolean existsByClassSlotIdAndDate(Long classSlotId, LocalDate date);
+    // Fetch the attendance list for a specific lesson (to view or edit)
+    List<Attendance> findByClassSessionId(Long classSessionId);
+
+    // Check if attendance has already been taken for this specific lesson
+    boolean existsByClassSessionId(Long classSessionId);
+
+    // ADDED BONUS: Find a specific student's attendance for a specific day
+    // This is very useful when a student marks themselves present or a teacher
+    // edits a single row.
+    Optional<Attendance> findByEnrollmentIdAndClassSessionId(Long enrollmentId, Long classSessionId);
 }

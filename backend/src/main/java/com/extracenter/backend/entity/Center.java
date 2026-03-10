@@ -24,15 +24,18 @@ public class Center {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // Automatically set the creation date when a new record is saved.
+    // updatable = false ensures this timestamp is never accidentally changed later.
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate = LocalDateTime.now();
 
     private String avatarImg;
 
-    // Người quản lý trung tâm
+    // RELATIONSHIP: The manager of the center (typically a User with TEACHER or
+    // ADMIN role)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id", nullable = false)
     @JsonIgnoreProperties({ "connectedCenters", "courses", "enrollments", "password", "role" })
     private User manager;

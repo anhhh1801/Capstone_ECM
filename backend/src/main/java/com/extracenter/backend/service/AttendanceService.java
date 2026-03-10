@@ -2,16 +2,16 @@ package com.extracenter.backend.service;
 
 import com.extracenter.backend.dto.AttendanceRequest;
 import com.extracenter.backend.entity.Attendance;
-import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.Enrollment;
 import com.extracenter.backend.repository.AttendanceRepository;
-import com.extracenter.backend.repository.ClassSlotRepository;
+import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.EnrollmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,61 +19,73 @@ public class AttendanceService {
 
     @Autowired
     private AttendanceRepository attendanceRepository;
+
     @Autowired
-    private ClassSlotRepository classSlotRepository;
+    private ClassSessionRepository classSessionRepository;
+
     @Autowired
     private EnrollmentRepository enrollmentRepository;
 
-    @Transactional // Quan trọng: Update hàng loạt, lỗi 1 cái là rollback hết
+    // @Transactional is crucial here: If one student fails to save,
+    // the whole process rolls back so we don't end up with partial attendance data.
+    @Transactional
     public String markAttendance(AttendanceRequest request) {
-        // 1. Lấy thông tin Slot
-        ClassSlot slot = classSlotRepository.findById(request.getClassSlotId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch học!"));
 
-        // 2. Lấy danh sách điểm danh cũ (nếu có) để cập nhật
-        List<Attendance> existingRecords = attendanceRepository.findByClassSlotIdAndDate(request.getClassSlotId(),
-                request.getDate());
+        // 1. Fetch the specific Class Session (Replaced ClassSlot + Date)
+        ClassSession session = classSessionRepository.findById(request.getClassSessionId())
+                .orElseThrow(() -> new RuntimeException("Error: Class session not found!"));
+
+        // 2. Fetch existing attendance records for this specific lesson (if the teacher
+        // is editing)
+        List<Attendance> existingRecords = attendanceRepository.findByClassSessionId(request.getClassSessionId());
+
+        // OPTIMIZATION: Instead of saving one by one inside the loop, we collect them
+        // all here
+        // and save them to the database in one single batch at the end.
+        List<Attendance> recordsToSave = new ArrayList<>();
+
+        Long courseId = session.getCourse().getId();
 
         for (AttendanceRequest.StudentStatus status : request.getStudentStatuses()) {
             Attendance attendance = null;
 
-            // Kiểm tra xem học viên này đã được điểm danh trong DB chưa?
-            // (Logic tìm trong list existingRecords)
+            // 3. Check if this student already has an attendance record for this session
             for (Attendance record : existingRecords) {
                 if (record.getEnrollment().getStudent().getId().equals(status.getStudentId())) {
-                    attendance = record; // Tìm thấy bản ghi cũ -> Sẽ update
+                    attendance = record; // Record found -> We will update it
                     break;
                 }
             }
 
-            // Nếu chưa có -> Tạo mới
+            // 4. If no record exists -> Create a new one
             if (attendance == null) {
                 attendance = new Attendance();
-                attendance.setClassSlot(slot);
-                attendance.setDate(request.getDate());
+                attendance.setClassSession(session);
 
-                // Tìm Enrollment của học viên này trong khóa học đó
-                // (Lưu ý: Cách tìm này hơi chậm nếu data lớn, nhưng với quy mô lớp học thì OK)
-                Long courseId = slot.getCourse().getId();
+                // Find the student's Enrollment record for this course
                 Enrollment enrollment = enrollmentRepository.findByStudentIdAndCourseId(status.getStudentId(), courseId)
                         .orElseThrow(() -> new RuntimeException(
-                                "Học viên ID " + status.getStudentId() + " không thuộc lớp này!"));
+                                "Error: Student ID " + status.getStudentId() + " is not enrolled in this course!"));
 
                 attendance.setEnrollment(enrollment);
             }
 
-            // Cập nhật trạng thái
+            // 5. Update the status and notes
             attendance.setIsPresent(status.getIsPresent());
             attendance.setNote(status.getNote());
 
-            attendanceRepository.save(attendance);
+            // Add to our batch list instead of saving immediately
+            recordsToSave.add(attendance);
         }
 
-        return "Đã lưu điểm danh thành công!";
+        // 6. Batch Save: This runs 1 big database query instead of 30 small ones!
+        attendanceRepository.saveAll(recordsToSave);
+
+        return "Attendance saved successfully!";
     }
 
-    // Hàm lấy dữ liệu điểm danh (để hiển thị lên Frontend)
-    public List<Attendance> getAttendanceList(Long classSlotId, LocalDate date) {
-        return attendanceRepository.findByClassSlotIdAndDate(classSlotId, date);
+    // Fetch the attendance data to display on the Frontend UI
+    public List<Attendance> getAttendanceList(Long classSessionId) {
+        return attendanceRepository.findByClassSessionId(classSessionId);
     }
 }
