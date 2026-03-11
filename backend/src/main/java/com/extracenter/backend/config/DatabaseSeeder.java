@@ -35,7 +35,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             Role role = new Role();
             role.setName(name);
             roleRepository.save(role);
-            System.out.println("✅ Role created: " + name);
+            System.out.println("Role created: " + name);
         }
     }
 
@@ -56,7 +56,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             admin.setEnabled(true); // Auto activate
             admin.setLocked(false); // Not locked
 
-            // Set created date (if you added that field)
+            // Set created date
             admin.setCreatedDate(java.time.LocalDateTime.now());
 
             userRepository.save(admin);

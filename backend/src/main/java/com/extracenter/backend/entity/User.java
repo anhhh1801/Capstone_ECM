@@ -26,6 +26,7 @@ public class User {
     @Column(nullable = false)
     private String lastName;
 
+    // Typically the institutional/school email used for login
     @Column(unique = true)
     private String email;
 
@@ -38,43 +39,50 @@ public class User {
 
     private String avatarImg;
 
-    @Column(name = "created_date")
+    // updatable = false ensures the creation date cannot be accidentally modified
+    @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate = LocalDateTime.now();
 
     @Column(columnDefinition = "boolean default false")
     private boolean isLocked = false;
 
+    // Backup/Recovery email, must be unique
     @Column(nullable = false, unique = true)
     private String personalEmail;
 
+    // Used for OTP verification status
     private boolean isEnabled = false;
 
-    @ManyToOne
+    // RELATIONSHIP: What role does this user have? (ADMIN, TEACHER, STUDENT)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
     // --- RELATIONSHIPS ---
 
-    // 1. Course do giáo viên này dạy
-    // Nếu xóa Giáo viên -> Giữ lại khóa học (set teacher = null) hoặc xóa khóa học
-    // (cascade ALL) tùy nghiệp vụ.
-    // Ở đây tôi để CascadeType.ALL theo code cũ của bạn (cẩn thận khi dùng).
+    // 1. Courses taught by this user (if they are a Teacher)
+    // WARNING: CascadeType.ALL means if you delete this Teacher, ALL of their
+    // courses are deleted!
+    // In a real production environment, you might want to prevent deletion or
+    // reassign the course.
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Course> courses;
 
-    // 2. Các khóa học sinh này tham gia (Thông qua Enrollment)
-    // CascadeType.ALL + orphanRemoval = true: Xóa User -> Tự động xóa Enrollment
-    // liên quan -> Hết lỗi Foreign Key
+    // 2. Courses this user is enrolled in (if they are a Student)
+    // CascadeType.ALL + orphanRemoval = true: Deleting the User safely deletes
+    // their Enrollment history.
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Enrollment> enrollments;
 
-    // 3. Các trung tâm mà user thuộc về
+    // 3. Centers this user is connected to
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @ManyToMany(fetch = FetchType.LAZY)
@@ -82,10 +90,10 @@ public class User {
     @JsonIgnore
     private Set<Center> connectedCenters = new HashSet<>();
 
+    // Safely remove ManyToMany relationships before deleting the User
+    // to prevent Foreign Key constraint errors.
     @PreRemove
     private void preRemove() {
-        for (Center center : connectedCenters) {
-        }
         this.connectedCenters.clear();
     }
 }

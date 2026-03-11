@@ -9,6 +9,7 @@ import com.extracenter.backend.repository.EnrollmentRepository;
 import com.extracenter.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -17,48 +18,61 @@ public class EnrollmentService {
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private CourseRepository courseRepository;
+
     @Autowired
     private UserService userService;
 
-    // Hàm thêm học viên vào lớp
+    // Add a student to a specific course
+    // @Transactional is required because we are modifying both Enrollment AND User
+    // tables
+    @Transactional
     public Enrollment addStudentToCourse(EnrollmentRequest request) {
-        // 1. Tìm Học viên bằng Email
+
+        // 1. Find the Student by Email
         User student = userRepository.findByEmail(request.getStudentEmail())
-                .orElseThrow(
-                        () -> new RuntimeException("Không tìm thấy học viên với email: " + request.getStudentEmail()));
+                .orElseThrow(() -> new RuntimeException("Student not found with email: " + request.getStudentEmail()));
 
-        // 2. Kiểm tra xem user này có đúng là ROLE STUDENT không?
-        // (Dùng ignoreCase để tránh lỗi chữ hoa/thường)
+        // 2. Verify that this user actually has the STUDENT role
+        // (Using ignoreCase prevents bugs if the database has "Student" instead of
+        // "STUDENT")
         if (!"STUDENT".equalsIgnoreCase(student.getRole().getName())) {
-            throw new RuntimeException(
-                    "User này không phải là Học viên (STUDENT)! Vai trò hiện tại: " + student.getRole().getName());
+            throw new RuntimeException("This user is not a Student! Current role: " + student.getRole().getName());
         }
 
-        // 3. Tìm Khóa học
+        // 3. Find the Course
         Course course = courseRepository.findById(request.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại với ID: " + request.getCourseId()));
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + request.getCourseId()));
 
-        // 4. Kiểm tra đã học chưa (Tránh thêm 2 lần)
+        // 4. Check if already enrolled (Prevents duplicate data)
         if (enrollmentRepository.existsByStudentIdAndCourseId(student.getId(), request.getCourseId())) {
-            throw new RuntimeException("Học viên này đã có trong lớp rồi!");
+            throw new RuntimeException("This student is already enrolled in this class!");
         }
 
-        // 5. Lưu đăng ký
+        // 5. Create and save the Enrollment
         Enrollment enrollment = new Enrollment();
         enrollment.setStudent(student);
         enrollment.setCourse(course);
         enrollment.setEnrollmentDate(LocalDate.now());
 
+        // Initialize default scores so the frontend doesn't get "null" when loading the
+        // gradebook
         enrollment.setProgressScore(0f);
         enrollment.setTestScore(0f);
         enrollment.setFinalScore(0f);
         enrollment.setPerformance("N/A");
 
-        userService.connectStudentToCenter(student.getId(), course.getCenter().getId());
+        // 6. Automatically link the student to the Course's Center
+        // Added Null Check: Ensure the course actually belongs to a center before
+        // linking!
+        if (course.getCenter() != null) {
+            userService.connectStudentToCenter(student.getId(), course.getCenter().getId());
+        }
 
         return enrollmentRepository.save(enrollment);
     }

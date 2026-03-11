@@ -1,8 +1,12 @@
 package com.extracenter.backend.service;
 
+
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.time.DayOfWeek;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,8 @@ public class CourseService {
     @Autowired
     private ClassSlotRepository classSlotRepository;
     @Autowired
+    private ClassSessionRepository classSessionRepository; // ADDED THIS
+    @Autowired
     private CenterRepository centerRepository;
     @Autowired
     private UserRepository userRepository;
@@ -46,13 +52,13 @@ public class CourseService {
 
     @Transactional
     public Course createCourse(CourseRequest request) {
-        // 1. Tìm Center và Teacher
+        // 1. Find Center and Teacher
         Center center = centerRepository.findById(request.getCenterId())
-                .orElseThrow(() -> new RuntimeException("Center không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Center not found!"));
         User teacher = userRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new RuntimeException("Teacher không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
 
-        // 2. Tạo và lưu Course
+        // 2. Create and save the Course
         Course course = new Course();
         course.setName(request.getName());
 
@@ -81,7 +87,8 @@ public class CourseService {
 
         Course savedCourse = courseRepository.save(course);
 
-        // 3. Tạo và lưu các ClassSlot (Lịch học)
+        // 3. Create and save the ClassSlots (The generic schedule rules)
+        List<ClassSlot> savedSlots = new ArrayList<>();
         if (request.getSlots() != null && !request.getSlots().isEmpty()) {
             for (CourseRequest.SlotRequest slotReq : request.getSlots()) {
                 ClassSlot slot = new ClassSlot();
@@ -90,10 +97,45 @@ public class CourseService {
                 slot.setEndTime(slotReq.getEndTime());
                 slot.setIsRecurring(true);
                 slot.setCourse(savedCourse);
-                classSlotRepository.save(slot);
+                savedSlots.add(classSlotRepository.save(slot));
             }
         }
+
+        // 4. THE MAGIC: Automatically generate the physical calendar days
+        // (ClassSessions)
+        if (!savedSlots.isEmpty() && course.getStartDate() != null && course.getEndDate() != null) {
+            generateClassSessions(savedCourse, savedSlots);
+        }
+
         return savedCourse;
+    }
+
+    // Helper method to generate ClassSessions based on the start/end date and slot
+    // rules
+    private void generateClassSessions(Course course, List<ClassSlot> slots) {
+        List<ClassSession> sessionsToSave = new ArrayList<>();
+        LocalDate currentDate = course.getStartDate();
+        LocalDate endDate = course.getEndDate();
+
+        while (!currentDate.isAfter(endDate)) {
+            // Java DayOfWeek: 1=Monday, 7=Sunday. Matches your convention!
+            DayOfWeek currentDayOfWeek = currentDate.getDayOfWeek();
+
+            for (ClassSlot slot : slots) {
+                if (slot.getDayOfWeek() == currentDayOfWeek) {
+                    ClassSession session = new ClassSession();
+                    session.setCourse(course);
+                    session.setDate(currentDate);
+                    session.setStartTime(slot.getStartTime());
+                    session.setEndTime(slot.getEndTime());
+                    sessionsToSave.add(session);
+                }
+            }
+            currentDate = currentDate.plusDays(1); // Move to next day
+        }
+
+        // Batch save for high performance
+        classSessionRepository.saveAll(sessionsToSave);
     }
 
     public List<Course> getAllCourses() {
@@ -110,12 +152,13 @@ public class CourseService {
 
     public Course getCourseById(Long id) {
         return courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
     }
 
+    @Transactional
     public Course updateCourse(Long courseId, CourseRequest request) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         course.setName(request.getName());
 
@@ -142,24 +185,27 @@ public class CourseService {
         return courseRepository.save(course);
     }
 
+    @Transactional
     public void deleteCourse(Long courseId) {
         try {
-            // Khi cấu hình CascadeType.ALL ở Entity, xóa Course sẽ tự động xóa Enrollment
+            // CascadeType.ALL on the Entity will auto-delete Enrollments, Slots, and
+            // Sessions!
             courseRepository.deleteById(courseId);
         } catch (Exception e) {
-            throw new RuntimeException("Lỗi khi xóa khóa học: " + e.getMessage());
+            throw new RuntimeException("Error deleting course: " + e.getMessage());
         }
     }
 
+    @Transactional
     public void inviteTeacherToCourse(Long courseId, String teacherEmail) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         User invitedUser = userRepository.findByEmail(teacherEmail)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên!"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
 
         if (!"TEACHER".equalsIgnoreCase(invitedUser.getRole().getName())) {
-            throw new RuntimeException("Người này không phải là Giáo viên!");
+            throw new RuntimeException("This user is not registered as a Teacher!");
         }
 
         course.setPendingTeacher(invitedUser);
@@ -167,9 +213,10 @@ public class CourseService {
         courseRepository.save(course);
     }
 
+    @Transactional
     public void respondToInvitation(Long courseId, String status) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Khóa học không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         if ("ACCEPTED".equals(status)) {
             course.setTeacher(course.getPendingTeacher());
@@ -187,35 +234,31 @@ public class CourseService {
     }
 
     // =================================================================
-    // PHẦN SỬA ĐỔI QUAN TRỌNG: DÙNG ENROLLMENT THAY VÌ GETSTUDENTS()
+    // ENROLLMENT MANAGEMENT
     // =================================================================
 
     @Transactional
     public void addStudentToCourse(Long courseId, Long studentId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new RuntimeException("Student not found!"));
 
-        // 1. Kiểm tra xem đã tồn tại Enrollment chưa
+        // 1. Check if enrollment already exists
         boolean exists = enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId);
         if (exists) {
-            throw new RuntimeException("Học sinh này đã có trong lớp rồi!");
+            throw new RuntimeException("Student is already enrolled in this class!");
         }
 
-        // 2. Tạo Enrollment mới
+        // 2. Create new Enrollment
         Enrollment enrollment = new Enrollment();
         enrollment.setCourse(course);
         enrollment.setStudent(student);
-        // Có thể set thêm enrollmentDate, scholarship nếu có...
-
         enrollmentRepository.save(enrollment);
 
-        // 3. Logic phụ: Thêm học sinh vào danh sách quản lý của Center (nếu chưa có)
-        // (Giữ nguyên logic cũ của bạn vì nó hợp lý)
+        // 3. Link student to Center (if not already linked)
         if (course.getCenter() != null) {
-            // Kiểm tra xem đã kết nối với center chưa, chưa thì thêm
             boolean isAlreadyInCenter = student.getConnectedCenters().stream()
                     .anyMatch(c -> c.getId().equals(course.getCenter().getId()));
 
@@ -228,21 +271,19 @@ public class CourseService {
 
     @Transactional
     public void removeStudentFromCourse(Long courseId, Long studentId) {
-        // 1. Tìm bản ghi Enrollment cụ thể
         Enrollment enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
-                .orElseThrow(() -> new RuntimeException("Học sinh này không có trong lớp!"));
+                .orElseThrow(() -> new RuntimeException("Student is not enrolled in this class!"));
 
-        // 2. Xóa bản ghi đó -> Tự động mất liên kết
         enrollmentRepository.delete(enrollment);
     }
 
-    // Lấy danh sách học sinh thông qua Enrollment
+    // Retrieve list of students via Enrollment repository for better performance
     public Set<User> getCourseStudents(Long courseId) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+        // OPTIMIZATION: Instead of loading the Course and relying on Lazy Loading,
+        // we query the EnrollmentRepository directly!
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseId(courseId);
 
-        // Map từ List<Enrollment> -> Set<User>
-        return course.getEnrollments().stream()
+        return enrollments.stream()
                 .map(Enrollment::getStudent)
                 .collect(Collectors.toSet());
     }

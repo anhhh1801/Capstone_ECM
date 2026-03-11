@@ -11,11 +11,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Scholarship {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name; // Ví dụ: "Khuyến học", "Giảm 10%"
+    // The name of the scholarship or discount program
+    // Example: "Academic Excellence", "Sibling Discount", "10% Off"
+    @Column(nullable = false)
+    private String name;
 
-    private Float discountPercentage; // Ví dụ: 0.1 (10%)
+    // The percentage of the discount applied
+    // Example: 0.1 represents a 10% discount, 0.5 represents 50%
+    private Float discountPercentage;
 }

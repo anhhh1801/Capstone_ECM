@@ -14,6 +14,8 @@ import com.extracenter.backend.repository.CenterRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CenterService {
@@ -24,16 +26,13 @@ public class CenterService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private SubjectRepository subjectRepository;
-
-    @Autowired
-    private GradeRepository gradeRepository;
-
-    // 1. Tạo Center mới
+    // 1. Create a new Center
+    // @Transactional added: If saving the center works but updating the manager
+    // fails, we roll back!
+    @Transactional
     public Center createCenter(CenterRequest request) {
         User manager = userRepository.findById(request.getManagerId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User với ID: " + request.getManagerId()));
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getManagerId()));
 
         Center newCenter = new Center();
         newCenter.setName(request.getName());
@@ -43,27 +42,30 @@ public class CenterService {
 
         Center savedCenter = centerRepository.save(newCenter);
 
+        // Link the manager to this center in the Many-to-Many join table
         manager.getConnectedCenters().add(savedCenter);
         userRepository.save(manager);
 
         return savedCenter;
     }
 
-    // 2. Lấy danh sách tất cả Center
+    // 2. Get list of all Centers
     public List<Center> getAllCenters() {
         return centerRepository.findAll();
     }
 
+    // 3. Get Centers managed by a specific user
     public List<Center> getCentersByManager(Long managerId) {
         return centerRepository.findByManagerId(managerId);
     }
 
+    // 4. Get Center by ID
     public Center getCenterById(Long id) {
         return centerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy trung tâm với ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + id));
     }
 
-    // 1. Lấy danh sách trung tâm tôi đi dạy (Teaching)
+    // 5. Get list of Centers where a teacher is currently teaching (Guest Teacher)
     public List<Center> getCentersTeaching(Long teacherId) {
         return centerRepository.findCentersTeachingByTeacherId(teacherId);
     }
@@ -176,13 +178,15 @@ public class CenterService {
     }
 
     // 2. Cập nhật Trung tâm
+    // 6. Update Center details
+    @Transactional
     public Center updateCenter(Long centerId, CenterRequest request) {
         Center center = centerRepository.findById(centerId)
-                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("Center not found!"));
 
-        // Có thể check thêm: Chỉ Manager mới được sửa
+        // Authorization Check: Only the assigned Manager can edit this center
         if (!center.getManager().getId().equals(request.getManagerId())) {
-            throw new RuntimeException("Bạn không có quyền sửa trung tâm này!");
+            throw new RuntimeException("You do not have permission to edit this center!");
         }
 
         center.setName(request.getName());
@@ -192,16 +196,22 @@ public class CenterService {
         return centerRepository.save(center);
     }
 
-    // 3. Xóa Trung tâm
+    // 7. Delete Center
+    // @Transactional added: We run a custom query and a delete command. Both must
+    // succeed together.
+    @Transactional
     public void deleteCenter(Long centerId) {
-        // Lưu ý: Nếu trung tâm đã có khóa học, DB sẽ báo lỗi khóa ngoại.
-        // Bạn có thể try-catch để báo lỗi thân thiện hơn.
         try {
+            // First, remove all connections in the student_centers join table
             centerRepository.removeAllStudentLinks(centerId);
+            // Then delete the center itself
             centerRepository.deleteById(centerId);
-        } catch (Exception e) {
+        } catch (DataIntegrityViolationException e) {
+            // Catching specific database constraint errors instead of a generic Exception
             throw new RuntimeException(
-                    "Không thể xóa trung tâm này vì đang có dữ liệu liên quan (Khóa học, Học viên...)");
+                    "Cannot delete this center because it contains linked data (Courses, Enrollments, etc.)");
+        } catch (Exception e) {
+            throw new RuntimeException("An error occurred while deleting the center: " + e.getMessage());
         }
     }
 }

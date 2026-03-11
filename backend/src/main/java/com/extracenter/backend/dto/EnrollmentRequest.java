@@ -1,9 +1,19 @@
 package com.extracenter.backend.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class EnrollmentRequest {
-    private String studentEmail; // Giáo viên nhập email học viên
-    private Long courseId; // ID khóa học muốn thêm vào
+
+    @NotBlank(message = "Student email is required")
+    @Email(message = "Please provide a valid email address")
+    private String studentEmail;
+
+    @NotNull(message = "Course ID is required")
+    private Long courseId;
+
+    private String note;
 }

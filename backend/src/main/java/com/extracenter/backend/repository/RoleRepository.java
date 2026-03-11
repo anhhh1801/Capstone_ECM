@@ -5,6 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
-    // Hàm này giúp tìm Role bằng tên (ví dụ: tìm role có tên "STUDENT")
+
+    // This method helps find a Role by its exact name (e.g., find the role named
+    // "STUDENT" or "TEACHER")
+    // Returning an Optional is a best practice to safely handle cases where the
+    // role might not exist.
     Optional<Role> findByName(String name);
 }

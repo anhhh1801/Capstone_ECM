@@ -6,16 +6,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "Role") // Maps to the 'Role' table in MySQL
-@Data // Generates Getters, Setters, toString, etc.
-@NoArgsConstructor // Generates empty constructor
-@AllArgsConstructor // Generates constructor with all fields
+@Table(name = "Role")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Role {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment ID
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // The name of the role (e.g., "ADMIN", "TEACHER", "STUDENT")
+    // Must be unique so we don't accidentally create two "TEACHER" roles.
     @Column(nullable = false, unique = true)
-    private String name; // e.g., "ADMIN", "TEACHER", "STUDENT"
+    private String name;
 }

@@ -49,30 +49,37 @@ public class Course {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    private String status; // ACTIVE, CLOSED
+    private String status; // e.g., "ACTIVE", "CLOSED"
 
     @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ACCEPTED'")
     private String invitationStatus = "ACCEPTED";
 
     // --- RELATIONSHIPS ---
 
-    // 1. Thuộc trung tâm nào
-    @ManyToOne
+    // 1. Which center does this course belong to?
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "center_id", nullable = false)
     private Center center;
 
-    // 2. Giáo viên chính
-    @ManyToOne
+    // 2. Main teacher assigned to the course
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
-    // 3. Giáo viên được mời (pending)
-    @ManyToOne
+    // 3. Invited teacher (if the course is pending acceptance by a teacher)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pending_teacher_id")
     private User pendingTeacher;
 
-    // 4. Danh sách đăng ký học (Thay thế cho Set<User> students cũ)
-    // Xóa Course -> Xóa luôn Enrollment
+    // 4. List of enrollments (Replaces the old direct Set<User> students)
+    // CascadeType.ALL & orphanRemoval: Deleting a Course safely deletes all
+    // associated Enrollments
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)

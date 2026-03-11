@@ -1,20 +1,32 @@
 package com.extracenter.backend.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import java.time.LocalDate;
+
 import java.util.List;
 
 @Data
 public class AttendanceRequest {
-    private Long classSlotId; // Điểm danh cho slot lịch nào (Ví dụ: Slot sáng thứ 2)
-    private LocalDate date; // Ngày điểm danh (Ví dụ: 2025-11-20)
 
+    // ARCHITECTURE UPDATE: Replaced classSlotId and date with classSessionId
+    @NotNull(message = "Class session ID is required")
+    private Long classSessionId;
+
+    @NotEmpty(message = "Student attendance list cannot be empty")
+    @Valid // Tells Spring to also validate the objects inside this list
     private List<StudentStatus> studentStatuses;
 
     @Data
     public static class StudentStatus {
+
+        @NotNull(message = "Student ID is required")
         private Long studentId;
-        private Boolean isPresent; // true = có mặt, false = vắng
-        private String note; // "Đi muộn", "Có phép"...
+
+        @NotNull(message = "Attendance status (isPresent) is required")
+        private Boolean isPresent; // true = present, false = absent
+
+        private String note; // Optional: "Late", "Excused absence", etc.
     }
 }
