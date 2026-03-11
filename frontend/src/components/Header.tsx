@@ -32,6 +32,29 @@ export default function Header() {
         }
     }, [pathname]);
 
+    const roleName =
+        typeof user?.role === "string"
+            ? user.role
+            : user?.role?.name;
+
+    const dashboardHref =
+        roleName === "TEACHER"
+            ? "/teacher/dashboard"
+            : roleName === "ADMIN"
+                ? "/admin/users"
+                : roleName === "STUDENT"
+                    ? "/student/dashboard"
+                    : "/";
+
+    const profileHref =
+        roleName === "TEACHER"
+            ? "/teacher/profile"
+            : roleName === "ADMIN"
+                ? "/admin/profile"
+                : roleName === "STUDENT"
+                    ? "/student/profile"
+                    : "/";
+
     return (
 
         <header className="text-white shadow-md">
@@ -56,12 +79,7 @@ export default function Header() {
                                     {user.email}
                                 </span>
                                 <Link
-                                    href={
-                                        user.role.name === "TEACHER" ? "/teacher/dashboard" :
-                                            user.role.name === "ADMIN" ? "/admin/users" :
-                                                user.role.name === "STUDENT" ? "/student/dashboard" :
-                                                    "/"
-                                    }
+                                    href={dashboardHref}
                                     className="inline-flex items-center"
                                     title="Dashboard"
                                     aria-label="Go to dashboard"
@@ -69,12 +87,7 @@ export default function Header() {
                                     <LayoutDashboard size={28} className="hover:text-[var(--color-secondary)] hover:size-10" />
                                 </Link>
                                 <Link
-                                    href={
-                                        user.role.name === "TEACHER" ? "/teacher/profile" :
-                                            user.role.name === "ADMIN" ? "/admin/profile" :
-                                                user.role.name === "STUDENT" ? "/student/profile" :
-                                                    "/"
-                                    }
+                                    href={profileHref}
                                     className="inline-flex items-center">
                                     <Settings size={32} className="hover:text-[var(--color-secondary)] hover:size-10" />
                                 </Link>
