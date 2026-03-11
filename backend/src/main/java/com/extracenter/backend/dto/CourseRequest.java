@@ -16,11 +16,8 @@ public class CourseRequest {
     @NotBlank(message = "Course name is required")
     private String name;
 
-    @NotBlank(message = "Subject is required")
     private Long subjectId;
 
-    @Min(1)
-    @Max(12)
     private Long gradeId;
 
     private String description;

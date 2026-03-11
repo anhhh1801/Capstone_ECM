@@ -62,6 +62,9 @@ export interface CreateCourseData {
 
 // API Tạo
 export const createCourse = async (data: CreateCourseData) => {
+    console.log("Creating course with data:", data);
+    const rawToken = JSON.parse(localStorage.getItem('loginResponse') || '{}').token;
+    console.log("🔍 SỰ THẬT BÊN TRONG TOKEN:", rawToken ? JSON.parse(atob(rawToken.split('.')[1])) : "Chưa có token");
     const response = await api.post('/courses', data);
     return response.data;
 };
