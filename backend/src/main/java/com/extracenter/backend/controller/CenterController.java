@@ -34,7 +34,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/centers")
-@CrossOrigin(origins = "*") // Allow frontend to communicate with this API
+@CrossOrigin(originPatterns = "*") // Allow frontend to communicate with this API
 public class CenterController {
 
     @Autowired

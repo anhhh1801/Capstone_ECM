@@ -17,7 +17,7 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/courses")
-@CrossOrigin(origins = "*") // Allow frontend to communicate with this API
+@CrossOrigin(originPatterns = "*") // Allow frontend to communicate with this API
 public class CourseController {
 
     @Autowired

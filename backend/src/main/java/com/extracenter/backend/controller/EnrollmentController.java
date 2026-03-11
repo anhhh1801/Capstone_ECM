@@ -1,18 +1,24 @@
 package com.extracenter.backend.controller;
 
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.extracenter.backend.dto.EnrollmentRequest;
 import com.extracenter.backend.entity.Enrollment;
 import com.extracenter.backend.service.EnrollmentService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/enrollments")
-@CrossOrigin(origins = "*") // Allow frontend to communicate with this API
+@CrossOrigin(originPatterns = "*") // Allow frontend to communicate with this API
 public class EnrollmentController {
 
     @Autowired
