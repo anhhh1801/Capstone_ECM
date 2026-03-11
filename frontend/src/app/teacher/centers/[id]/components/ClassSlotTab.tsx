@@ -12,6 +12,7 @@ import {
     getCenterClassSlots,
 } from "@/services/centerService";
 import ClassSlotModal from "./ClassSlotModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import { DateHeader, Timeline, TimelineHeaders, TimelineItemBase } from "react-calendar-timeline";
 import "react-calendar-timeline/dist/style.css";
 import dayjs from "dayjs";
@@ -64,6 +65,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingSlot, setEditingSlot] = useState<CenterClassSlot | null>(null);
+    const [deletingSlot, setDeletingSlot] = useState<CenterClassSlot | null>(null);
     const [viewMode, setViewMode] = useState<TimelineViewMode>("week");
     const [focusDate, setFocusDate] = useState(() => dayjs().startOf("day"));
 
@@ -89,8 +91,6 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     }, [fetchData]);
 
     const handleDelete = async (slot: CenterClassSlot) => {
-        if (!confirm(`Delete this class slot for ${slot.course?.name || "course"}?`)) return;
-
         const userRaw = localStorage.getItem("user");
         const user = userRaw ? JSON.parse(userRaw) : null;
         const managerId = user?.id;
@@ -103,6 +103,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
         try {
             await deleteCenterClassSlot(centerId, slot.id, managerId);
             toast.success("Class slot deleted.");
+            setDeletingSlot(null);
             fetchData();
         } catch (error: any) {
             toast.error(error?.response?.data?.error || "Could not delete class slot.");
@@ -283,6 +284,15 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 classrooms={classrooms}
             />
 
+            <ConfirmModal
+                isOpen={!!deletingSlot}
+                title="Delete Class Slot"
+                message={`Delete class slot for "${deletingSlot?.course?.name || "course"}"?`}
+                confirmText="Delete"
+                onClose={() => setDeletingSlot(null)}
+                onConfirm={() => (deletingSlot ? handleDelete(deletingSlot) : undefined)}
+            />
+
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                     <CalendarDays size={18} /> Class Slots
@@ -326,7 +336,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                                         </button>
 
                                         <button
-                                            onClick={() => handleDelete(slot)}
+                                            onClick={() => setDeletingSlot(slot)}
                                             className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                         >
                                             <Trash2 size={18} />

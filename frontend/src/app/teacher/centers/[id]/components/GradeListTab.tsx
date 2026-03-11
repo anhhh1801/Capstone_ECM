@@ -9,6 +9,7 @@ import {
     getCenterGrades,
 } from "@/services/centerService";
 import GradeModal from "./GradeModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Props {
     centerId: number;
@@ -38,13 +39,13 @@ export default function GradeListTab({ centerId, isManager }: Props) {
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
+    const [deletingGrade, setDeletingGrade] = useState<CenterGrade | null>(null);
 
     const handleDelete = async (grade: CenterGrade) => {
-        if (!confirm(`Delete grade "${grade.name}"?`)) return;
-
         try {
             await deleteCenterGrade(centerId, grade.id);
             toast.success("Grade deleted.");
+            setDeletingGrade(null);
             fetch();
         } catch (error) {
             console.error(error);
@@ -65,6 +66,15 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                 onClose={() => setModalOpen(false)}
                 onSuccess={fetch}
                 grade={editingGrade}
+            />
+
+            <ConfirmModal
+                isOpen={!!deletingGrade}
+                title="Delete Grade"
+                message={`Delete grade "${deletingGrade?.name || ""}"?`}
+                confirmText="Delete"
+                onClose={() => setDeletingGrade(null)}
+                onConfirm={() => (deletingGrade ? handleDelete(deletingGrade) : undefined)}
             />
 
             {/* HEADER */}
@@ -150,7 +160,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
 
                                                 {/* DELETE */}
                                                 <button
-                                                    onClick={() => handleDelete(grade)}
+                                                    onClick={() => setDeletingGrade(grade)}
                                                     className="p-2 bg-[var(--color-alert)] text-white rounded-lg hover:bg-red-700 transition"
                                                 >
                                                     <Trash2 size={18} />

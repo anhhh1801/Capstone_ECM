@@ -19,6 +19,7 @@ import GradeListTab from "./components/GradeListTab";
 import AssignStudentModal from "./components/AssignStudentModal";
 import ClassroomTab from "./components/ClassroomTab";
 import ClassSlotTab from "./components/ClassSlotTab";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type StudentCenterCard = User & {
     courses: { id: number; name: string }[];
@@ -36,6 +37,7 @@ export default function CenterDetailPage() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [teachers, setTeachers] = useState<User[]>([]);
     const [centerStudents, setCenterStudents] = useState<StudentCenterCard[]>([]);
+    const [removingStudent, setRemovingStudent] = useState<StudentCenterCard | null>(null);
 
     const [isAssignModalOpen, setAssignModalOpen] = useState(false);
 
@@ -122,11 +124,10 @@ export default function CenterDetailPage() {
     }, [centerId]);
 
     const handleRemoveStudent = async (studentId: number) => {
-        if (!confirm("Remove student from this center?")) return;
-
         try {
             await removeStudentFromCenter(centerId, studentId);
             toast.success("Student removed!");
+            setRemovingStudent(null);
             fetchData();
         } catch {
             toast.error("Error removing student");
@@ -142,6 +143,15 @@ export default function CenterDetailPage() {
 
     return (
         <div className="space-y-6">
+
+            <ConfirmModal
+                isOpen={!!removingStudent}
+                title="Remove Student"
+                message={`Remove "${removingStudent?.lastName || ""} ${removingStudent?.firstName || ""}" from this center?`}
+                confirmText="Remove"
+                onClose={() => setRemovingStudent(null)}
+                onConfirm={() => (removingStudent ? handleRemoveStudent(removingStudent.id) : undefined)}
+            />
 
             {/* HEADER */}
             <CenterHeader center={centerInfo} isManager={isManager} />
@@ -229,7 +239,7 @@ export default function CenterDetailPage() {
                                         </div>
 
                                         <button
-                                            onClick={() => handleRemoveStudent(student.id)}
+                                            onClick={() => setRemovingStudent(student)}
                                             className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                             title="Remove from center"
                                         >

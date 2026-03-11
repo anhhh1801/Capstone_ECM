@@ -4,6 +4,7 @@ import { Course, deleteCourse } from "@/services/courseService";
 import toast from "react-hot-toast";
 import InviteTeacherModal from "./InviteTeacherModal";
 import { useState } from "react";
+import ConfirmModal from "@/components/ConfirmModal";
 interface Props {
     courses: Course[];
     centerId: number;
@@ -14,20 +15,32 @@ interface Props {
 export default function CourseListTab({ courses, centerId, isManager, onUpdate }: Props) {
 
     const [inviteCourseId, setInviteCourseId] = useState<number | null>(null);
+    const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
 
     const handleDelete = async (courseId: number) => {
-        if (!confirm("Delete this course?")) return;
         try {
             await deleteCourse(courseId);
             toast.success("Course deleted!");
+            setDeletingCourseId(null);
             onUpdate();
         } catch {
             toast.error("Error deleting course");
         }
     };
 
+    const deletingCourse = courses.find((course) => course.id === deletingCourseId);
+
     return (
         <div className="space-y-4">
+
+            <ConfirmModal
+                isOpen={deletingCourseId !== null}
+                title="Delete Course"
+                message={`Delete course "${deletingCourse?.name || "this course"}"?`}
+                confirmText="Delete"
+                onClose={() => setDeletingCourseId(null)}
+                onConfirm={() => (deletingCourseId !== null ? handleDelete(deletingCourseId) : undefined)}
+            />
 
             {/* HEADER */}
             <div className="flex justify-between items-center">
@@ -84,7 +97,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                                         </Link>
 
                                         <button
-                                            onClick={() => handleDelete(course.id)}
+                                            onClick={() => setDeletingCourseId(course.id)}
                                             className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                         >
                                             <Trash2 size={18} />

@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import StudentTable from "./components/StudentTable";
 import { deleteStudent } from "@/services/userService";
 import StudentModal from "./components/StudentModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function GlobalStudentsPage() {
     // 1. STATE QUẢN LÝ DỮ LIỆU
@@ -24,6 +25,7 @@ export default function GlobalStudentsPage() {
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<any>(null); // Lưu học sinh đang sửa
+    const [deletingStudentId, setDeletingStudentId] = useState<number | null>(null);
 
     // 3. FETCH DATA
     const fetchData = async () => {
@@ -131,19 +133,20 @@ export default function GlobalStudentsPage() {
     }, [searchTerm, selectedCenterId, allStudents]);
 
     const handleDeletePermanently = async (studentId: number) => {
-        const confirmMsg = "WARNING: This will permanently delete the student account and all related study data.\n\nAre you sure?";
-        if (!confirm(confirmMsg)) return;
-
         try {
             await deleteStudent(studentId);
             toast.success("Permanently deleted!");
+            setDeletingStudentId(null);
 
             // Refresh list
             setAllStudents(prev => prev.filter(s => s.id !== studentId));
+            setFilteredStudents(prev => prev.filter(s => s.id !== studentId));
         } catch (e) {
             toast.error("Unable to delete (may be due to data constraints)");
         }
     };
+
+    const deletingStudent = allStudents.find((s) => s.id === deletingStudentId);
 
     // Hàm mở modal Create
     const openCreateModal = () => {
@@ -164,6 +167,15 @@ export default function GlobalStudentsPage() {
 
     return (
         <div className="space-y-6 mx-auto">
+
+            <ConfirmModal
+                isOpen={deletingStudentId !== null}
+                title="Permanently Delete Student"
+                message={`This will permanently delete "${deletingStudent?.lastName || ""} ${deletingStudent?.firstName || ""}" and related study data. Continue?`}
+                confirmText="Delete Permanently"
+                onClose={() => setDeletingStudentId(null)}
+                onConfirm={() => (deletingStudentId !== null ? handleDeletePermanently(deletingStudentId) : undefined)}
+            />
 
             {/* HEADER */}
 
@@ -278,7 +290,7 @@ export default function GlobalStudentsPage() {
             <StudentTable
                 students={filteredStudents}
                 loading={loading}
-                onDelete={handleDeletePermanently}
+                onDelete={(studentId) => setDeletingStudentId(studentId)}
                 onEdit={openEditModal}
             />
 

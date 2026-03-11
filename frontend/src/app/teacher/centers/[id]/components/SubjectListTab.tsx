@@ -9,6 +9,7 @@ import {
     getCenterSubjects,
 } from "@/services/centerService";
 import SubjectModal from "./SubjectModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Props {
     centerId: number;
@@ -21,6 +22,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
+    const [deletingSubject, setDeletingSubject] = useState<CenterSubject | null>(null);
 
     const fetch = useCallback(async () => {
         try {
@@ -50,11 +52,10 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
     };
 
     const handleDelete = async (subject: CenterSubject) => {
-        if (!confirm(`Delete subject "${subject.name}"?`)) return;
-
         try {
             await deleteCenterSubject(centerId, subject.id);
             toast.success("Subject deleted.");
+            setDeletingSubject(null);
             fetch();
         } catch (error) {
             console.error(error);
@@ -77,6 +78,15 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                     fetch();
                 }}
                 subject={editingSubject}
+            />
+
+            <ConfirmModal
+                isOpen={!!deletingSubject}
+                title="Delete Subject"
+                message={`Delete subject "${deletingSubject?.name || ""}"?`}
+                confirmText="Delete"
+                onClose={() => setDeletingSubject(null)}
+                onConfirm={() => (deletingSubject ? handleDelete(deletingSubject) : undefined)}
             />
 
             <div className="flex items-center justify-between">
@@ -122,7 +132,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                                         </button>
 
                                         <button
-                                            onClick={() => handleDelete(subject)}
+                                            onClick={() => setDeletingSubject(subject)}
                                             className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                         >
                                             <Trash2 size={18} />

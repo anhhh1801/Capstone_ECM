@@ -9,6 +9,7 @@ import {
 	getCenterClassrooms,
 } from "@/services/centerService";
 import ClassroomModal from "./ClassroomModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Props {
 	centerId: number;
@@ -20,6 +21,7 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [isModalOpen, setModalOpen] = useState(false);
 	const [editingClassroom, setEditingClassroom] = useState<CenterClassroom | null>(null);
+	const [deletingClassroom, setDeletingClassroom] = useState<CenterClassroom | null>(null);
 
 	const fetchClassrooms = useCallback(async () => {
 		try {
@@ -39,8 +41,6 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 	}, [fetchClassrooms]);
 
 	const handleDelete = async (room: CenterClassroom) => {
-		if (!confirm(`Delete classroom at "${room.location}"?`)) return;
-
 		const userRaw = localStorage.getItem("user");
 		const user = userRaw ? JSON.parse(userRaw) : null;
 		const managerId = user?.id;
@@ -53,6 +53,7 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 		try {
 			await deleteCenterClassroom(centerId, room.id, managerId);
 			toast.success("Classroom deleted.");
+			setDeletingClassroom(null);
 			fetchClassrooms();
 		} catch (error: any) {
 			toast.error(error?.response?.data?.error || "Could not delete classroom.");
@@ -65,6 +66,15 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 
 	return (
 		<div className="space-y-4">
+			<ConfirmModal
+				isOpen={!!deletingClassroom}
+				title="Delete Classroom"
+				message={`Delete classroom at "${deletingClassroom?.location || ""}"?`}
+				confirmText="Delete"
+				onClose={() => setDeletingClassroom(null)}
+				onConfirm={() => (deletingClassroom ? handleDelete(deletingClassroom) : undefined)}
+			/>
+
 			<ClassroomModal
 				centerId={centerId}
 				isOpen={isModalOpen}
@@ -115,7 +125,7 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 									</button>
 
 									<button
-										onClick={() => handleDelete(room)}
+										onClick={() => setDeletingClassroom(room)}
 										className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
 									>
 										<Trash2 size={18} />
