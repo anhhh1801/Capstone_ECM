@@ -55,7 +55,13 @@ function CreateCourseLogic() {
             toast.success("Course created successfully!");
             router.push(`/teacher/centers/${finalCenterId}`);
         } catch (error: any) {
-            toast.error(error.response?.data || "An error occurred while creating the course");
+            const responseData = error?.response?.data;
+            const message =
+                responseData?.error ||
+                responseData?.message ||
+                (typeof responseData === "string" ? responseData : null) ||
+                "An error occurred while creating the course";
+            toast.error(message);
         } finally {
             setLoading(false);
         }

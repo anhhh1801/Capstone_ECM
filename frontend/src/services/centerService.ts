@@ -57,6 +57,37 @@ export interface ClassroomPayload {
     managerId: number;
 }
 
+export interface CenterClassSlot {
+    id: number;
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    daysOfWeek: string[];
+    isRecurring: boolean;
+    course?: {
+        id: number;
+        name: string;
+        startDate?: string;
+        endDate?: string;
+    };
+    classroom?: {
+        id: number;
+        location: string;
+        seat?: number;
+    };
+}
+
+export interface ClassSlotPayload {
+    managerId: number;
+    courseId: number;
+    classroomId?: number;
+    startTime: string;
+    endTime: string;
+    daysOfWeek: string[];
+    recurring: boolean;
+}
+
 // Lấy danh sách giáo viên của trung tâm
 export const getCenterTeachers = async (centerId: number) => {
     const response = await api.get(`/centers/${centerId}/teachers`);
@@ -132,5 +163,29 @@ export const updateCenterClassroom = async (centerId: number, classroomId: numbe
 // Xóa phòng học
 export const deleteCenterClassroom = async (centerId: number, classroomId: number, managerId: number) => {
     const response = await api.delete(`/centers/${centerId}/classrooms/${classroomId}?managerId=${managerId}`);
+    return response.data;
+};
+
+// Lấy danh sách class slots của trung tâm
+export const getCenterClassSlots = async (centerId: number) => {
+    const response = await api.get<CenterClassSlot[]>(`/centers/${centerId}/class-slots`);
+    return response.data;
+};
+
+// Tạo class slot
+export const createCenterClassSlot = async (centerId: number, data: ClassSlotPayload) => {
+    const response = await api.post(`/centers/${centerId}/class-slots`, data);
+    return response.data as CenterClassSlot;
+};
+
+// Cập nhật class slot
+export const updateCenterClassSlot = async (centerId: number, slotId: number, data: ClassSlotPayload) => {
+    const response = await api.put(`/centers/${centerId}/class-slots/${slotId}`, data);
+    return response.data as CenterClassSlot;
+};
+
+// Xóa class slot
+export const deleteCenterClassSlot = async (centerId: number, slotId: number, managerId: number) => {
+    const response = await api.delete(`/centers/${centerId}/class-slots/${slotId}?managerId=${managerId}`);
     return response.data;
 };

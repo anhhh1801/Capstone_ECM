@@ -1,12 +1,13 @@
 package com.extracenter.backend.dto;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -16,11 +17,8 @@ public class CourseRequest {
     @NotBlank(message = "Course name is required")
     private String name;
 
-    @NotBlank(message = "Subject is required")
     private Long subjectId;
 
-    @Min(1)
-    @Max(12)
     private Long gradeId;
 
     private String description;
@@ -38,7 +36,6 @@ public class CourseRequest {
     private Long teacherId;
 
     // 2. Schedule Configuration (Used to generate ClassSessions)
-    @NotEmpty(message = "At least one time slot is required")
     @Valid
     private List<SlotRequest> slots;
 

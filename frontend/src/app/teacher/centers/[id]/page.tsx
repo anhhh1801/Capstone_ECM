@@ -18,6 +18,7 @@ import SubjectListTab from "./components/SubjectListTab";
 import GradeListTab from "./components/GradeListTab";
 import AssignStudentModal from "./components/AssignStudentModal";
 import ClassroomTab from "./components/ClassroomTab";
+import ClassSlotTab from "./components/ClassSlotTab";
 
 type StudentCenterCard = User & {
     courses: { id: number; name: string }[];
@@ -29,7 +30,7 @@ export default function CenterDetailPage() {
 
     const [centerInfo, setCenterInfo] = useState<any>(null);
     const [isManager, setIsManager] = useState(false);
-    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades" | "classrooms">("courses");
+    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades" | "classrooms" | "class-slots">("courses");
     const [loading, setLoading] = useState(true);
 
     const [courses, setCourses] = useState<Course[]>([]);
@@ -176,6 +177,10 @@ export default function CenterDetailPage() {
 
                 {activeTab === "classrooms" && (
                     <ClassroomTab centerId={centerId} isManager={isManager} />
+                )}
+
+                {activeTab === "class-slots" && (
+                    <ClassSlotTab centerId={centerId} isManager={isManager} />
                 )}
 
                 {activeTab === "teachers" && (
