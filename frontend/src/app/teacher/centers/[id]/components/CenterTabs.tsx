@@ -1,7 +1,7 @@
 import { BookOpen, Building2, Users, UserCog, BookA, BookPlus } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 
-type TabKey = "courses" | "students" | "teachers" | "subjects" | "grades";
+type TabKey = "courses" | "students" | "teachers" | "subjects" | "grades" | "classrooms";
 
 interface Props {
     activeTab: TabKey;
@@ -56,6 +56,17 @@ export default function CenterTabs({ activeTab, setActiveTab, isManager }: Props
                             }`}
                     >
                         <BookPlus size={18} /> Grades
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab("classrooms")}
+                        className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
+                        ${activeTab === "classrooms"
+                                ? "border-[var(--color-main)] text-[var(--color-main)]"
+                                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+                            }`}
+                    >
+                        <Building2 size={18} /> Classrooms
                     </button>
 
                     <button

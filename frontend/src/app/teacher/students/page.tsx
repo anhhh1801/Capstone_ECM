@@ -21,7 +21,6 @@ export default function GlobalStudentsPage() {
     // 2. STATE UI & FILTER
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCenterId, setSelectedCenterId] = useState<string>("ALL");
-    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<any>(null); // Lưu học sinh đang sửa

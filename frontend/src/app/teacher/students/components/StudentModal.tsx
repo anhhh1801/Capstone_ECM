@@ -144,18 +144,36 @@ export default function StudentModal({
         const center = centers.find(c => c.id === centerIdToAdd);
         if (!center) return;
 
+        const wasOriginallyConnected = originalConnectedCentersRef.current.some(
+            (c: any) => c.id === centerIdToAdd
+        );
+
         setConnectedCenters(prev => [...prev, center]);
-        setPendingAddCenterIds(prev => Array.from(new Set([...prev, centerIdToAdd])));
-        setPendingRemoveCenterIds(prev => prev.filter(id => id !== centerIdToAdd));
+
+        if (wasOriginallyConnected) {
+            // Re-adding an originally connected center cancels a pending removal.
+            setPendingRemoveCenterIds(prev => prev.filter(id => id !== centerIdToAdd));
+        } else {
+            // Newly added center should be assigned only when user clicks Save.
+            setPendingAddCenterIds(prev => Array.from(new Set([...prev, centerIdToAdd])));
+        }
+
         setNewCenterId("");
     };
 
     const handleRemoveCenter = (centerIdToRemove: number) => {
-        if (!confirm("Remove student from this center?")) return;
-
+        const wasOriginallyConnected = originalConnectedCentersRef.current.some(
+            (c: any) => c.id === centerIdToRemove
+        );
         setConnectedCenters(prev => prev.filter(c => c.id !== centerIdToRemove));
-        setPendingRemoveCenterIds(prev => Array.from(new Set([...prev, centerIdToRemove])));
-        setPendingAddCenterIds(prev => prev.filter(id => id !== centerIdToRemove));
+
+        if (wasOriginallyConnected) {
+            // Original center removal is staged and applied only on Save.
+            setPendingRemoveCenterIds(prev => Array.from(new Set([...prev, centerIdToRemove])));
+        } else {
+            // Removing a just-added center cancels that pending add.
+            setPendingAddCenterIds(prev => prev.filter(id => id !== centerIdToRemove));
+        }
     };
 
     const availableCenters = centers.filter(c =>
@@ -316,7 +334,7 @@ export default function StudentModal({
 
                             <div className="space-y-2">
 
-                                {studentToEdit.connectedCenters?.map((c: any) => (
+                                {connectedCenters.map((c: any) => (
 
                                     <div
                                         key={c.id}

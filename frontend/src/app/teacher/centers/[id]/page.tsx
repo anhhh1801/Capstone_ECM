@@ -7,7 +7,8 @@ import api from "@/utils/axiosConfig";
 import { Course } from "@/services/courseService";
 import { removeStudentFromCenter } from "@/services/userService";
 import toast from "react-hot-toast";
-import { UserPlus, Users } from "lucide-react";
+import { UserPlus, Users, Mail, Phone, BookOpen, Unlink } from "lucide-react";
+import Link from "next/link";
 
 import CenterHeader from "./components/CenterHeader";
 import CenterTabs from "./components/CenterTabs";
@@ -15,27 +16,27 @@ import CourseListTab from "./components/CourseListTab";
 import TeacherListTab from "./components/TeacherListTab";
 import SubjectListTab from "./components/SubjectListTab";
 import GradeListTab from "./components/GradeListTab";
-import StudentTable from "../../students/components/StudentTable";
-import StudentModal from "../../students/components/StudentModal";
 import AssignStudentModal from "./components/AssignStudentModal";
+import ClassroomTab from "./components/ClassroomTab";
+
+type StudentCenterCard = User & {
+    courses: { id: number; name: string }[];
+};
 
 export default function CenterDetailPage() {
     const params = useParams();
     const centerId = Number(params.id);
 
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [centerInfo, setCenterInfo] = useState<any>(null);
     const [isManager, setIsManager] = useState(false);
-    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades">("courses");
+    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades" | "classrooms">("courses");
     const [loading, setLoading] = useState(true);
 
     const [courses, setCourses] = useState<Course[]>([]);
     const [teachers, setTeachers] = useState<User[]>([]);
-    const [centerStudents, setCenterStudents] = useState<User[]>([]);
+    const [centerStudents, setCenterStudents] = useState<StudentCenterCard[]>([]);
 
-    const [isStudentModalOpen, setStudentModalOpen] = useState(false);
     const [isAssignModalOpen, setAssignModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<any>(null);
 
     const fetchData = async () => {
         if (!centerId) return;
@@ -43,7 +44,6 @@ export default function CenterDetailPage() {
         const userStr = localStorage.getItem("user");
         if (!userStr) return;
         const user = JSON.parse(userStr);
-        setCurrentUser(user);
 
         try {
             setLoading(true);
@@ -66,7 +66,43 @@ export default function CenterDetailPage() {
             setCourses(fetchedCourses);
 
             const resStudents = await api.get(`/centers/${centerId}/students`);
-            setCenterStudents(resStudents.data);
+            const students = resStudents.data ?? [];
+
+            // Build student -> courses map for this center by querying each course's members.
+            const courseMembers = await Promise.all(
+                fetchedCourses.map(async (course: Course) => {
+                    try {
+                        const res = await api.get(`/courses/${course.id}/students`);
+                        return {
+                            courseId: course.id,
+                            courseName: course.name,
+                            students: res.data as Array<{ id: number }>,
+                        };
+                    } catch {
+                        return {
+                            courseId: course.id,
+                            courseName: course.name,
+                            students: [] as Array<{ id: number }>,
+                        };
+                    }
+                })
+            );
+
+            const studentCoursesMap = new Map<number, { id: number; name: string }[]>();
+            for (const cm of courseMembers) {
+                for (const st of cm.students) {
+                    const list = studentCoursesMap.get(st.id) ?? [];
+                    list.push({ id: cm.courseId, name: cm.courseName });
+                    studentCoursesMap.set(st.id, list);
+                }
+            }
+
+            const cardStudents: StudentCenterCard[] = students.map((s: User) => ({
+                ...s,
+                courses: studentCoursesMap.get(s.id) ?? [],
+            }));
+
+            setCenterStudents(cardStudents);
 
             if (managerCheck) {
                 const resTeachers = await api.get(`/centers/${centerId}/teachers`);
@@ -138,6 +174,10 @@ export default function CenterDetailPage() {
                     <GradeListTab centerId={centerId} isManager={isManager} />
                 )}
 
+                {activeTab === "classrooms" && (
+                    <ClassroomTab centerId={centerId} isManager={isManager} />
+                )}
+
                 {activeTab === "teachers" && (
                     <TeacherListTab
                         teachers={teachers}
@@ -165,45 +205,76 @@ export default function CenterDetailPage() {
                                     Assign Existing Student
                                 </button>
 
-                                <button
-                                    onClick={() => {
-                                        setEditingStudent(null);
-                                        setStudentModalOpen(true);
-                                    }}
-                                    className="flex items-center gap-2 whitespace-nowrap bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
-                                >
-                                    <UserPlus size={16} />
-                                    Create new
-                                </button>
-
                             </div>
                         </div>
 
-                        {/* STUDENT TABLE */}
-                        <StudentTable
-                            students={centerStudents}
-                            loading={false}
-                            onDelete={handleRemoveStudent}
-                            deleteLabel="Remove"
-                            onEdit={(student) => {
-                                setEditingStudent(student);
-                                setStudentModalOpen(true);
-                            }}
-                        />
+                        {/* STUDENT CARD LIST */}
+                        <div className="grid grid-cols-4 lg:grid-cols-4 gap-4">
+                            {centerStudents.map((student) => (
+                                <div
+                                    key={student.id}
+                                    className="rounded-xl border border-[var(--color-main)]/30 bg-white p-4"
+                                >
+                                    <div className="flex items-start justify-between gap-3 border-b-2 border-[var(--color-main)] pb-1">
+                                        <div>
+                                            <h4 className="font-bold text-[var(--color-text)]">
+                                                {student.lastName} {student.firstName}
+                                            </h4>
+                                            <p className="text-xs text-gray-500">ID: {student.id}</p>
+                                        </div>
+
+                                        <button
+                                            onClick={() => handleRemoveStudent(student.id)}
+                                            className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
+                                            title="Remove from center"
+                                        >
+                                            <Unlink size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-3 space-y-2 text-sm text-[var(--color-text)]">
+                                        <div className="flex items-center gap-2">
+                                            <Mail size={14} className="text-[var(--color-main)]" />
+                                            <span>{student.email}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Phone size={14} className="text-[var(--color-main)]" />
+                                            <span>{student.phoneNumber || "---"}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <p className="text-sm font-semibold text-[var(--color-text)] mb-2 flex items-center gap-2">
+                                            <BookOpen size={14} className="text-[var(--color-main)]" />
+                                            Courses
+                                        </p>
+
+                                        {student.courses.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {student.courses.map((course) => (
+                                                    <Link
+                                                        key={course.id}
+                                                        href={`/teacher/courses/${course.id}`}
+                                                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-white transition"
+                                                    >
+                                                        {course.name}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs italic text-gray-400">No courses</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
                     </div>
                 )}
             </div>
 
             {/* MODALS */}
-            <StudentModal
-                isOpen={isStudentModalOpen}
-                onClose={() => setStudentModalOpen(false)}
-                onSuccess={fetchData}
-                studentToEdit={editingStudent}
-                preSelectedCenterId={centerId}
-            />
-
             <AssignStudentModal
                 isOpen={isAssignModalOpen}
                 onClose={() => setAssignModalOpen(false)}

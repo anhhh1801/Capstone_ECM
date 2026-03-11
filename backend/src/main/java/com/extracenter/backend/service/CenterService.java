@@ -6,11 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.dto.ClassroomRequest;
 import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.Classroom;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.ClassroomRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
@@ -31,6 +34,9 @@ public class CenterService {
 
     @Autowired
     private GradeRepository gradeRepository;
+
+    @Autowired
+    private ClassroomRepository classroomRepository;
 
     // 1. Create a new Center
     // @Transactional added: If saving the center works but updating the manager
@@ -220,5 +226,57 @@ public class CenterService {
         } catch (Exception e) {
             throw new RuntimeException("An error occurred while deleting the center: " + e.getMessage());
         }
+    }
+
+    private Center getOwnedCenter(Long centerId, Long managerId) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+
+        if (!center.getManager().getId().equals(managerId)) {
+            throw new RuntimeException("Only the center owner can manage classrooms.");
+        }
+
+        return center;
+    }
+
+    public List<Classroom> getClassroomsByCenter(Long centerId) {
+        return classroomRepository.findByCenterId(centerId);
+    }
+
+    @Transactional
+    public Classroom createClassroom(Long centerId, ClassroomRequest request) {
+        Center center = getOwnedCenter(centerId, request.getManagerId());
+
+        Classroom classroom = new Classroom();
+        classroom.setSeat(request.getSeat());
+        classroom.setLocation(request.getLocation());
+        classroom.setLastMaintainDate(request.getLastMaintainDate());
+        classroom.setCenter(center);
+
+        return classroomRepository.save(classroom);
+    }
+
+    @Transactional
+    public Classroom updateClassroom(Long centerId, Long classroomId, ClassroomRequest request) {
+        getOwnedCenter(centerId, request.getManagerId());
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        classroom.setSeat(request.getSeat());
+        classroom.setLocation(request.getLocation());
+        classroom.setLastMaintainDate(request.getLastMaintainDate());
+
+        return classroomRepository.save(classroom);
+    }
+
+    @Transactional
+    public void deleteClassroom(Long centerId, Long classroomId, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        classroomRepository.delete(classroom);
     }
 }

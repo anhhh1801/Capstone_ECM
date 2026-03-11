@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, Edit2Icon, Trash2, BookPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterGrade,
@@ -71,8 +71,8 @@ export default function GradeListTab({ centerId, isManager }: Props) {
             <div className="flex items-center justify-between">
 
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                    <Plus size={18} className="text-[var(--color-main)]" />
-                    Grades
+                    <BookPlus size={18} /> Grades
+
                 </h3>
 
                 {isManager && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, Edit2Icon, Trash2, PlusIcon, BookA } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterSubject,
@@ -81,16 +81,15 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
 
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                    <Plus size={18} className="text-[var(--color-main)]" />
-                    Subjects
+                        <BookA size={18} /> Subjects
                 </h3>
 
                 {isManager && (
                     <button
                         onClick={handleCreate}
-                        className="bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
+                        className="flex items-center gap-2 bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
                     >
-                        Add Subject
+                       <PlusIcon size={18} /> Add Subject
                     </button>
                 )}
             </div>
