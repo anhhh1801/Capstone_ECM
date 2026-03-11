@@ -1,19 +1,24 @@
 package com.extracenter.backend.controller;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.extracenter.backend.dto.ScheduleResponse;
 import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.ClassSlot;
 import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/schedule")
@@ -83,7 +88,7 @@ public class ScheduleController {
             if (slot.getCourse() != null) {
                 courseId = slot.getCourse().getId();
                 courseName = slot.getCourse().getName();
-                subjectName = slot.getCourse().getSubject(); // Assuming Course has getSubject()
+                subjectName = slot.getCourse().getSubject().getName(); // Assuming Course has getSubject()
 
                 if (slot.getCourse().getTeacher() != null) {
                     teacherName = slot.getCourse().getTeacher().getFirstName() + " " +
@@ -123,7 +128,7 @@ public class ScheduleController {
             if (session.getCourse() != null) {
                 courseId = session.getCourse().getId();
                 courseName = session.getCourse().getName();
-                subjectName = session.getCourse().getSubject();
+                subjectName = session.getCourse().getSubject().getName();
 
                 if (session.getCourse().getTeacher() != null) {
                     teacherName = session.getCourse().getTeacher().getFirstName() + " " +

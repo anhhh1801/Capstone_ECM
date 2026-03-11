@@ -1,5 +1,12 @@
 package com.extracenter.backend.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.extracenter.backend.dto.AttendanceRequest;
 import com.extracenter.backend.entity.Attendance;
 import com.extracenter.backend.entity.ClassSession;
@@ -7,12 +14,6 @@ import com.extracenter.backend.entity.Enrollment;
 import com.extracenter.backend.repository.AttendanceRepository;
 import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.EnrollmentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class AttendanceService {

@@ -1,12 +1,11 @@
 package com.extracenter.backend.service;
 
-
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.time.DayOfWeek;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.dto.CourseRequest;
 import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.ClassSlot;
 import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.Enrollment;
@@ -21,6 +21,7 @@ import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
 import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.EnrollmentRepository;
@@ -53,25 +54,35 @@ public class CourseService {
     @Transactional
     public Course createCourse(CourseRequest request) {
         // 1. Find Center and Teacher
-        Center center = centerRepository.findById(request.getCenterId())
+        Long centerId = request.getCenterId();
+        if (centerId == null) {
+            throw new RuntimeException("Center ID is required!");
+        }
+        Center center = centerRepository.findById(centerId)
                 .orElseThrow(() -> new RuntimeException("Center not found!"));
-        User teacher = userRepository.findById(request.getTeacherId())
+        Long teacherId = request.getTeacherId();
+        if (teacherId == null) {
+            throw new RuntimeException("Teacher ID is required!");
+        }
+        User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found!"));
 
         // 2. Create and save the Course
         Course course = new Course();
         course.setName(request.getName());
 
-        if (request.getSubjectId() != null) {
-            Subject subject = subjectRepository.findById(request.getSubjectId())
+        Long subjectId = request.getSubjectId();
+        if (subjectId != null) {
+            Subject subject = subjectRepository.findById(subjectId)
                     .orElseThrow(() -> new RuntimeException("Môn học không tồn tại"));
             course.setSubject(subject);
         } else {
             course.setSubject(null);
         }
 
-        if (request.getGradeId() != null) {
-            Grade grade = gradeRepository.findById(request.getGradeId())
+        Long gradeId = request.getGradeId();
+        if (gradeId != null) {
+            Grade grade = gradeRepository.findById(gradeId)
                     .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại"));
             course.setGrade(grade);
         } else {
@@ -151,27 +162,35 @@ public class CourseService {
     }
 
     public Course getCourseById(Long id) {
+        if (id == null) {
+            throw new RuntimeException("Course ID is required!");
+        }
         return courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
     }
 
     @Transactional
     public Course updateCourse(Long courseId, CourseRequest request) {
+        if (courseId == null) {
+            throw new RuntimeException("Course ID is required!");
+        }
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         course.setName(request.getName());
 
-        if (request.getSubjectId() != null) {
-            Subject subject = subjectRepository.findById(request.getSubjectId())
+        Long subjectId = request.getSubjectId();
+        if (subjectId != null) {
+            Subject subject = subjectRepository.findById(subjectId)
                     .orElseThrow(() -> new RuntimeException("Môn học không tồn tại"));
             course.setSubject(subject);
         } else {
             course.setSubject(null);
         }
 
-        if (request.getGradeId() != null) {
-            Grade grade = gradeRepository.findById(request.getGradeId())
+        Long gradeId = request.getGradeId();
+        if (gradeId != null) {
+            Grade grade = gradeRepository.findById(gradeId)
                     .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại"));
             course.setGrade(grade);
         } else {
@@ -187,6 +206,9 @@ public class CourseService {
 
     @Transactional
     public void deleteCourse(Long courseId) {
+        if (courseId == null) {
+            throw new RuntimeException("Course ID is required!");
+        }
         try {
             // CascadeType.ALL on the Entity will auto-delete Enrollments, Slots, and
             // Sessions!
@@ -198,6 +220,9 @@ public class CourseService {
 
     @Transactional
     public void inviteTeacherToCourse(Long courseId, String teacherEmail) {
+        if (courseId == null) {
+            throw new RuntimeException("Course ID is required!");
+        }
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
@@ -215,6 +240,9 @@ public class CourseService {
 
     @Transactional
     public void respondToInvitation(Long courseId, String status) {
+        if (courseId == null) {
+            throw new RuntimeException("Course ID is required!");
+        }
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
@@ -226,7 +254,9 @@ public class CourseService {
             course.setPendingTeacher(null);
             course.setInvitationStatus("REJECTED");
         }
-        courseRepository.save(course);
+        if (course != null) {
+            courseRepository.save(course);
+        }
     }
 
     public List<Course> getPendingInvitations(Long teacherId) {
@@ -239,25 +269,27 @@ public class CourseService {
 
     @Transactional
     public void addStudentToCourse(Long courseId, Long studentId) {
+
+        if (courseId == null || studentId == null) {
+            throw new IllegalArgumentException("CourseId and StudentId must not be null");
+        }
+
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found!"));
 
-        // 1. Check if enrollment already exists
         boolean exists = enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId);
         if (exists) {
             throw new RuntimeException("Student is already enrolled in this class!");
         }
 
-        // 2. Create new Enrollment
         Enrollment enrollment = new Enrollment();
         enrollment.setCourse(course);
         enrollment.setStudent(student);
         enrollmentRepository.save(enrollment);
 
-        // 3. Link student to Center (if not already linked)
         if (course.getCenter() != null) {
             boolean isAlreadyInCenter = student.getConnectedCenters().stream()
                     .anyMatch(c -> c.getId().equals(course.getCenter().getId()));
@@ -271,10 +303,18 @@ public class CourseService {
 
     @Transactional
     public void removeStudentFromCourse(Long courseId, Long studentId) {
+        if (courseId == null) {
+            throw new RuntimeException("Course ID is required!");
+        }
+        if (studentId == null) {
+            throw new RuntimeException("Student ID is required!");
+        }
         Enrollment enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
                 .orElseThrow(() -> new RuntimeException("Student is not enrolled in this class!"));
 
-        enrollmentRepository.delete(enrollment);
+        if (enrollment != null) {
+            enrollmentRepository.delete(enrollment);
+        }
     }
 
     // Retrieve list of students via Enrollment repository for better performance

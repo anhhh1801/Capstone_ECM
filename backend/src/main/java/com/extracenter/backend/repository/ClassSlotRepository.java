@@ -1,12 +1,13 @@
 package com.extracenter.backend.repository;
 
-import com.extracenter.backend.entity.ClassSlot;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.extracenter.backend.entity.ClassSlot;
 
 @Repository
 public interface ClassSlotRepository extends JpaRepository<ClassSlot, Long> {
@@ -16,6 +17,10 @@ public interface ClassSlotRepository extends JpaRepository<ClassSlot, Long> {
     List<ClassSlot> findByTeacherId(@Param("teacherId") Long teacherId);
 
     // Find slots where a student is enrolled in the course
-    @Query("SELECT s FROM ClassSlot s JOIN Enrollment e ON e.course.id = s.course.id WHERE e.user.id = :studentId")
+    @Query("""
+            SELECT s FROM ClassSlot s
+            JOIN Enrollment e ON e.course.id = s.course.id
+            WHERE e.student.id = :studentId
+            """)
     List<ClassSlot> findByStudentId(@Param("studentId") Long studentId);
 }

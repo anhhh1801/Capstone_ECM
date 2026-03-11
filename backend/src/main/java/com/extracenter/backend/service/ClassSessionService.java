@@ -1,14 +1,15 @@
 package com.extracenter.backend.service;
 
-import com.extracenter.backend.entity.ClassSession;
-import com.extracenter.backend.repository.ClassSessionRepository;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.List;
+import com.extracenter.backend.entity.ClassSession;
+import com.extracenter.backend.repository.ClassSessionRepository;
 
 @Service
 public class ClassSessionService {
@@ -35,6 +36,7 @@ public class ClassSessionService {
     @Transactional
     public ClassSession rescheduleSession(Long sessionId, LocalDate newDate, LocalTime newStartTime,
             LocalTime newEndTime) {
+        @SuppressWarnings("null")
         ClassSession session = classSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Class session not found!"));
 
@@ -49,6 +51,7 @@ public class ClassSessionService {
     }
 
     // 5. Cancel/Delete a specific session
+    @SuppressWarnings("null")
     @Transactional
     public void cancelSession(Long sessionId) {
         classSessionRepository.deleteById(sessionId);

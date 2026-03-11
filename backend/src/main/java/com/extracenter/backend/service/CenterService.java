@@ -26,6 +26,12 @@ public class CenterService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SubjectRepository subjectRepository;
+
+    @Autowired
+    private GradeRepository gradeRepository;
+
     // 1. Create a new Center
     // @Transactional added: If saving the center works but updating the manager
     // fails, we roll back!
