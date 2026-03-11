@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-    ArrowLeft, MapPin, Edit, Calendar, Book, User, GraduationCap
+    ArrowLeft,
+    MapPin,
+    Edit,
+    Calendar,
+    Book,
+    User,
+    GraduationCap,
+    PencilLine
 } from "lucide-react";
 import { getCourseById } from "@/services/courseService";
 import toast from "react-hot-toast";
 import CenterTabsInCourse from "./components/CenterTabsInCourse";
-import CourseEnrollment from "./components/CourseEnrollment"; // Import the component we built earlier
+import CourseEnrollment from "./components/CourseEnrollment";
+import NotFound from "@/app/not-found";
 
 export default function CourseDetailPage() {
     const params = useParams();
@@ -17,7 +25,10 @@ export default function CourseDetailPage() {
     const router = useRouter();
 
     const [course, setCourse] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<"General Info" | "Students" | "Enrollment">("General Info");
+    const [activeTab, setActiveTab] = useState<
+        "General Info" | "Students" | "Enrollment"
+    >("General Info");
+
     const [loading, setLoading] = useState(true);
     const [isManager, setIsManager] = useState(false);
 
@@ -27,19 +38,17 @@ export default function CourseDetailPage() {
                 const data = await getCourseById(courseId);
                 setCourse(data);
 
-                // --- PERMISSION CHECK LOGIC ---
                 const userStr = localStorage.getItem("user");
+
                 if (userStr && data.center && data.center.manager) {
                     const currentUser = JSON.parse(userStr);
-                    // Check if Current User ID matches the Center Manager ID
+
                     if (currentUser.id === data.center.manager.id) {
                         setIsManager(true);
                     }
                 }
-                // ------------------------------
-
             } catch (error) {
-                toast.error("Không thể tải thông tin khóa học");
+                toast.error("Unable to load course details");
                 console.error(error);
             } finally {
                 setLoading(false);
@@ -49,139 +58,284 @@ export default function CourseDetailPage() {
         if (courseId) fetchDetail();
     }, [courseId]);
 
-    if (loading) return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu...</div>;
-    if (!course) return <div className="p-10 text-center text-red-500">Khóa học không tồn tại</div>;
+    if (loading) {
+        return (
+            <div className="p-10 text-center text-[var(--color-text)]">
+                Loading data...
+            </div>
+        );
+    }
+
+    if (!course) {
+        return (
+            <div className="p-10 text-center text-red-500">
+                <NotFound />
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 pb-10">
-            {/* HEADER AREA (Visible on all tabs) */}
+        <div className=" mx-auto space-y-6 pb-10">
+
+            {/* BACK BUTTON */}
             <button
                 onClick={() => router.back()}
-                className="flex items-center gap-2 text-gray-500 hover:text-blue-600 text-sm transition"
+                className="flex items-center gap-2 text-[var(--color-text)] hover:text-[var(--color-main)] text-sm transition hover:underline"
             >
-                <ArrowLeft size={18} /> Quay lại danh sách
+                <ArrowLeft size={18} />
+                Back to list
             </button>
 
-            <div className="bg-white p-8 rounded-xl shadow-sm border relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-blue-50 rounded-full opacity-50 blur-2xl"></div>
+            {/* COURSE HEADER */}
+            <div className="bg-[var(--color-soft-white)] border-b-4 border-[var(--color-main)] shadow-sm p-8">
 
-                <div className="relative z-10 flex justify-between items-start">
+                <div className="flex justify-between items-start">
+
                     <div>
+
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-3xl font-bold text-gray-800">{course.name}</h1>
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${course.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                                }`}>
+
+                            <h1 className="text-3xl font-bold text-[var(--color-text)]">
+                                {course.name}
+                            </h1>
+
+                            <span
+                                className={`px-3 py-1 rounded text-xs font-semibold border ${course.status === "ACTIVE"
+                                        ? "bg-green-50 text-green-700 border-green-200"
+                                        : "bg-gray-100 text-gray-600 border-gray-200"
+                                    }`}
+                            >
                                 {course.status || "ACTIVE"}
                             </span>
+
                         </div>
-                        <p className="text-gray-500 flex items-center gap-2 mt-2">
-                            <MapPin size={18} className="text-blue-500" />
-                            {course.center?.name || "Chưa cập nhật trung tâm"}
+
+                        <p className="text-[var(--color-text)] flex items-center gap-2 mt-2">
+
+                            <PencilLine
+                                size={18}
+                                className="text-[var(--color-main)]"
+                            />
+
+                            {course.center?.name || "Center not updated"}
+
                         </p>
+
                     </div>
 
                     <Link
                         href={`/teacher/courses/${courseId}/edit`}
-                        className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-100 font-medium transition"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] text-white hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition font-medium"
                     >
-                        <Edit size={18} /> Chỉnh sửa
+                        <Edit size={18} />
+                        Edit
                     </Link>
+
                 </div>
+
             </div>
 
-            {/* TAB NAVIGATION (Pass isManager to show/hide the 3rd tab) */}
-            <CenterTabsInCourse activeTab={activeTab} setActiveTab={setActiveTab as any} isManager={isManager} />
+            {/* TABS */}
+            <CenterTabsInCourse
+                activeTab={activeTab}
+                setActiveTab={setActiveTab as any}
+                isManager={isManager}
+            />
 
-            {/* --- CONTENT SWITCHING --- */}
-
-            {/* 1. GENERAL INFO TAB */}
+            {/* GENERAL INFO */}
             {activeTab === "General Info" && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-300">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    {/* DESCRIPTION */}
                     <div className="md:col-span-2 space-y-6">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border">
-                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Mô tả khóa học</h3>
-                            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                                {course.description || "Chưa có mô tả chi tiết cho khóa học này."}
+
+                        <div className="bg-[var(--color-soft-white)] border border-[var(--color-main)] rounded-xl shadow-sm p-6">
+
+                            <h3 className="font-bold text-[var(--color-text)] mb-4 border-b pb-2">
+                                Course description
+                            </h3>
+
+                            <p className="text-[var(--color-text)] leading-relaxed whitespace-pre-line">
+
+                                {course.description ||
+                                    "No detailed description is available for this course."}
+
                             </p>
+
                         </div>
+
                     </div>
 
+                    {/* COURSE INFO */}
                     <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border">
-                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Thông tin lớp học</h3>
+
+                        <div className="bg-[var(--color-soft-white)] border border-[var(--color-main)] rounded-xl shadow-sm p-6">
+
+                            <h3 className="font-bold text-[var(--color-text)] mb-4 border-b pb-2">
+                                Class information
+                            </h3>
 
                             <div className="space-y-4">
+
+                                {/* SUBJECT */}
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+
+                                    <div className="p-2 bg-[var(--color-main)]/10 text-[var(--color-main)] rounded-lg">
                                         <Book size={20} />
                                     </div>
+
                                     <div>
-                                        <p className="text-xs text-gray-500">Môn học</p>
-                                        <p className="font-medium text-gray-800">{course.subject}</p>
+
+                                        <p className="text-xs text-gray-500">
+                                            Subject
+                                        </p>
+
+                                        <p className="font-medium text-[var(--color-text)]">
+                                            {course.subject?.name || "-"}
+                                        </p>
+
                                     </div>
+
                                 </div>
 
+                                {/* GRADE */}
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+
+                                    <div className="p-2 bg-[var(--color-main)]/10 text-[var(--color-main)] rounded-lg">
                                         <GraduationCap size={20} />
                                     </div>
+
                                     <div>
-                                        <p className="text-xs text-gray-500">Khối lớp</p>
-                                        <p className="font-medium text-gray-800">Lớp {course.grade}</p>
+
+                                        <p className="text-xs text-gray-500">
+                                            Grade
+                                        </p>
+
+                                        <p className="px-2 py-1 font-bold rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
+
+                                            {course.grade ? (
+                                                <>
+                                                    {course.grade.name}
+
+                                                    {course.grade.fromAge != null &&
+                                                        course.grade.toAge !=
+                                                        null && (
+                                                            <span className="ml-1">
+                                                                {" "}
+                                                                (age{" "}
+                                                                {
+                                                                    course.grade
+                                                                        .fromAge
+                                                                }
+                                                                -
+                                                                {
+                                                                    course.grade
+                                                                        .toAge
+                                                                }
+                                                                )
+                                                            </span>
+                                                        )}
+                                                </>
+                                            ) : (
+                                                "-"
+                                            )}
+
+                                        </p>
+
                                     </div>
+
                                 </div>
 
+                                {/* TEACHER */}
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+
+                                    <div className="p-2 bg-[var(--color-main)]/10 text-[var(--color-main)] rounded-lg">
                                         <User size={20} />
                                     </div>
+
                                     <div>
-                                        <p className="text-xs text-gray-500">Giáo viên phụ trách</p>
-                                        <p className="font-medium text-gray-800">
-                                            {course.teacher?.lastName} {course.teacher?.firstName}
+
+                                        <p className="text-xs text-gray-500">
+                                            Instructor
                                         </p>
+
+                                        <p className="font-medium text-[var(--color-text)]">
+                                            {course.teacher?.lastName}{" "}
+                                            {course.teacher?.firstName}
+                                        </p>
+
                                     </div>
+
                                 </div>
 
+                                {/* SCHEDULE */}
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+
+                                    <div className="p-2 bg-[var(--color-main)]/10 text-[var(--color-main)] rounded-lg">
                                         <Calendar size={20} />
                                     </div>
+
                                     <div>
-                                        <p className="text-xs text-gray-500">Thời gian</p>
-                                        <p className="font-medium text-gray-800 text-sm">
-                                            {course.startDate} <span className="text-gray-400 mx-1">→</span> {course.endDate}
+
+                                        <p className="text-xs text-gray-500">
+                                            Schedule
                                         </p>
+
+                                        <p className="font-medium text-[var(--color-text)] text-sm">
+
+                                            {course.startDate}
+
+                                            <span className="text-gray-400 mx-1">
+                                                →
+                                            </span>
+
+                                            {course.endDate}
+
+                                        </p>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
             )}
 
-            {/* 2. STUDENTS TAB (Read Only / Basic List for everyone) */}
+            {/* STUDENTS */}
             {activeTab === "Students" && (
-                <div className="animate-in fade-in duration-300">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border text-center text-gray-500 py-10">
-                        {/* You can create a read-only list here, or reuse CourseEnrollment without buttons */}
-                        <p>Danh sách học viên sẽ hiển thị ở đây (Read Only View)</p>
-                        {/* Temporary: reusing enrollment component but maybe we hide actions via props later */}
-                        <CourseEnrollment courseId={courseId} />
-                    </div>
+
+                <div>
+
+                    <CourseEnrollment courseId={courseId} />
+
                 </div>
+
             )}
 
-            {/* 3. ENROLLMENT TAB (Only for Manager) */}
+            {/* ENROLLMENT (MANAGER ONLY) */}
             {activeTab === "Enrollment" && isManager && (
-                <div className="animate-in fade-in duration-300">
-                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg mb-4 text-sm text-blue-800">
-                        👋 Xin chào quản lý! Bạn có thể thêm hoặc xóa học sinh khỏi lớp học này.
+
+                <div>
+
+                    <div className="bg-[var(--color-main)]/10 border border-[var(--color-main)]/30 text-[var(--color-text)] p-4 rounded-lg mb-4 text-sm">
+
+                        👋 Hello manager! You can add or remove students from
+                        this class.
+
                     </div>
-                    {/* Reuse the component we created in the previous step */}
+
                     <CourseEnrollment courseId={courseId} />
+
                 </div>
+
             )}
+
         </div>
     );
 }

@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Building2, BookOpen, Calendar } from "lucide-react";
-import { Center } from "@/services/centerService";
+import { Save, Building2, Calendar, Plus } from "lucide-react";
+import { Center, CenterSubject, CenterGrade, getCenterSubjects, getCenterGrades } from "@/services/centerService";
+import SubjectModal from "../../centers/[id]/components/SubjectModal";
+import GradeModal from "../../centers/[id]/components/GradeModal";
+import toast from "react-hot-toast";
 
 export interface CourseFormData {
     name: string;
-    subject: string;
-    grade: number;
+    subjectId?: number;
+    gradeId?: number;
     description: string;
     startDate: string;
     endDate: string;
@@ -15,11 +18,11 @@ export interface CourseFormData {
 }
 
 interface Props {
-    initialData?: CourseFormData; // Dùng cho trang Edit
+    initialData?: CourseFormData;
     onSubmit: (data: CourseFormData) => void;
     loading: boolean;
-    centers: Center[]; // Danh sách center để đổ vào dropdown
-    isCenterLocked?: boolean; // Logic khóa dropdown
+    centers: Center[];
+    isCenterLocked?: boolean;
     btnLabel?: string;
 }
 
@@ -29,22 +32,77 @@ export default function CourseForm({
     loading,
     centers,
     isCenterLocked = false,
-    btnLabel = "Lưu khóa học"
+    btnLabel = "Save Course"
 }: Props) {
 
     const defaultData: CourseFormData = {
-        name: "", subject: "", grade: 10, description: "",
-        startDate: "", endDate: "", centerId: undefined
+        name: "",
+        subjectId: undefined,
+        gradeId: undefined,
+        description: "",
+        startDate: "",
+        endDate: "",
+        centerId: undefined
     };
 
     const [formData, setFormData] = useState<CourseFormData>(defaultData);
+    const [subjects, setSubjects] = useState<CenterSubject[]>([]);
+    const [grades, setGrades] = useState<CenterGrade[]>([]);
 
-    // Nạp dữ liệu cũ (nếu là Edit hoặc có CenterId truyền sẵn)
+    const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+    const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+    const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
+    const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
+
+    const handleSubjectModalSuccess = (newSubject?: CenterSubject) => {
+        if (formData.centerId) {
+            fetchCenterOptions(formData.centerId);
+        }
+        if (newSubject) {
+            setFormData(prev => ({ ...prev, subjectId: newSubject.id }));
+        }
+        setIsSubjectModalOpen(false);
+    };
+
+    const handleGradeModalSuccess = (newGrade?: CenterGrade) => {
+        if (formData.centerId) {
+            fetchCenterOptions(formData.centerId);
+        }
+        if (newGrade) {
+            setFormData(prev => ({ ...prev, gradeId: newGrade.id }));
+        }
+        setIsGradeModalOpen(false);
+    };
+
+    const fetchCenterOptions = async (centerId?: number) => {
+        if (!centerId) {
+            setSubjects([]);
+            setGrades([]);
+            return;
+        }
+
+        try {
+            const [subjectData, gradeData] = await Promise.all([
+                getCenterSubjects(centerId),
+                getCenterGrades(centerId),
+            ]);
+            setSubjects(subjectData);
+            setGrades(gradeData);
+        } catch (error) {
+            console.error(error);
+            toast.error("Unable to load subjects or grades.");
+        }
+    };
+
     useEffect(() => {
         if (initialData) {
             setFormData(prev => ({ ...prev, ...initialData }));
         }
     }, [initialData]);
+
+    useEffect(() => {
+        fetchCenterOptions(formData.centerId);
+    }, [formData.centerId]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,135 +110,243 @@ export default function CourseForm({
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-xl shadow-sm border">
+        <form
+            onSubmit={handleSubmit}
+            className="space-y-6 bg-[var(--color-soft-white)] p-8 rounded-xl shadow-sm"
+        >
 
-            {/* --- KHU VỰC CHỌN TRUNG TÂM (QUAN TRỌNG) --- */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <label className="block text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                    <Building2 size={16} /> Trung tâm tổ chức <span className="text-red-500">*</span>
+            {formData.centerId && (
+                <>
+                    <SubjectModal
+                        centerId={formData.centerId}
+                        isOpen={isSubjectModalOpen}
+                        onClose={() => setIsSubjectModalOpen(false)}
+                        onSuccess={handleSubjectModalSuccess}
+                        subject={editingSubject}
+                    />
+
+                    <GradeModal
+                        centerId={formData.centerId}
+                        isOpen={isGradeModalOpen}
+                        onClose={() => setIsGradeModalOpen(false)}
+                        onSuccess={handleGradeModalSuccess}
+                        grade={editingGrade}
+                    />
+                </>
+            )}
+
+            {/* CENTER SELECT */}
+            <div className="p-4 rounded-lg bg-white">
+                <label className="block text-sm font-bold text-[var(--color-text)] mb-2 flex items-center gap-2">
+                    <Building2 size={16} className="text-[var(--color-main)]" />
+                    Center <span className="text-[var(--color-negative)]">*</span>
                 </label>
+
                 <div className="relative">
                     <select
                         required
-                        disabled={isCenterLocked} // <-- Khóa nếu đã gán sẵn
-                        className={`w-full p-3 pl-4 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 appearance-none ${isCenterLocked
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300'
-                            : 'bg-white text-gray-900'
-                            }`}
+                        disabled={isCenterLocked}
                         value={formData.centerId || ""}
                         onChange={e => setFormData({ ...formData, centerId: Number(e.target.value) })}
+                        className={`w-full p-3 border-2 rounded-lg outline-none appearance-none transition
+                            ${isCenterLocked
+                                ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
+                                : "bg-white border-[var(--color-main)] text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-secondary)]"
+                            }`}
                     >
-                        <option value="">-- Chọn trung tâm --</option>
+                        <option value="">-- Select a center --</option>
                         {centers.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>
-                    {/* Mũi tên dropdown chỉ hiện khi không bị khóa */}
+
                     {!isCenterLocked && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">▼</div>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-main)]">
+                            ▼
+                        </div>
                     )}
                 </div>
-                {isCenterLocked ? (
-                    <p className="text-xs text-gray-500 mt-2 italic">
-                        * Khóa học này được gán cố định cho trung tâm hiện tại.
-                    </p>
-                ) : (
-                    <p className="text-xs text-blue-600 mt-2">
-                        * Vui lòng chọn trung tâm bạn muốn tạo khóa học này.
-                    </p>
-                )}
+
+                <p className="text-xs mt-2 text-[var(--color-text)]/70">
+                    {isCenterLocked
+                        ? "* This course is fixed to the selected center."
+                        : "* Please select a center for this course."
+                    }
+                </p>
             </div>
 
-            {/* --- CÁC TRƯỜNG THÔNG TIN KHÁC --- */}
+            {/* COURSE NAME */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label>
+                <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                    Course name
+                </label>
                 <input
-                    required type="text"
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                    placeholder="Ví dụ: Luyện thi Toán 10 - Cấp tốc"
+                    required
+                    type="text"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
+                    placeholder="Example: Fast-track Math 10 Preparation"
                 />
             </div>
 
+            {/* SUBJECT + GRADE */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Môn học</label>
-                    <select
-                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        value={formData.subject}
-                        onChange={e => setFormData({ ...formData, subject: e.target.value })}
-                    >
-                        <option value="">-- Chọn môn --</option>
-                        <option value="Toán">Toán</option>
-                        <option value="Lý">Vật Lý</option>
-                        <option value="Hóa">Hóa Học</option>
-                        <option value="Anh">Tiếng Anh</option>
-                        <option value="Văn">Ngữ Văn</option>
-                    </select>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                        <label className="block text-sm font-bold text-[var(--color-text)]">
+                            Subject
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!formData.centerId) {
+                                    toast.error("Please select a center first.");
+                                    return;
+                                }
+
+                                setEditingSubject(null);
+                                setIsSubjectModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 text-xs text-[var(--color-main)] hover:underline"
+                        >
+                            <Plus size={14} />
+                            Add new
+                        </button>
+                    </div>
+
+                    <div className="relative">
+                        <select
+                            value={formData.subjectId ?? ""}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    subjectId: e.target.value ? Number(e.target.value) : undefined,
+                                })
+                            }
+                            className="w-full p-3 pr-10 border-2 border-[var(--color-main)] rounded-lg outline-none appearance-none transition
+                       bg-white text-[var(--color-text)]
+                       focus:ring-2 focus:ring-[var(--color-secondary)]"
+                        >
+                            <option value="">-- Select a subject --</option>
+                            {subjects.map(subject => (
+                                <option key={subject.id} value={subject.id}>
+                                    {subject.name}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Custom Arrow */}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-main)]">
+                            ▼
+                        </div>
+                    </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Khối lớp</label>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className="block text-sm font-medium text-[var(--color-text)]">
+                            Grade
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!formData.centerId) {
+                                    toast.error("Please select a center first.");
+                                    return;
+                                }
+
+                                setEditingGrade(null);
+                                setIsGradeModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 text-xs text-[var(--color-main)] hover:underline"
+                        >
+                            <Plus size={14} />
+                            Add new
+                        </button>
+                    </div>
+
                     <div className="relative">
-                        <BookOpen size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                            required type="number" min={1} max={12}
-                            className="w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.grade}
-                            onChange={e => setFormData({ ...formData, grade: Number(e.target.value) })}
-                        />
+                        <select
+                            value={formData.gradeId ?? ""}
+                            onChange={e => setFormData({
+                                ...formData,
+                                gradeId: e.target.value ? Number(e.target.value) : undefined,
+                            })}
+                            className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none appearance-none transition bg-white text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-secondary)]"
+                        >
+                            <option value="">-- Select a grade --</option>
+                            {grades.length === 0 && (
+                                <option value="" disabled>
+                                    No grades yet (please add one)
+                                </option>
+                            )}
+                            {grades.map(grade => (
+                                <option key={grade.id} value={grade.id}>
+                                    {grade.name}
+                                    {grade.fromAge != null && grade.toAge != null
+                                        ? ` (age ${grade.fromAge}-${grade.toAge})`
+                                        : ""}
+                                </option>
+                            ))}
+                        </select>
+
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-main)]">
+                            ▼
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* DATES */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu</label>
-                    <div className="relative">
-                        <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                            required type="date"
-                            className="w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.startDate}
-                            onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                        />
+                {["startDate", "endDate"].map((field, i) => (
+                    <div key={field}>
+                        <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                            {i === 0 ? <span>Start date <span className="text-[var(--color-negative)]">*</span></span> : <span>End date <span className="text-[var(--color-negative)]">*</span></span>}
+                        </label>
+                        <div className="relative">
+                            <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]" />
+                            <input
+                                required
+                                type="date"
+                                value={(formData as any)[field]}
+                                onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                                className="w-full p-3 pl-10 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
+                            />
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày kết thúc</label>
-                    <div className="relative">
-                        <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                            required type="date"
-                            className="w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.endDate}
-                            onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                        />
-                    </div>
-                </div>
+                ))}
             </div>
 
+            {/* DESCRIPTION */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả chi tiết</label>
+                <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+                    Description
+                </label>
                 <textarea
                     rows={4}
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Nội dung chương trình, mục tiêu đầu ra..."
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
+                    placeholder="Course details, goals, and outcomes..."
                 />
             </div>
 
+            {/* SUBMIT */}
             <div className="pt-4">
                 <button
-                    type="submit" disabled={loading || centers.length === 0}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    type="submit"
+                    disabled={loading || centers.length === 0}
+                    className="w-full bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white py-3 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition disabled:bg-gray-400 disabled:border-gray-400 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                 >
-                    {loading ? "Đang xử lý..." : <><Save size={20} /> {btnLabel}</>}
+                    {loading ? "Processing..." : <><Save size={20} /> {btnLabel}</>}
                 </button>
+
                 {centers.length === 0 && (
-                    <p className="text-center text-red-500 text-sm mt-2">Bạn chưa có trung tâm nào để tạo khóa học.</p>
+                    <p className="text-center text-[var(--color-negative)] text-sm mt-2">
+                        You don't have any centers to create a course.
+                    </p>
                 )}
             </div>
         </form>

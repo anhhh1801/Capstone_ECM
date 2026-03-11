@@ -1,8 +1,7 @@
 "use client";
 
-import { Mail, Phone, Building2, Unlink, Trash2 } from "lucide-react";
+import { Mail, Phone, Building2, Unlink, Trash2, Edit2Icon } from "lucide-react";
 
-// Định nghĩa kiểu dữ liệu cho Props
 interface Student {
     id: number;
     firstName: string;
@@ -10,7 +9,7 @@ interface Student {
     email: string;
     phoneNumber: string;
     dateOfBirth: string;
-    connectedCenters?: { id: number; name: string }[]; // Danh sách các trung tâm em này đang học
+    connectedCenters?: { id: number; name: string }[];
 }
 
 interface Props {
@@ -22,109 +21,167 @@ interface Props {
     onEdit: (student: any) => void;
 }
 
-export default function StudentTable({ students, loading, onAssign, onDelete, deleteLabel = "Xóa", onEdit }: Props) {
+export default function StudentTable({
+    students,
+    loading,
+    onAssign,
+    onDelete,
+    deleteLabel = "Delete",
+    onEdit
+}: Props) {
+
     if (loading) {
-        return <div className="p-10 text-center text-gray-500">Đang tải dữ liệu...</div>;
+        return (
+            <div className="p-10 text-center text-[var(--color-text)]">
+                Loading students...
+            </div>
+        );
     }
 
     if (students.length === 0) {
         return (
-            <div className="p-10 text-center border border-dashed rounded-xl bg-gray-50 text-gray-500">
-                Không tìm thấy học sinh nào.
+            <div className="p-10 text-center border border-dashed rounded-xl bg-[var(--color-soft-white)] text-gray-500">
+                No students found.
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm overflow-hidden">
+
             <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 font-semibold text-gray-700 uppercase text-xs">
+
+                {/* HEADER */}
+                <thead className="bg-[var(--color-main)] text-white uppercase text-xs">
                     <tr>
-                        <th className="px-6 py-4">Học viên</th>
-                        <th className="px-6 py-4">Thông tin liên hệ</th>
-                        <th className="px-6 py-4">Trung tâm trực thuộc</th>
-                        <th className="px-6 py-4 text-right">Hành động</th>
+                        <th className="px-6 py-4">Student</th>
+                        <th className="px-6 py-4">Contact Info</th>
+                        <th className="px-6 py-4">Affiliated Centers</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
+
                 <tbody className="divide-y divide-gray-100">
+
                     {students.map((student) => (
-                        <tr key={student.id} className="hover:bg-gray-50 transition">
-                            {/* Cột 1: Tên & Avatar */}
+
+                        <tr
+                            key={student.id}
+                            className="hover:bg-blue-50 transition"
+                        >
+
+                            {/* STUDENT INFO */}
                             <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">
+
+                                    <div className="w-10 h-10 rounded-full bg-[var(--color-secondary)]/20 text-[var(--color-main)] flex items-center justify-center font-bold">
                                         {student.lastName.charAt(0)}
                                     </div>
+
                                     <div>
-                                        <p className="font-bold text-gray-900">
+                                        <p className="font-bold text-[var(--color-text)]">
                                             {student.lastName} {student.firstName}
                                         </p>
-                                        <p className="text-xs text-gray-500">ID: {student.id}</p>
+
+                                        <p className="text-xs text-gray-500">
+                                            ID: {student.id}
+                                        </p>
                                     </div>
+
                                 </div>
                             </td>
 
-                            {/* Cột 2: Liên hệ */}
+                            {/* CONTACT */}
                             <td className="px-6 py-4">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-gray-600">
-                                        <Mail size={14} /> {student.email}
+                                <div className="space-y-1 text-[var(--color-text)]">
+
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Mail size={14} className="text-[var(--color-main)]" />
+                                        {student.email}
                                     </div>
-                                    <div className="flex items-center gap-2 text-gray-600">
-                                        <Phone size={14} /> {student.phoneNumber || "---"}
+
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Phone size={14} className="text-[var(--color-main)]" />
+                                        {student.phoneNumber || "---"}
                                     </div>
+
                                 </div>
                             </td>
 
-                            {/* Cột 3: Trung tâm đang học (Tags) */}
+                            {/* CENTERS */}
                             <td className="px-6 py-4">
-                                <div className="flex flex-wrap gap-1">
+
+                                <div className="flex flex-wrap gap-2">
+
                                     {student.connectedCenters && student.connectedCenters.length > 0 ? (
+
                                         student.connectedCenters.map((c) => (
+
                                             <span
                                                 key={c.id}
-                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30"
                                             >
-                                                <Building2 size={10} /> {c.name}
+                                                <Building2 size={12} />
+                                                {c.name}
                                             </span>
+
                                         ))
+
                                     ) : (
-                                        <span className="text-xs text-gray-400 italic">Tự do (Chưa gán)</span>
+
+                                        <span className="text-xs text-gray-400 italic">
+                                            Unassigned
+                                        </span>
+
                                     )}
+
                                 </div>
+
                             </td>
 
-                            {/* Cột 4: Hành động */}
+                            {/* ACTIONS */}
                             <td className="px-6 py-4 text-right">
-                                <div className="flex justify-end gap-2">
-                                    {/* Nút gán nhanh */}
+
+                                <div className="flex justify-end items-center gap-2">
+
                                     {onAssign && (
                                         <button
                                             onClick={() => onAssign(student.id)}
-                                            className="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-medium border border-blue-200 mr-2"
+                                            className="text-[var(--color-main)] border border-[var(--color-main)] px-2 py-1 rounded text-xs font-medium hover:bg-[var(--color-main)] hover:text-white transition"
                                         >
-                                            + Gán Center
+                                            + Assign
                                         </button>
                                     )}
+
+                                    <button
+                                        onClick={() => onEdit(student)}
+                                        className="p-2 border-2 bg-[var(--color-secondary)] text-white border-[var(--color-secondary)] rounded hover:bg-white hover:text-[var(--color-secondary)] transition"
+                                    >
+                                        <Edit2Icon size={18} />
+                                    </button>
+
                                     <button
                                         onClick={() => onDelete(student.id)}
-                                        className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded transition"
+                                        className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                         title={deleteLabel}
                                     >
-                                        {deleteLabel === "Gỡ" ? <Unlink size={18} /> : <Trash2 size={18} />}
+                                        {deleteLabel === "Remove"
+                                            ? <Unlink size={18} />
+                                            : <Trash2 size={18} />}
                                     </button>
-                                    <button
-                                        onClick={() => onEdit(student)} // Gọi hàm edit
-                                        className="text-blue-600 hover:text-blue-800 font-medium text-sm mr-3"
-                                    >
-                                        Hồ sơ
-                                    </button>
+
                                 </div>
+
                             </td>
+
                         </tr>
+
                     ))}
+
                 </tbody>
+
             </table>
+
         </div>
     );
 }

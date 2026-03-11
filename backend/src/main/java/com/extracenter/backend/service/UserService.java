@@ -101,6 +101,14 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found!"));
 
+        // Validate firstName and lastName
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            throw new RuntimeException("First name cannot be empty!");
+        }
+        if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+            throw new RuntimeException("Last name cannot be empty!");
+        }
+
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setPhoneNumber(request.getPhoneNumber());

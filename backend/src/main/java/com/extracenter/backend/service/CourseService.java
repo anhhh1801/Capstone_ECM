@@ -1,8 +1,5 @@
 package com.extracenter.backend.service;
 
-import com.extracenter.backend.dto.CourseRequest;
-import com.extracenter.backend.entity.*;
-import com.extracenter.backend.repository.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -14,6 +11,22 @@ import java.time.DayOfWeek;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.extracenter.backend.dto.CourseRequest;
+import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.entity.Course;
+import com.extracenter.backend.entity.Enrollment;
+import com.extracenter.backend.entity.Grade;
+import com.extracenter.backend.entity.Subject;
+import com.extracenter.backend.entity.User;
+import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.ClassSlotRepository;
+import com.extracenter.backend.repository.CourseRepository;
+import com.extracenter.backend.repository.EnrollmentRepository;
+import com.extracenter.backend.repository.GradeRepository;
+import com.extracenter.backend.repository.SubjectRepository;
+import com.extracenter.backend.repository.UserRepository;
 
 @Service
 public class CourseService {
@@ -29,6 +42,12 @@ public class CourseService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
+    private SubjectRepository subjectRepository;
+    @Autowired
+    private GradeRepository gradeRepository;
+
+    // THÊM REPOSITORY NÀY ĐỂ QUẢN LÝ VIỆC ĐĂNG KÝ HỌC
+    @Autowired
     private EnrollmentRepository enrollmentRepository;
 
     @Transactional
@@ -42,8 +61,23 @@ public class CourseService {
         // 2. Create and save the Course
         Course course = new Course();
         course.setName(request.getName());
-        course.setSubject(request.getSubject());
-        course.setGrade(request.getGrade());
+
+        if (request.getSubjectId() != null) {
+            Subject subject = subjectRepository.findById(request.getSubjectId())
+                    .orElseThrow(() -> new RuntimeException("Môn học không tồn tại"));
+            course.setSubject(subject);
+        } else {
+            course.setSubject(null);
+        }
+
+        if (request.getGradeId() != null) {
+            Grade grade = gradeRepository.findById(request.getGradeId())
+                    .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại"));
+            course.setGrade(grade);
+        } else {
+            course.setGrade(null);
+        }
+
         course.setDescription(request.getDescription());
         course.setStartDate(request.getStartDate());
         course.setEndDate(request.getEndDate());
@@ -127,8 +161,23 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         course.setName(request.getName());
-        course.setSubject(request.getSubject());
-        course.setGrade(request.getGrade());
+
+        if (request.getSubjectId() != null) {
+            Subject subject = subjectRepository.findById(request.getSubjectId())
+                    .orElseThrow(() -> new RuntimeException("Môn học không tồn tại"));
+            course.setSubject(subject);
+        } else {
+            course.setSubject(null);
+        }
+
+        if (request.getGradeId() != null) {
+            Grade grade = gradeRepository.findById(request.getGradeId())
+                    .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại"));
+            course.setGrade(grade);
+        } else {
+            course.setGrade(null);
+        }
+
         course.setDescription(request.getDescription());
         course.setStartDate(request.getStartDate());
         course.setEndDate(request.getEndDate());

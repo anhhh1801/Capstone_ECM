@@ -1,1 +1,179 @@
 @import "tailwindcss";
+
+:root {
+    /* Project color tokens */
+    --color-main: #3086CC;
+    /* main */
+    --color-secondary: #73CEC9;
+    /* secondary */
+    --color-alert: #F5360B;
+    /* alert */
+    --color-soft-white: #F7F9FB;
+    /* soft-white (subtle off-white) */
+    --color-text: #46587D;
+    /* primary text color */
+    --color-positive: #28A745;
+    /* positive/confirm */
+    --color-negative: #DC3545;
+    /* negative/error */
+}
+
+/* Small utility classes for quick use */
+.bg-main {
+    background-color: var(--color-main);
+}
+
+.bg-secondary {
+    background-color: var(--color-secondary);
+}
+
+.bg-alert {
+    background-color: var(--color-alert);
+}
+
+.bg-soft-white {
+    background-color: var(--color-soft-white);
+}
+
+.text-main {
+    color: var(--color-main);
+}
+
+.text-secondary {
+    color: var(--color-secondary);
+}
+
+.text-alert {
+    color: var(--color-alert);
+}
+
+.text-primary {
+    color: var(--color-text);
+}
+
+/* Accessible focus outline using main color (rgba fallback) */
+.focus-outline:focus {
+    outline: 3px solid rgba(48, 134, 204, 0.25);
+    outline-offset: 2px;
+}
+
+.main-btn {
+    border: 2px solid var(--color-main);
+    background-color: var(--color-soft-white);
+    color: var(--color-main);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.3s, color 0.3s;
+    margin: 12px;
+}
+
+.main-btn:hover {
+    background-color: var(--color-main);
+    color: var(--color-soft-white);
+}
+
+.header-1 {
+    font-size: 2.25rem;
+    /* 36px */
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.header-2 {
+    font-size: 1.875rem;
+    /* 30px */
+    font-weight: 600;
+}
+
+.loginBtn {
+    border: 1px solid var(--color-soft-white);
+    border-bottom: 5px solid var(--color-soft-white);
+    background-color: var(--color-main);
+    color: var(--color-soft-white);
+    padding: 0.5rem 1rem;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.loginBtn:hover {
+    background-color: var(--color-soft-white);
+    color: var(--color-text);
+}
+
+.regBtn {
+    border: 1px solid var(--color-soft-white);
+    border-bottom: 5px solid var(--color-soft-white);
+    background-color: var(--color-secondary);
+    color: var(--color-text);
+    padding: 0.5rem 1rem;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.regBtn:hover {
+    background-color: var(--color-white);
+    color: var(--color-text);
+}
+
+
+
+.rbc-toolbar {
+    background: var(--color-main);
+    padding: 10px;
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+}
+
+.rbc-toolbar .rbc-btn-group button {
+    background: var(--color-soft-white);
+    border: 2px solid var(--color-text);
+    color: var(--color-text);
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.rbc-toolbar .rbc-btn-group button:hover {
+    background: var(--color-text);
+    color: var(--color-soft-white);
+}
+
+
+.rbc-toolbar .rbc-btn-group button.rbc-active {
+    background: var(--color-text);
+    color: var(--color-soft-white);
+}
+.rbc-toolbar .rbc-btn-group button.rbc-active:focus {
+    background: var(--color-text);
+    color: var(--color-soft-white);
+}
+.rbc-toolbar .rbc-btn-group button.rbc-active:active {
+    background: var(--color-text);
+    color: var(--color-soft-white);
+}
+.rbc-toolbar .rbc-btn-group button.rbc-active:hover {
+    background: var(--color-text);
+    color: var(--color-soft-white);
+}
+
+
+.rbc-toolbar-label {
+    padding: 5px 10px;
+    color: var(--color-soft-white);
+    font-weight: bold;
+    font-size: 2rem;
+}
+
+/* Override event card */
+.rbc-event {
+    background: var(--color-secondary);
+    border: 1px solid var(--color-main);
+    color: var(--color-text);
+}
+
+/* Selected day background */
+.rbc-selected {
+    background: rgba(48, 134, 204, 0.2);
+}

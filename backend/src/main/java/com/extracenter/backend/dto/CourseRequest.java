@@ -2,11 +2,12 @@ package com.extracenter.backend.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import lombok.Data;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+
+import lombok.Data;
 
 @Data
 public class CourseRequest {

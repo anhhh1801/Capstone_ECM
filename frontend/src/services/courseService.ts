@@ -1,11 +1,25 @@
 import api from '../utils/axiosConfig';
 
 // Định nghĩa kiểu dữ liệu Course (khớp với Java)
+export interface CourseSubject {
+    id: number;
+    name: string;
+    description?: string;
+}
+
+export interface CourseGrade {
+    id: number;
+    name: string;
+    description?: string;
+    fromAge?: number;
+    toAge?: number;
+}
+
 export interface Course {
     id: number;
     name: string;
-    subject: string;
-    grade: number;
+    subject?: CourseSubject;
+    grade?: CourseGrade;
     status: string;
     startDate: string;
     endDate: string;
@@ -36,8 +50,8 @@ export const getCoursesByCenter = async (centerId: number) => {
 
 export interface CreateCourseData {
     name: string;
-    subject: string;
-    grade: number;
+    subject?: string;
+    grade?: number;
     description: string;
     startDate: string; // YYYY-MM-DD
     endDate: string;

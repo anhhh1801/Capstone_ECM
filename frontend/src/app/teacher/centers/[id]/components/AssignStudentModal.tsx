@@ -9,88 +9,158 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     centerId: number;
-    onSuccess: () => void; // Reload list sau khi add
+    onSuccess: () => void;
 }
 
-export default function AssignStudentModal({ isOpen, onClose, centerId, onSuccess }: Props) {
+export default function AssignStudentModal({
+    isOpen,
+    onClose,
+    centerId,
+    onSuccess
+}: Props) {
+
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState<any[]>([]);
     const [searching, setSearching] = useState(false);
 
     if (!isOpen) return null;
 
-    // 1. Tìm kiếm trong bể chung (API này bạn cần viết bên Backend: tìm theo email/sđt)
-    // Tạm thời tôi giả định bạn dùng API get all students hoặc API search user
     const handleSearch = async () => {
-        if (!searchTerm) return;
-        setSearching(true);
-        try {
-            // Ví dụ gọi API search user theo email/phone
-            // GET /api/users/search?keyword=...
-            // Tạm thời dùng logic mock hoặc API search bạn tự viết
-            // const res = await api.get(`/users/search?q=${searchTerm}&role=STUDENT`);
+        if (!searchTerm.trim()) return;
 
-            // Mock tạm để demo UI
+        setSearching(true);
+
+        try {
+
+            // Example API (replace with real one)
+            // const res = await api.get(`/users/search?q=${searchTerm}&role=STUDENT`);
+            // setResults(res.data);
+
+            // Mock data
             setResults([
-                { id: 99, firstName: "Test", lastName: "User", email: searchTerm, phoneNumber: "0999" }
+                {
+                    id: 99,
+                    firstName: "Test",
+                    lastName: "User",
+                    email: searchTerm,
+                    phoneNumber: "0999"
+                }
             ]);
+
         } catch (e) {
-            toast.error("Không tìm thấy");
+            toast.error("Student not found.");
         } finally {
             setSearching(false);
         }
     };
 
-    // 2. Gán vào trung tâm
     const handleAssign = async (studentId: number) => {
         try {
+
             await api.post(`/centers/${centerId}/assign-student?studentId=${studentId}`);
-            toast.success("Đã thêm vào trung tâm!");
+
+            toast.success("Student added to center!");
+
             onSuccess();
             onClose();
+
         } catch (error) {
-            toast.error("Lỗi: Học sinh này có thể đã ở trong trung tâm rồi");
+            toast.error("This student may already belong to the center.");
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden min-h-[300px]">
-                <div className="px-6 py-4 border-b flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800">Tìm học sinh từ Bể chung</h3>
-                    <button onClick={onClose}><X size={20} /></button>
-                </div>
-                <div className="p-4">
-                    <div className="flex gap-2 mb-4">
-                        <input
-                            className="flex-1 p-2 border rounded"
-                            placeholder="Nhập chính xác Email hoặc SĐT..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                        <button onClick={handleSearch} className="bg-blue-600 text-white p-2 rounded"><Search size={20} /></button>
-                    </div>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
 
-                    {/* Kết quả tìm kiếm */}
-                    <div className="space-y-2">
-                        {results.map(u => (
-                            <div key={u.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border">
-                                <div>
-                                    <p className="font-bold">{u.lastName} {u.firstName}</p>
-                                    <p className="text-xs text-gray-500">{u.email}</p>
-                                </div>
-                                <button
-                                    onClick={() => handleAssign(u.id)}
-                                    className="text-green-600 hover:bg-green-100 p-2 rounded"
-                                >
-                                    <UserPlus size={20} />
-                                </button>
-                            </div>
-                        ))}
-                        {results.length === 0 && !searching && <p className="text-center text-gray-400 text-sm">Nhập email để tìm kiếm học sinh tự do.</p>}
-                    </div>
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-6">
+
+                {/* Header */}
+                <div className="flex justify-between items-center border-b pb-3">
+
+                    <h2 className="text-lg font-bold text-[var(--color-text)] flex items-center gap-2">
+                        <Search size={18} />
+                        Find Student
+                    </h2>
+
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg hover:bg-gray-100 transition"
+                    >
+                        <X size={20} />
+                    </button>
+
                 </div>
+
+                {/* Search */}
+                <div className="flex gap-2">
+
+                    <input
+                        type="text"
+                        placeholder="Enter exact Email or Phone..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="flex-1 p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white focus:ring-2 focus:ring-[var(--color-secondary)]"
+                    />
+
+                    <button
+                        onClick={handleSearch}
+                        className="bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 rounded-lg hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition flex items-center justify-center"
+                    >
+                        <Search size={18} />
+                    </button>
+
+                </div>
+
+                {/* Results */}
+                <div className="space-y-3">
+
+                    {results.map((u) => (
+
+                        <div
+                            key={u.id}
+                            className="flex justify-between items-center p-3 rounded-lg border-2 border-[var(--color-main)]/30 bg-[var(--color-soft-white)]"
+                        >
+
+                            <div className="text-sm">
+
+                                <p className="font-bold text-[var(--color-text)]">
+                                    {u.lastName} {u.firstName}
+                                </p>
+
+                                <p className="text-xs text-gray-500">
+                                    {u.email}
+                                </p>
+
+                            </div>
+
+                            <button
+                                onClick={() => handleAssign(u.id)}
+                                className="flex items-center gap-1 bg-[var(--color-secondary)] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--color-main)] transition"
+                            >
+                                <UserPlus size={16} />
+                                Add
+                            </button>
+
+                        </div>
+
+                    ))}
+
+                    {results.length === 0 && !searching && (
+                        <p className="text-center text-gray-400 text-sm py-4">
+                            Enter email or phone to search students.
+                        </p>
+                    )}
+
+                    {searching && (
+                        <p className="text-center text-sm text-gray-400">
+                            Searching...
+                        </p>
+                    )}
+
+                </div>
+
             </div>
+
         </div>
-    )
+    );
 }

@@ -1,0 +1,143 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Logo from "./Logo";
+import type { User } from "@/services/authService";
+import { Settings, LogOut, LayoutDashboard } from "lucide-react";
+
+export default function Header() {
+    const [user, setUser] = useState<User | null>(null);
+    const router = useRouter();
+    const pathname = usePathname();
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+    useEffect(() => {
+        // run on mount and route changes so header reflects login state
+        const stored = localStorage.getItem("loginResponse");
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored) as { user: User };
+                if (parsed.user) {
+                    setUser(parsed.user);
+                } else {
+                    setUser(null);
+                }
+            } catch (e) {
+                setUser(null);
+            }
+        } else {
+            setUser(null);
+        }
+    }, [pathname]);
+
+    return (
+
+        <header className="text-white shadow-md">
+            <div className="flex justify-between items-center container mx-auto bg-[var(--color-soft-white)] text-[var(--color-text)] font-bold py-2">
+                <Link href="/" className="text-3xl">
+                    Tutoring Center Management Application
+                </Link>
+
+                <p className="text-sm font-normal opacity-70">
+                    A project by EIU Students
+                </p>
+            </div>
+            <div className="bg-[var(--color-main)]">
+                <div className="container mx-auto flex justify-between items-center py-2">
+                    <Link href="/" className="flex items-center">
+                        <Logo className="text-white" />
+                    </Link>
+                    <nav className="flex items-center gap-2">
+                        {user ? (
+                            <>
+                                <span className="opacity-80">
+                                    {user.email}
+                                </span>
+                                <Link
+                                    href={
+                                        user.role.name === "TEACHER" ? "/teacher/dashboard" :
+                                            user.role.name === "ADMIN" ? "/admin/users" :
+                                                user.role.name === "STUDENT" ? "/student/dashboard" :
+                                                    "/"
+                                    }
+                                    className="inline-flex items-center"
+                                    title="Dashboard"
+                                    aria-label="Go to dashboard"
+                                >
+                                    <LayoutDashboard size={28} className="hover:text-[var(--color-secondary)] hover:size-10" />
+                                </Link>
+                                <Link
+                                    href={
+                                        user.role.name === "TEACHER" ? "/teacher/profile" :
+                                            user.role.name === "ADMIN" ? "/admin/profile" :
+                                                user.role.name === "STUDENT" ? "/student/profile" :
+                                                    "/"
+                                    }
+                                    className="inline-flex items-center">
+                                    <Settings size={32} className="hover:text-[var(--color-secondary)] hover:size-10" />
+                                </Link>
+
+                                <button
+                                    onClick={() => setShowLogoutConfirm(true)}
+                                    className="inline-flex items-center"
+                                    title="Logout"
+                                >
+                                    <LogOut size={32} className="hover:text-[var(--color-alert)]  hover:size-10" />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link href="/login" className="loginBtn">
+                                    Login
+                                </Link>
+                                <Link href="/register" className="regBtn">
+                                    Get Started
+                                </Link>
+                            </>
+                        )}
+                    </nav>
+                </div>
+            </div>
+            {showLogoutConfirm && (
+                <div className="fixed inset-0 bg-[var(--color-main)]/20 flex items-center justify-center z-50"
+                    onClick={() => setShowLogoutConfirm(false)}>
+
+                    <div className="bg-white rounded-xl p-6 w-80 shadow-xl text-center"
+                        onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-[var(--color-text)] mb-4">
+                            Confirm Logout
+                        </h3>
+
+                        <p className="mb-6 text-[var(--color-text)]">
+                            Are you sure you want to log out?
+                        </p>
+
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={() => setShowLogoutConfirm(false)}
+                                className="px-4 py-1 font-bold rounded-lg border-2 border-[var(--color-main)] text-[var(--color-soft-white)] bg-[var(--color-main)]  hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem("loginResponse");
+                                    localStorage.removeItem("user");
+                                    setUser(null);
+                                    setShowLogoutConfirm(false);
+                                    router.push("/login");
+                                }}
+                                className="px-4 py-1 font-bold rounded-lg border-2 border-[var(--color-alert)] text-[var(--color-alert)] bg-[var(--color-soft-white)]  hover:bg-[var(--color-alert)] hover:text-[var(--color-soft-white)] transition"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </header>
+    );
+}
