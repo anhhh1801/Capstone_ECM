@@ -17,11 +17,11 @@ public class CourseRequest {
     private String name;
 
     @NotBlank(message = "Subject is required")
-    private String subject;
+    private Long subjectId;
 
     @Min(1)
     @Max(12)
-    private Integer grade;
+    private Long gradeId;
 
     private String description;
 

@@ -26,6 +26,12 @@ public class CenterService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private SubjectRepository subjectRepository;
+
+    @Autowired
+    private GradeRepository gradeRepository;
+
     // 1. Create a new Center
     // @Transactional added: If saving the center works but updating the manager
     // fails, we roll back!
@@ -144,7 +150,8 @@ public class CenterService {
         return gradeRepository.save(grade);
     }
 
-    public Grade updateGrade(Long centerId, Long gradeId, String name, Integer fromAge, Integer toAge, String description) {
+    public Grade updateGrade(Long centerId, Long gradeId, String name, Integer fromAge, Integer toAge,
+            String description) {
         Grade grade = gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new RuntimeException("Grade does not exist!"));
 

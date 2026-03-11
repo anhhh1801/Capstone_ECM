@@ -83,7 +83,7 @@ public class ScheduleController {
             if (slot.getCourse() != null) {
                 courseId = slot.getCourse().getId();
                 courseName = slot.getCourse().getName();
-                subjectName = slot.getCourse().getSubject(); // Assuming Course has getSubject()
+                subjectName = slot.getCourse().getSubject().getName(); // Assuming Course has getSubject()
 
                 if (slot.getCourse().getTeacher() != null) {
                     teacherName = slot.getCourse().getTeacher().getFirstName() + " " +
@@ -123,7 +123,7 @@ public class ScheduleController {
             if (session.getCourse() != null) {
                 courseId = session.getCourse().getId();
                 courseName = session.getCourse().getName();
-                subjectName = session.getCourse().getSubject();
+                subjectName = session.getCourse().getSubject().getName();
 
                 if (session.getCourse().getTeacher() != null) {
                     teacherName = session.getCourse().getTeacher().getFirstName() + " " +

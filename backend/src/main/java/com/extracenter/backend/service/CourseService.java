@@ -1,6 +1,5 @@
 package com.extracenter.backend.service;
 
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.dto.CourseRequest;
 import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.ClassSlot;
 import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.Enrollment;
@@ -21,6 +21,7 @@ import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
 import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.EnrollmentRepository;
