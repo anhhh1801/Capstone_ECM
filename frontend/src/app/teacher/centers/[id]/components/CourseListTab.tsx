@@ -3,7 +3,7 @@ import { Plus, Trash2, Mail, BookOpen, Settings, Info } from "lucide-react";
 import { Course, deleteCourse } from "@/services/courseService";
 import toast from "react-hot-toast";
 import InviteTeacherModal from "./InviteTeacherModal";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ConfirmModal from "@/components/ConfirmModal";
 interface Props {
     courses: Course[];
@@ -16,6 +16,52 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
 
     const [inviteCourseId, setInviteCourseId] = useState<number | null>(null);
     const [deletingCourseId, setDeletingCourseId] = useState<number | null>(null);
+    const [searchText, setSearchText] = useState("");
+    const [selectedSubject, setSelectedSubject] = useState("ALL");
+    const [selectedGrade, setSelectedGrade] = useState("ALL");
+
+    const subjectOptions = useMemo(() => {
+        const unique = new Map<string, string>();
+        courses.forEach((course) => {
+            if (course.subject?.id != null) {
+                unique.set(String(course.subject.id), course.subject.name);
+            }
+        });
+        return Array.from(unique.entries()).map(([id, name]) => ({ id, name }));
+    }, [courses]);
+
+    const gradeOptions = useMemo(() => {
+        const unique = new Map<string, string>();
+        courses.forEach((course) => {
+            if (course.grade?.id != null) {
+                unique.set(String(course.grade.id), course.grade.name);
+            }
+        });
+        return Array.from(unique.entries()).map(([id, name]) => ({ id, name }));
+    }, [courses]);
+
+    const filteredCourses = useMemo(() => {
+        const q = searchText.trim().toLowerCase();
+
+        return courses.filter((course) => {
+            const teacherFullName = `${course.teacher?.lastName || ""} ${course.teacher?.firstName || ""}`.trim().toLowerCase();
+            const courseName = (course.name || "").toLowerCase();
+            const matchesSearch =
+                q.length === 0 ||
+                courseName.includes(q) ||
+                teacherFullName.includes(q);
+
+            const matchesSubject =
+                selectedSubject === "ALL" ||
+                String(course.subject?.id || "") === selectedSubject;
+
+            const matchesGrade =
+                selectedGrade === "ALL" ||
+                String(course.grade?.id || "") === selectedGrade;
+
+            return matchesSearch && matchesSubject && matchesGrade;
+        });
+    }, [courses, searchText, selectedSubject, selectedGrade]);
 
     const handleDelete = async (courseId: number) => {
         try {
@@ -61,16 +107,49 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
             </div>
 
             {/* CARD LIST */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <input
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    placeholder="Search course or teacher"
+                    className="md:col-span-2 w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                />
+
+                <select
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                >
+                    <option value="ALL">All Subjects</option>
+                    {subjectOptions.map((subject) => (
+                        <option key={subject.id} value={subject.id}>{subject.name}</option>
+                    ))}
+                </select>
+
+                <select
+                    value={selectedGrade}
+                    onChange={(e) => setSelectedGrade(e.target.value)}
+                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                >
+                    <option value="ALL">All Grades</option>
+                    {gradeOptions.map((grade) => (
+                        <option key={grade.id} value={grade.id}>{grade.name}</option>
+                    ))}
+                </select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
-                {courses.length === 0 ? (
+                {filteredCourses.length === 0 ? (
                     <div className="col-span-full p-10 text-center text-gray-500 bg-white rounded-xl border">
-                        {isManager
-                            ? "No courses created yet."
-                            : "You haven't been assigned any courses."}
+                        {courses.length === 0
+                            ? (isManager
+                                ? "No courses created yet."
+                                : "You haven't been assigned any courses.")
+                            : "No courses match your search/filter."}
                     </div>
                 ) : (
-                    courses.map(course => (
+                    filteredCourses.map(course => (
 
                         <div
                             key={course.id}
@@ -138,7 +217,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                                 {/* TEACHER */}
                                 {isManager && (
                                     <div className="text-sm mb-2">
-                                        
+
                                         {course.teacher ? (
                                             <div className="text-[var(--color-text)]">
                                                 <span className="font-medium">Teacher:</span>{" "} {course.teacher.lastName} {course.teacher.firstName}

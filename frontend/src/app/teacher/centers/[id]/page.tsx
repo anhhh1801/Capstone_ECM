@@ -5,10 +5,6 @@ import { useParams } from "next/navigation";
 import { User } from "@/services/authService";
 import api from "@/utils/axiosConfig";
 import { Course } from "@/services/courseService";
-import { removeStudentFromCenter } from "@/services/userService";
-import toast from "react-hot-toast";
-import { UserPlus, Users, Mail, Phone, BookOpen, Unlink } from "lucide-react";
-import Link from "next/link";
 
 import CenterHeader from "./components/CenterHeader";
 import CenterTabs from "./components/CenterTabs";
@@ -16,10 +12,9 @@ import CourseListTab from "./components/CourseListTab";
 import TeacherListTab from "./components/TeacherListTab";
 import SubjectListTab from "./components/SubjectListTab";
 import GradeListTab from "./components/GradeListTab";
-import AssignStudentModal from "./components/AssignStudentModal";
 import ClassroomTab from "./components/ClassroomTab";
 import ClassSlotTab from "./components/ClassSlotTab";
-import ConfirmModal from "@/components/ConfirmModal";
+import StudentTab from "./components/StudentTab";
 
 type StudentCenterCard = User & {
     courses: { id: number; name: string }[];
@@ -37,9 +32,6 @@ export default function CenterDetailPage() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [teachers, setTeachers] = useState<User[]>([]);
     const [centerStudents, setCenterStudents] = useState<StudentCenterCard[]>([]);
-    const [removingStudent, setRemovingStudent] = useState<StudentCenterCard | null>(null);
-
-    const [isAssignModalOpen, setAssignModalOpen] = useState(false);
 
     const fetchData = async () => {
         if (!centerId) return;
@@ -123,17 +115,6 @@ export default function CenterDetailPage() {
         fetchData();
     }, [centerId]);
 
-    const handleRemoveStudent = async (studentId: number) => {
-        try {
-            await removeStudentFromCenter(centerId, studentId);
-            toast.success("Student removed!");
-            setRemovingStudent(null);
-            fetchData();
-        } catch {
-            toast.error("Error removing student");
-        }
-    };
-
     if (loading)
         return (
             <div className="p-10 text-center text-[var(--color-text)]">
@@ -143,15 +124,6 @@ export default function CenterDetailPage() {
 
     return (
         <div className="space-y-6">
-
-            <ConfirmModal
-                isOpen={!!removingStudent}
-                title="Remove Student"
-                message={`Remove "${removingStudent?.lastName || ""} ${removingStudent?.firstName || ""}" from this center?`}
-                confirmText="Remove"
-                onClose={() => setRemovingStudent(null)}
-                onConfirm={() => (removingStudent ? handleRemoveStudent(removingStudent.id) : undefined)}
-            />
 
             {/* HEADER */}
             <CenterHeader center={centerInfo} isManager={isManager} />
@@ -201,101 +173,14 @@ export default function CenterDetailPage() {
                 )}
 
                 {activeTab === "students" && (
-                    <div>
-
-                        {/* STUDENT HEADER */}
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                                <Users size={18} className="text-[var(--color-main)]" />
-                                Student List ({centerStudents.length})
-                            </h3>
-
-                            <div className="flex gap-2">
-
-                                <button
-                                    onClick={() => setAssignModalOpen(true)}
-                                    className="flex items-center gap-2 whitespace-nowrap border-2 border-[var(--color-main)] text-[var(--color-main)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-main)] hover:text-white transition"
-                                >
-                                    <UserPlus size={16} />
-                                    Assign Existing Student
-                                </button>
-
-                            </div>
-                        </div>
-
-                        {/* STUDENT CARD LIST */}
-                        <div className="grid grid-cols-4 lg:grid-cols-4 gap-4">
-                            {centerStudents.map((student) => (
-                                <div
-                                    key={student.id}
-                                    className="rounded-xl border border-[var(--color-main)]/30 bg-white p-4"
-                                >
-                                    <div className="flex items-start justify-between gap-3 border-b-2 border-[var(--color-main)] pb-1">
-                                        <div>
-                                            <h4 className="font-bold text-[var(--color-text)]">
-                                                {student.lastName} {student.firstName}
-                                            </h4>
-                                            <p className="text-xs text-gray-500">ID: {student.id}</p>
-                                        </div>
-
-                                        <button
-                                            onClick={() => setRemovingStudent(student)}
-                                            className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
-                                            title="Remove from center"
-                                        >
-                                            <Unlink size={16} />
-                                        </button>
-                                    </div>
-
-                                    <div className="mt-3 space-y-2 text-sm text-[var(--color-text)]">
-                                        <div className="flex items-center gap-2">
-                                            <Mail size={14} className="text-[var(--color-main)]" />
-                                            <span>{student.email}</span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <Phone size={14} className="text-[var(--color-main)]" />
-                                            <span>{student.phoneNumber || "---"}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <p className="text-sm font-semibold text-[var(--color-text)] mb-2 flex items-center gap-2">
-                                            <BookOpen size={14} className="text-[var(--color-main)]" />
-                                            Courses
-                                        </p>
-
-                                        {student.courses.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {student.courses.map((course) => (
-                                                    <Link
-                                                        key={course.id}
-                                                        href={`/teacher/courses/${course.id}`}
-                                                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-white transition"
-                                                    >
-                                                        {course.name}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs italic text-gray-400">No courses</p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                    </div>
+                    <StudentTab
+                        centerId={centerId}
+                        students={centerStudents}
+                        isManager={isManager}
+                        onUpdate={fetchData}
+                    />
                 )}
             </div>
-
-            {/* MODALS */}
-            <AssignStudentModal
-                isOpen={isAssignModalOpen}
-                onClose={() => setAssignModalOpen(false)}
-                centerId={centerId}
-                onSuccess={fetchData}
-            />
 
         </div>
     );
