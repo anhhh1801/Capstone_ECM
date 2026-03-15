@@ -69,11 +69,13 @@ export interface CenterClassSlot {
     startTime: string;
     endTime: string;
     daysOfWeek: string[];
+    dayOfWeek?: string;
     isRecurring: boolean;
     excludedDates?: string[];
     course?: {
         id: number;
         name: string;
+        status?: string;
         startDate?: string;
         endDate?: string;
         teacher?: {

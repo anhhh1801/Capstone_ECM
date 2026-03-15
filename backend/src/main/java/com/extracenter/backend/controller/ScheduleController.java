@@ -42,6 +42,12 @@ public class ScheduleController {
         return ResponseEntity.ok(mapToResponse(slots));
     }
 
+    @GetMapping("/teacher/{teacherId}/class-slots")
+    public ResponseEntity<List<ClassSlot>> getTeacherClassSlots(@PathVariable Long teacherId) {
+        List<ClassSlot> slots = classSlotRepository.findByTeacherId(teacherId);
+        return ResponseEntity.ok(slots);
+    }
+
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<ScheduleResponse>> getStudentScheduleRules(@PathVariable Long studentId) {
         List<ClassSlot> slots = classSlotRepository.findByStudentId(studentId);

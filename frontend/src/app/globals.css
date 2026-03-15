@@ -145,14 +145,17 @@
     background: var(--color-text);
     color: var(--color-soft-white);
 }
+
 .rbc-toolbar .rbc-btn-group button.rbc-active:focus {
     background: var(--color-text);
     color: var(--color-soft-white);
 }
+
 .rbc-toolbar .rbc-btn-group button.rbc-active:active {
     background: var(--color-text);
     color: var(--color-soft-white);
 }
+
 .rbc-toolbar .rbc-btn-group button.rbc-active:hover {
     background: var(--color-text);
     color: var(--color-soft-white);
@@ -176,6 +179,32 @@
 /* Selected day background */
 .rbc-selected {
     background: rgba(48, 134, 204, 0.2);
+}
+
+.teacher-schedule-rbc-event {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.teacher-schedule-event-card {
+    height: 100%;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #2f7ec0;
+    background: #e8f3ff;
+    color: #0f2740;
+    font-size: 11px;
+    line-height: 13px;
+    padding: 2px 4px;
+    overflow: hidden;
+}
+
+.teacher-schedule-event-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Schedule timeline theme (react-calendar-timeline) */
@@ -210,6 +239,7 @@
     color: var(--color-text);
     font-weight: 700;
 }
+
 .rct-dateHeader {
     color: var(--color-text);
     padding: 5px;
@@ -230,4 +260,7 @@
 
 .schedule-timeline .rct-horizontal-lines .rct-hl-odd {
     background: #ffffff;
+}
+.rbc-day-slot .rbc-events-container {
+    margin: 0px !important;
 }

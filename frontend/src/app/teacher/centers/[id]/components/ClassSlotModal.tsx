@@ -74,15 +74,24 @@ export default function ClassSlotModal({
 	const startTimeOptions = TIME_OPTIONS.filter((time) => time.value < "22:00");
 	const endTimeOptions = TIME_OPTIONS.filter((time) => (startTime ? time.value > startTime : true));
 
+	const getErrorMessage = (error: any, fallback: string) => {
+		const data = error?.response?.data;
+		if (typeof data === "string" && data.trim()) return data;
+		if (data?.error && typeof data.error === "string") return data.error;
+		if (data?.message && typeof data.message === "string") return data.message;
+		if (error?.message && typeof error.message === "string") return error.message;
+		return fallback;
+	};
+
 	useEffect(() => {
 		if (!isOpen) return;
 		const fetchCourses = async () => {
 			try {
 				const data = await getCoursesByCenter(centerId);
 				setCourses(data);
-			} catch (error) {
+			} catch (error: any) {
 				console.error(error);
-				toast.error("Cannot load courses.");
+				toast.error(getErrorMessage(error, "Cannot load courses."));
 			}
 		};
 		fetchCourses();
@@ -203,7 +212,7 @@ export default function ClassSlotModal({
 			onSuccess();
 			onClose();
 		} catch (error: any) {
-			toast.error(error?.response?.data?.error || "Failed to save class slot.");
+			toast.error(getErrorMessage(error, "Failed to save class slot."));
 		} finally {
 			setLoading(false);
 		}
