@@ -18,6 +18,11 @@ export const getMyCenters = async (teacherId: number) => {
     return response.data;
 };
 
+export const getCenterInvitations = async (teacherId: number) => {
+    const response = await api.get<Center[]>(`/centers/invitations/${teacherId}`);
+    return response.data;
+};
+
 // Tạo trung tâm mới
 export const createCenter = async (data: {
     name: string;

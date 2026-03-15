@@ -4,7 +4,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,7 +98,22 @@ public class CenterService {
 
     // 5. Get list of Centers where a teacher is currently teaching (Guest Teacher)
     public List<Center> getCentersTeaching(Long teacherId) {
-        return centerRepository.findCentersTeachingByTeacherId(teacherId);
+        List<Center> fromCourses = centerRepository.findCentersTeachingByTeacherId(teacherId);
+        List<Center> fromLinks = centerRepository.findLinkedCentersByTeacherId(teacherId);
+
+        Map<Long, Center> uniqueCenters = new LinkedHashMap<>();
+        for (Center center : fromCourses) {
+            uniqueCenters.put(center.getId(), center);
+        }
+        for (Center center : fromLinks) {
+            uniqueCenters.put(center.getId(), center);
+        }
+
+        return List.copyOf(uniqueCenters.values());
+    }
+
+    public List<Center> getPendingInvitedCenters(Long teacherId) {
+        return centerRepository.findPendingInvitedCentersByTeacherId(teacherId);
     }
 
     // Subject / Grade management for a Center

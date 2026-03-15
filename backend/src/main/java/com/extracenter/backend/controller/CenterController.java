@@ -89,6 +89,13 @@ public class CenterController {
         return ResponseEntity.ok(centerService.getCentersTeaching(teacherId));
     }
 
+    // API: Get pending center invitations for a teacher
+    // GET: http://localhost:8080/api/centers/invitations/1
+    @GetMapping("/invitations/{teacherId}")
+    public ResponseEntity<List<Center>> getPendingInvitedCenters(@PathVariable Long teacherId) {
+        return ResponseEntity.ok(centerService.getPendingInvitedCenters(teacherId));
+    }
+
     // API: Update an existing center
     // PUT: http://localhost:8080/api/centers/1
     @PutMapping("/{id}")
