@@ -115,6 +115,16 @@ export const getCenterTeachers = async (centerId: number) => {
     return response.data;
 };
 
+export const inviteTeacherToCenter = async (centerId: number, managerId: number, email: string) => {
+    const response = await api.post(`/centers/${centerId}/teachers/invite?managerId=${managerId}&email=${encodeURIComponent(email)}`);
+    return response.data;
+};
+
+export const unlinkTeacherFromCenter = async (centerId: number, teacherId: number, managerId: number) => {
+    const response = await api.delete(`/centers/${centerId}/teachers/${teacherId}?managerId=${managerId}`);
+    return response.data;
+};
+
 // Lấy danh sách môn học do manager tạo cho trung tâm
 export const getCenterSubjects = async (centerId: number) => {
     const response = await api.get<CenterSubject[]>(`/centers/${centerId}/subjects`);

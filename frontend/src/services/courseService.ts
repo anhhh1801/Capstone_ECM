@@ -75,6 +75,16 @@ export const deleteCourse = async (id: number) => {
     return response.data;
 };
 
+export const requestDeleteCourseOtp = async (courseId: number, managerId: number) => {
+    const response = await api.post(`/courses/${courseId}/delete-otp?managerId=${managerId}`);
+    return response.data;
+};
+
+export const confirmDeleteCourseWithOtp = async (courseId: number, managerId: number, otp: string) => {
+    const response = await api.delete(`/courses/${courseId}/confirm-delete?managerId=${managerId}&otp=${encodeURIComponent(otp)}`);
+    return response.data;
+};
+
 // Lấy chi tiết 1 khóa
 export const getCourseById = async (id: number) => {
     const res = await api.get(`/courses/${id}`);
@@ -90,6 +100,11 @@ export const updateCourse = async (id: number, data: any) => {
 // Hàm mời
 export const inviteTeacher = async (courseId: number, email: string) => {
     await api.post(`/courses/${courseId}/invite?email=${email}`);
+};
+
+export const assignTeacherToCourse = async (courseId: number, teacherId: number, managerId: number) => {
+    const response = await api.put(`/courses/${courseId}/teacher?teacherId=${teacherId}&managerId=${managerId}`);
+    return response.data;
 };
 
 // Hàm phản hồi

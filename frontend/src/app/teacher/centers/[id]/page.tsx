@@ -167,8 +167,10 @@ export default function CenterDetailPage() {
 
                 {activeTab === "teachers" && (
                     <TeacherListTab
+                        centerId={centerId}
                         teachers={teachers}
                         isManager={isManager}
+                        onUpdate={fetchData}
                     />
                 )}
 

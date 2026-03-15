@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Plus, Trash2, Mail, BookOpen, Settings, Info } from "lucide-react";
-import { Course, deleteCourse } from "@/services/courseService";
-import toast from "react-hot-toast";
+import { Course } from "@/services/courseService";
 import InviteTeacherModal from "./InviteTeacherModal";
 import { useMemo, useState } from "react";
-import ConfirmModal from "@/components/ConfirmModal";
+import DeleteCourseOtpModal from "./DeleteCourseOtpModal";
 interface Props {
     courses: Course[];
     centerId: number;
@@ -63,29 +62,17 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
         });
     }, [courses, searchText, selectedSubject, selectedGrade]);
 
-    const handleDelete = async (courseId: number) => {
-        try {
-            await deleteCourse(courseId);
-            toast.success("Course deleted!");
-            setDeletingCourseId(null);
-            onUpdate();
-        } catch {
-            toast.error("Error deleting course");
-        }
-    };
-
     const deletingCourse = courses.find((course) => course.id === deletingCourseId);
 
     return (
         <div className="space-y-4">
 
-            <ConfirmModal
+            <DeleteCourseOtpModal
                 isOpen={deletingCourseId !== null}
-                title="Delete Course"
-                message={`Delete course "${deletingCourse?.name || "this course"}"?`}
-                confirmText="Delete"
+                courseId={deletingCourseId}
+                courseName={deletingCourse?.name}
                 onClose={() => setDeletingCourseId(null)}
-                onConfirm={() => (deletingCourseId !== null ? handleDelete(deletingCourseId) : undefined)}
+                onDeleted={onUpdate}
             />
 
             {/* HEADER */}

@@ -1,11 +1,13 @@
 package com.extracenter.backend.repository;
 
-import com.extracenter.backend.entity.Course;
-import com.extracenter.backend.entity.User;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import java.util.List;
+
+import com.extracenter.backend.entity.Course;
+import com.extracenter.backend.entity.User;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
 
@@ -17,6 +19,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     // Find all courses taught by a specific teacher
     List<Course> findByTeacherId(Long teacherId);
+
+    // Find all courses in a center taught by a specific teacher.
+    List<Course> findByCenterIdAndTeacherId(Long centerId, Long teacherId);
 
     // Find all distinct Teachers who are actively teaching at a specific Center.
     // This is a great query because it avoids needing a separate "Center-Teacher"

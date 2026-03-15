@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.entity.ClassSlot;
 
@@ -23,4 +25,8 @@ public interface ClassSlotRepository extends JpaRepository<ClassSlot, Long> {
     // complete!
     @Query("SELECT DISTINCT s FROM ClassSlot s WHERE s.course.teacher.id = :teacherId")
     List<ClassSlot> findByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Modifying
+    @Transactional
+    void deleteByCourseId(Long courseId);
 }

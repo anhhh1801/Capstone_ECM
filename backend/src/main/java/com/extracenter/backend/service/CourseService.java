@@ -2,6 +2,7 @@ package com.extracenter.backend.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +22,7 @@ import com.extracenter.backend.entity.Enrollment;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
+import com.extracenter.backend.entity.VerificationToken;
 import com.extracenter.backend.repository.CenterRepository;
 import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
@@ -29,6 +31,7 @@ import com.extracenter.backend.repository.EnrollmentRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
+import com.extracenter.backend.repository.VerificationTokenRepository;
 
 @Service
 public class CourseService {
@@ -51,6 +54,12 @@ public class CourseService {
     // THÊM REPOSITORY NÀY ĐỂ QUẢN LÝ VIỆC ĐĂNG KÝ HỌC
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private VerificationTokenRepository verificationTokenRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     @Transactional
     public Course createCourse(CourseRequest request) {
@@ -193,12 +202,61 @@ public class CourseService {
     @Transactional
     public void deleteCourse(Long courseId) {
         try {
-            // CascadeType.ALL on the Entity will auto-delete Enrollments, Slots, and
-            // Sessions!
+            classSessionRepository.deleteByCourseId(courseId);
+            classSlotRepository.deleteByCourseId(courseId);
             courseRepository.deleteById(courseId);
         } catch (Exception e) {
             throw new RuntimeException("Error deleting course: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void sendDeleteCourseOtp(Long courseId, Long managerId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        User owner = course.getCenter().getManager();
+        if (!owner.getId().equals(managerId)) {
+            throw new RuntimeException("You do not have permission to delete this course.");
+        }
+
+        String otp = generateOtp();
+        VerificationToken token = verificationTokenRepository.findByUser(owner)
+                .orElseGet(() -> new VerificationToken(owner, otp));
+
+        token.setToken(otp);
+        token.setExpiryDate(LocalDateTime.now().plusMinutes(10));
+        verificationTokenRepository.save(token);
+
+        emailService.sendCourseDeleteOtpEmail(owner.getPersonalEmail(), course.getName(), otp);
+    }
+
+    @Transactional
+    public void deleteCourseWithOtp(Long courseId, Long managerId, String otp) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        User owner = course.getCenter().getManager();
+        if (!owner.getId().equals(managerId)) {
+            throw new RuntimeException("You do not have permission to delete this course.");
+        }
+
+        VerificationToken token = verificationTokenRepository.findByUser(owner)
+                .orElseThrow(() -> new RuntimeException("OTP not found. Please request a new OTP."));
+
+        if (!token.getToken().equals(otp) || token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Invalid or expired OTP.");
+        }
+
+        classSessionRepository.deleteByCourseId(courseId);
+        classSlotRepository.deleteByCourseId(courseId);
+        courseRepository.deleteById(courseId);
+        verificationTokenRepository.delete(token);
+    }
+
+    private String generateOtp() {
+        int randomPin = (int) (Math.random() * 900000) + 100000;
+        return String.valueOf(randomPin);
     }
 
     @Transactional
@@ -216,6 +274,34 @@ public class CourseService {
         course.setPendingTeacher(invitedUser);
         course.setInvitationStatus("PENDING");
         courseRepository.save(course);
+    }
+
+    @Transactional
+    public Course assignTeacherToCourse(Long courseId, Long teacherId, Long managerId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        if (!course.getCenter().getManager().getId().equals(managerId)) {
+            throw new RuntimeException("You do not have permission to assign teacher for this course.");
+        }
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        if (!"TEACHER".equalsIgnoreCase(teacher.getRole().getName())) {
+            throw new RuntimeException("Selected user is not a teacher.");
+        }
+
+        boolean isLinkedToCenter = teacher.getConnectedCenters().stream()
+                .anyMatch(c -> c.getId().equals(course.getCenter().getId()));
+        if (!isLinkedToCenter) {
+            throw new RuntimeException("Teacher is not linked to this center.");
+        }
+
+        course.setTeacher(teacher);
+        course.setPendingTeacher(null);
+        course.setInvitationStatus("ACCEPTED");
+        return courseRepository.save(course);
     }
 
     @Transactional

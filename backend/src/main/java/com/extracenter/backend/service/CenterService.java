@@ -301,6 +301,64 @@ public class CenterService {
         return classSlotRepository.findByCenterId(centerId);
     }
 
+    public List<User> getTeachersByCenter(Long centerId) {
+        return userRepository.findTeachersByCenterId(centerId);
+    }
+
+    @Transactional
+    public User inviteTeacherToCenter(Long centerId, Long managerId, String email) {
+        Center center = getOwnedCenter(centerId, managerId);
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Teacher not found."));
+
+        if (!"TEACHER".equalsIgnoreCase(teacher.getRole().getName())) {
+            throw new RuntimeException("This user is not registered as a Teacher.");
+        }
+
+        boolean alreadyLinked = teacher.getConnectedCenters().stream()
+                .anyMatch(c -> c.getId().equals(centerId));
+
+        if (alreadyLinked) {
+            throw new RuntimeException("Teacher is already linked to this center.");
+        }
+
+        teacher.getConnectedCenters().add(center);
+        return userRepository.save(teacher);
+    }
+
+    @Transactional
+    public void unlinkTeacherFromCenter(Long centerId, Long teacherId, Long managerId) {
+        Center center = getOwnedCenter(centerId, managerId);
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found."));
+
+        if (!"TEACHER".equalsIgnoreCase(teacher.getRole().getName())) {
+            throw new RuntimeException("Selected user is not a teacher.");
+        }
+
+        if (center.getManager().getId().equals(teacherId)) {
+            throw new RuntimeException("Cannot unlink the center manager.");
+        }
+
+        boolean removed = teacher.getConnectedCenters().removeIf(c -> c.getId().equals(centerId));
+        if (!removed) {
+            throw new RuntimeException("Teacher is not linked to this center.");
+        }
+
+        // Reassign this teacher's courses in this center to the center manager.
+        List<Course> teacherCourses = courseRepository.findByCenterIdAndTeacherId(centerId, teacherId);
+        for (Course course : teacherCourses) {
+            course.setTeacher(center.getManager());
+            course.setPendingTeacher(null);
+            course.setInvitationStatus("ACCEPTED");
+        }
+        courseRepository.saveAll(teacherCourses);
+
+        userRepository.save(teacher);
+    }
+
     @Transactional
     public ClassSlot createClassSlot(Long centerId, ClassSlotRequest request) {
         Center center = getOwnedCenter(centerId, request.getManagerId());

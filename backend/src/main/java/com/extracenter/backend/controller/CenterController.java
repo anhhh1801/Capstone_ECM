@@ -31,7 +31,6 @@ import com.extracenter.backend.entity.Classroom;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
-import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.CenterService;
 import com.extracenter.backend.service.UserService;
@@ -45,8 +44,6 @@ public class CenterController {
 
     @Autowired
     private CenterService centerService;
-    @Autowired
-    private CourseRepository courseRepository;
     @Autowired
     private UserService userService;
     @Autowired
@@ -121,7 +118,37 @@ public class CenterController {
     // GET: http://localhost:8080/api/centers/1/teachers
     @GetMapping("/{centerId}/teachers")
     public ResponseEntity<List<User>> getTeachersByCenter(@PathVariable Long centerId) {
-        return ResponseEntity.ok(courseRepository.findTeachersByCenterId(centerId));
+        return ResponseEntity.ok(centerService.getTeachersByCenter(centerId));
+    }
+
+    // API: Invite/link an existing teacher to center teacher list
+    // POST: http://localhost:8080/api/centers/1/teachers/invite?managerId=10&email=abc@gmail.com
+    @PostMapping("/{centerId}/teachers/invite")
+    public ResponseEntity<?> inviteTeacherToCenter(
+            @PathVariable Long centerId,
+            @RequestParam Long managerId,
+            @RequestParam String email) {
+        try {
+            User teacher = centerService.inviteTeacherToCenter(centerId, managerId, email);
+            return ResponseEntity.ok(teacher);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Unlink teacher from center and reassign their courses to center manager
+    // DELETE: http://localhost:8080/api/centers/1/teachers/5?managerId=10
+    @DeleteMapping("/{centerId}/teachers/{teacherId}")
+    public ResponseEntity<?> unlinkTeacherFromCenter(
+            @PathVariable Long centerId,
+            @PathVariable Long teacherId,
+            @RequestParam Long managerId) {
+        try {
+            centerService.unlinkTeacherFromCenter(centerId, teacherId, managerId);
+            return ResponseEntity.ok(Map.of("message", "Teacher successfully unlinked from center."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // API: Lấy danh sách môn học của trung tâm
