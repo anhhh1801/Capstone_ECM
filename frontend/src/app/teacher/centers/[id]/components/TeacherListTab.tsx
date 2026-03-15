@@ -1,4 +1,4 @@
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, UserCog } from "lucide-react";
 import { User } from "@/services/authService";
 
 interface Props {
@@ -22,8 +22,9 @@ export default function TeacherListTab({ teachers, isManager }: Props) {
 
             {/* HEADER */}
             <div className="flex justify-between items-center">
-                <h3 className="font-bold text-[var(--color-text)]">
-                    Teacher List ({teachers.length})
+                <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
+                    <UserCog size={18} /> Teachers
+                    ({teachers.length})
                 </h3>
             </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, Edit2Icon, Trash2, PlusIcon, BookA } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterSubject,
@@ -9,6 +9,7 @@ import {
     getCenterSubjects,
 } from "@/services/centerService";
 import SubjectModal from "./SubjectModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Props {
     centerId: number;
@@ -21,6 +22,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
+    const [deletingSubject, setDeletingSubject] = useState<CenterSubject | null>(null);
 
     const fetch = useCallback(async () => {
         try {
@@ -50,11 +52,10 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
     };
 
     const handleDelete = async (subject: CenterSubject) => {
-        if (!confirm(`Delete subject "${subject.name}"?`)) return;
-
         try {
             await deleteCenterSubject(centerId, subject.id);
             toast.success("Subject deleted.");
+            setDeletingSubject(null);
             fetch();
         } catch (error) {
             console.error(error);
@@ -79,18 +80,26 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                 subject={editingSubject}
             />
 
+            <ConfirmModal
+                isOpen={!!deletingSubject}
+                title="Delete Subject"
+                message={`Delete subject "${deletingSubject?.name || ""}"?`}
+                confirmText="Delete"
+                onClose={() => setDeletingSubject(null)}
+                onConfirm={() => (deletingSubject ? handleDelete(deletingSubject) : undefined)}
+            />
+
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                    <Plus size={18} className="text-[var(--color-main)]" />
-                    Subjects
+                        <BookA size={18} /> Subjects
                 </h3>
 
                 {isManager && (
                     <button
                         onClick={handleCreate}
-                        className="bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
+                        className="flex items-center gap-2 bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
                     >
-                        Add Subject
+                       <PlusIcon size={18} /> Add Subject
                     </button>
                 )}
             </div>
@@ -123,7 +132,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                                         </button>
 
                                         <button
-                                            onClick={() => handleDelete(subject)}
+                                            onClick={() => setDeletingSubject(subject)}
                                             className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
                                         >
                                             <Trash2 size={18} />

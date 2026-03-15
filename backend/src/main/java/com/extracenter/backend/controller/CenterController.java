@@ -1,9 +1,12 @@
 package com.extracenter.backend.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,9 +18,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.dto.ClassSlotRequest;
+import com.extracenter.backend.dto.ClassroomRequest;
 import com.extracenter.backend.dto.GradeRequest;
 import com.extracenter.backend.dto.SubjectRequest;
 import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.entity.Classroom;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
@@ -25,12 +32,8 @@ import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.CenterService;
 import com.extracenter.backend.service.UserService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/centers")
@@ -245,6 +248,108 @@ public class CenterController {
             userService.removeStudentFromCenter(studentId, centerId);
             return ResponseEntity.ok(Map.of("message", "Student successfully removed from the center."));
         } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Get list of classrooms by center
+    // GET: http://localhost:8080/api/centers/1/classrooms
+    @GetMapping("/{centerId}/classrooms")
+    public ResponseEntity<List<Classroom>> getClassroomsByCenter(@PathVariable Long centerId) {
+        return ResponseEntity.ok(centerService.getClassroomsByCenter(centerId));
+    }
+
+    // API: Create classroom (owner only)
+    // POST: http://localhost:8080/api/centers/1/classrooms
+    @PostMapping("/{centerId}/classrooms")
+    public ResponseEntity<?> createClassroom(
+            @PathVariable Long centerId,
+            @Valid @RequestBody ClassroomRequest request) {
+        try {
+            Classroom classroom = centerService.createClassroom(centerId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(classroom);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Update classroom (owner only)
+    // PUT: http://localhost:8080/api/centers/1/classrooms/2
+    @PutMapping("/{centerId}/classrooms/{classroomId}")
+    public ResponseEntity<?> updateClassroom(
+            @PathVariable Long centerId,
+            @PathVariable Long classroomId,
+            @Valid @RequestBody ClassroomRequest request) {
+        try {
+            Classroom classroom = centerService.updateClassroom(centerId, classroomId, request);
+            return ResponseEntity.ok(classroom);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Delete classroom (owner only)
+    // DELETE: http://localhost:8080/api/centers/1/classrooms/2?managerId=10
+    @DeleteMapping("/{centerId}/classrooms/{classroomId}")
+    public ResponseEntity<?> deleteClassroom(
+            @PathVariable Long centerId,
+            @PathVariable Long classroomId,
+            @RequestParam Long managerId) {
+        try {
+            centerService.deleteClassroom(centerId, classroomId, managerId);
+            return ResponseEntity.ok(Map.of("message", "Classroom deleted successfully."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Get list of class slots by center
+    // GET: http://localhost:8080/api/centers/1/class-slots
+    @GetMapping("/{centerId}/class-slots")
+    public ResponseEntity<List<ClassSlot>> getClassSlotsByCenter(@PathVariable Long centerId) {
+        return ResponseEntity.ok(centerService.getClassSlotsByCenter(centerId));
+    }
+
+    // API: Create class slot (owner only)
+    // POST: http://localhost:8080/api/centers/1/class-slots
+    @PostMapping("/{centerId}/class-slots")
+    public ResponseEntity<?> createClassSlot(
+            @PathVariable Long centerId,
+            @Valid @RequestBody ClassSlotRequest request) {
+        try {
+            ClassSlot slot = centerService.createClassSlot(centerId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(slot);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Update class slot (owner only)
+    // PUT: http://localhost:8080/api/centers/1/class-slots/2
+    @PutMapping("/{centerId}/class-slots/{slotId}")
+    public ResponseEntity<?> updateClassSlot(
+            @PathVariable Long centerId,
+            @PathVariable Long slotId,
+            @Valid @RequestBody ClassSlotRequest request) {
+        try {
+            ClassSlot slot = centerService.updateClassSlot(centerId, slotId, request);
+            return ResponseEntity.ok(slot);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Delete class slot (owner only)
+    // DELETE: http://localhost:8080/api/centers/1/class-slots/2?managerId=10
+    @DeleteMapping("/{centerId}/class-slots/{slotId}")
+    public ResponseEntity<?> deleteClassSlot(
+            @PathVariable Long centerId,
+            @PathVariable Long slotId,
+            @RequestParam Long managerId) {
+        try {
+            centerService.deleteClassSlot(centerId, slotId, managerId);
+            return ResponseEntity.ok(Map.of("message", "Class slot deleted successfully."));
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

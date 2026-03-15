@@ -3,19 +3,27 @@ package com.extracenter.backend.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.dto.ClassSlotRequest;
+import com.extracenter.backend.dto.ClassroomRequest;
 import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.entity.Classroom;
+import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.ClassSlotRepository;
+import com.extracenter.backend.repository.ClassroomRepository;
+import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CenterService {
@@ -31,6 +39,15 @@ public class CenterService {
 
     @Autowired
     private GradeRepository gradeRepository;
+
+    @Autowired
+    private ClassroomRepository classroomRepository;
+
+    @Autowired
+    private ClassSlotRepository classSlotRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
 
     // 1. Create a new Center
     // @Transactional added: If saving the center works but updating the manager
@@ -220,5 +237,134 @@ public class CenterService {
         } catch (Exception e) {
             throw new RuntimeException("An error occurred while deleting the center: " + e.getMessage());
         }
+    }
+
+    private Center getOwnedCenter(Long centerId, Long managerId) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+
+        if (!center.getManager().getId().equals(managerId)) {
+            throw new RuntimeException("Only the center owner can manage classrooms.");
+        }
+
+        return center;
+    }
+
+    public List<Classroom> getClassroomsByCenter(Long centerId) {
+        return classroomRepository.findByCenterId(centerId);
+    }
+
+    @Transactional
+    public Classroom createClassroom(Long centerId, ClassroomRequest request) {
+        Center center = getOwnedCenter(centerId, request.getManagerId());
+
+        Classroom classroom = new Classroom();
+        classroom.setSeat(request.getSeat());
+        classroom.setLocation(request.getLocation());
+        classroom.setLastMaintainDate(request.getLastMaintainDate());
+        classroom.setCenter(center);
+
+        return classroomRepository.save(classroom);
+    }
+
+    @Transactional
+    public Classroom updateClassroom(Long centerId, Long classroomId, ClassroomRequest request) {
+        getOwnedCenter(centerId, request.getManagerId());
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        classroom.setSeat(request.getSeat());
+        classroom.setLocation(request.getLocation());
+        classroom.setLastMaintainDate(request.getLastMaintainDate());
+
+        return classroomRepository.save(classroom);
+    }
+
+    @Transactional
+    public void deleteClassroom(Long centerId, Long classroomId, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        classroomRepository.delete(classroom);
+    }
+
+    public List<ClassSlot> getClassSlotsByCenter(Long centerId) {
+        return classSlotRepository.findByCenterId(centerId);
+    }
+
+    @Transactional
+    public ClassSlot createClassSlot(Long centerId, ClassSlotRequest request) {
+        Center center = getOwnedCenter(centerId, request.getManagerId());
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found."));
+
+        if (!course.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Course does not belong to this center.");
+        }
+
+        Classroom classroom = null;
+        if (request.getClassroomId() != null) {
+            classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+                    .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+        }
+
+        ClassSlot slot = new ClassSlot();
+        slot.setCenter(center);
+        slot.setCourse(course);
+        slot.setClassroom(classroom);
+        slot.setStartDate(course.getStartDate());
+        slot.setEndDate(course.getEndDate());
+        slot.setStartTime(request.getStartTime());
+        slot.setEndTime(request.getEndTime());
+        slot.setDaysOfWeek(request.getDaysOfWeek());
+        slot.setIsRecurring(Boolean.TRUE.equals(request.getRecurring()) || request.getRecurring() == null);
+
+        return classSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public ClassSlot updateClassSlot(Long centerId, Long slotId, ClassSlotRequest request) {
+        getOwnedCenter(centerId, request.getManagerId());
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found."));
+
+        if (!course.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Course does not belong to this center.");
+        }
+
+        Classroom classroom = null;
+        if (request.getClassroomId() != null) {
+            classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+                    .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+        }
+
+        slot.setCourse(course);
+        slot.setClassroom(classroom);
+        slot.setStartDate(course.getStartDate());
+        slot.setEndDate(course.getEndDate());
+        slot.setStartTime(request.getStartTime());
+        slot.setEndTime(request.getEndTime());
+        slot.setDaysOfWeek(request.getDaysOfWeek());
+        slot.setIsRecurring(Boolean.TRUE.equals(request.getRecurring()) || request.getRecurring() == null);
+
+        return classSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public void deleteClassSlot(Long centerId, Long slotId, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        classSlotRepository.delete(slot);
     }
 }

@@ -1,11 +1,12 @@
 package com.extracenter.backend.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.time.DayOfWeek;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -93,10 +94,13 @@ public class CourseService {
         if (request.getSlots() != null && !request.getSlots().isEmpty()) {
             for (CourseRequest.SlotRequest slotReq : request.getSlots()) {
                 ClassSlot slot = new ClassSlot();
-                slot.setDayOfWeek(slotReq.getDayOfWeek());
+                slot.setDaysOfWeek(Collections.singleton(slotReq.getDayOfWeek()));
                 slot.setStartTime(slotReq.getStartTime());
                 slot.setEndTime(slotReq.getEndTime());
+                slot.setStartDate(savedCourse.getStartDate());
+                slot.setEndDate(savedCourse.getEndDate());
                 slot.setIsRecurring(true);
+                slot.setCenter(center);
                 slot.setCourse(savedCourse);
                 savedSlots.add(classSlotRepository.save(slot));
             }
@@ -123,7 +127,7 @@ public class CourseService {
             DayOfWeek currentDayOfWeek = currentDate.getDayOfWeek();
 
             for (ClassSlot slot : slots) {
-                if (slot.getDayOfWeek() == currentDayOfWeek) {
+                if (slot.getDaysOfWeek() != null && slot.getDaysOfWeek().contains(currentDayOfWeek)) {
                     ClassSession session = new ClassSession();
                     session.setCourse(course);
                     session.setDate(currentDate);
