@@ -24,9 +24,9 @@ public class JwtUtils {
     // 1. Tạo Token từ User
     public String generateToken(User user) {
         return Jwts.builder()
-                .setSubject(user.getEmail()) // Lưu email vào token
-                .claim("role", user.getRole().getName()) // Lưu quyền (Role)
-                .claim("userId", user.getId()) // Lưu ID
+                .setSubject(user.getEmail())
+                .claim("role", user.getRole().getName())
+                .claim("userId", user.getId())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -52,5 +52,14 @@ public class JwtUtils {
             System.out.println("Token không hợp lệ: " + e.getMessage());
             return false;
         }
+    }
+
+    public String extractRole(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role", String.class); // Lấy field "role" ra
     }
 }
