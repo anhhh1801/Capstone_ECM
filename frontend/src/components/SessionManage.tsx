@@ -6,26 +6,58 @@ import { useRouter } from "next/navigation";
 
 const SESSION_TIME = 24 * 60 * 60 * 1000;
 
+function decodeJwtPayload(token: string) {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
+    return JSON.parse(json);
+}
+
+function getSessionExpiryMs() {
+    const userStr = localStorage.getItem("loginResponse");
+    if (!userStr) return null;
+
+    const userData = JSON.parse(userStr);
+
+    if (userData?.token) {
+        const payload = decodeJwtPayload(userData.token);
+        if (payload?.exp) {
+            return Number(payload.exp) * 1000;
+        }
+    }
+
+    // Fallback for legacy sessions created before JWT exp-based checks.
+    if (userData?.loginTime) {
+        return Number(userData.loginTime) + SESSION_TIME;
+    }
+
+    return null;
+}
+
 export default function SessionManager() {
     const [showModal, setShowModal] = useState(false);
     const [countdown, setCountdown] = useState(5);
     const router = useRouter();
 
     useEffect(() => {
-        const interval = setInterval(() => {
-
+        const checkSessionExpiry = () => {
             if (window.location.pathname === "/login") return;
 
-            const userStr = localStorage.getItem("loginResponse");
-            if (!userStr) return;
-
-            const user = JSON.parse(userStr);
-
-            if (Date.now() - user.loginTime > SESSION_TIME) {
+            try {
+                const expiryMs = getSessionExpiryMs();
+                if (expiryMs && Date.now() >= expiryMs) {
+                    setShowModal(true);
+                }
+            } catch {
+                // If session data is malformed, force logout for safety.
                 setShowModal(true);
             }
+        };
 
-        }, 1000);
+        checkSessionExpiry();
+        const interval = setInterval(checkSessionExpiry, 5000);
 
         return () => clearInterval(interval);
     }, []);

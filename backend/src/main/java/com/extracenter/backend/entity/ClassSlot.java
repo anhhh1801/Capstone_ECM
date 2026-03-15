@@ -47,6 +47,11 @@ public class ClassSlot {
     @Enumerated(EnumType.STRING)
     private Set<DayOfWeek> daysOfWeek = new HashSet<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "class_slot_excluded_dates", joinColumns = @JoinColumn(name = "class_slot_id"))
+    @Column(name = "excluded_date", nullable = false)
+    private Set<LocalDate> excludedDates = new HashSet<>();
+
     // Backward compatibility for existing schema where ClassSlot has a required
     // day_of_week column.
     @Enumerated(EnumType.STRING)

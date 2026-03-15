@@ -1,9 +1,11 @@
 package com.extracenter.backend.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.dto.ClassSlotOccurrenceOverrideRequest;
 import com.extracenter.backend.dto.ClassSlotRequest;
 import com.extracenter.backend.dto.ClassroomRequest;
 import com.extracenter.backend.dto.GradeRequest;
@@ -349,6 +352,34 @@ public class CenterController {
         try {
             centerService.deleteClassSlot(centerId, slotId, managerId);
             return ResponseEntity.ok(Map.of("message", "Class slot deleted successfully."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{centerId}/class-slots/{slotId}/occurrences")
+    public ResponseEntity<?> deleteClassSlotOccurrence(
+            @PathVariable Long centerId,
+            @PathVariable Long slotId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam Long managerId) {
+        try {
+            centerService.deleteClassSlotOccurrence(centerId, slotId, date, managerId);
+            return ResponseEntity.ok(Map.of("message", "Class slot occurrence deleted successfully."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{centerId}/class-slots/{slotId}/occurrences/override")
+    public ResponseEntity<?> overrideClassSlotOccurrence(
+            @PathVariable Long centerId,
+            @PathVariable Long slotId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Valid @RequestBody ClassSlotOccurrenceOverrideRequest request) {
+        try {
+            ClassSlot overrideSlot = centerService.overrideClassSlotOccurrence(centerId, slotId, date, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(overrideSlot);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

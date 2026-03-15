@@ -33,13 +33,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            console.warn("Unauthorized - logging out");
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
+            console.warn(`Auth error (${status}) - logging out`);
 
             localStorage.removeItem("loginResponse");
 
             // redirect to login
-            if (typeof window !== "undefined") {
+            if (typeof window !== "undefined" && window.location.pathname !== "/login") {
                 window.location.href = "/login";
             }
         }

@@ -8,9 +8,11 @@ import {
     CenterClassroom,
     CenterClassSlot,
     deleteCenterClassSlot,
+    deleteCenterClassSlotOccurrence,
     getCenterClassrooms,
     getCenterClassSlots,
 } from "@/services/centerService";
+import { getStudentsInCourse } from "@/services/courseService";
 import ClassSlotModal from "./ClassSlotModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import { DateHeader, Timeline, TimelineHeaders, TimelineItemBase } from "react-calendar-timeline";
@@ -45,8 +47,12 @@ function getWeekStart(d: dayjs.Dayjs): dayjs.Dayjs {
 type TimelineViewMode = "week" | "day";
 
 type TimelineDisplayItem = TimelineItemBase<number> & {
+    slotId: number;
+    occurrenceDate: string;
     courseId?: number;
     courseName: string;
+    teacherText: string;
+    studentText: string;
     timeText: string;
     daysText: string;
     rangeText: string;
@@ -62,12 +68,35 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     const router = useRouter();
     const [slots, setSlots] = useState<CenterClassSlot[]>([]);
     const [classrooms, setClassrooms] = useState<CenterClassroom[]>([]);
+    const [courseStudentCounts, setCourseStudentCounts] = useState<Record<number, number>>({});
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingSlot, setEditingSlot] = useState<CenterClassSlot | null>(null);
     const [deletingSlot, setDeletingSlot] = useState<CenterClassSlot | null>(null);
     const [viewMode, setViewMode] = useState<TimelineViewMode>("week");
     const [focusDate, setFocusDate] = useState(() => dayjs().startOf("day"));
+    const [selectedOccurrence, setSelectedOccurrence] = useState<{
+        slotId: number;
+        occurrenceDate: string;
+        startTime: string;
+        endTime: string;
+    } | null>(null);
+    const [isOccurrenceActionModalOpen, setOccurrenceActionModalOpen] = useState(false);
+    const [isOccurrenceEditModalOpen, setOccurrenceEditModalOpen] = useState(false);
+    const [occurrenceEditSlot, setOccurrenceEditSlot] = useState<CenterClassSlot | null>(null);
+    const [isDeleteOccurrenceConfirmOpen, setDeleteOccurrenceConfirmOpen] = useState(false);
+    const isAnyOverlayOpen =
+        isModalOpen ||
+        isOccurrenceEditModalOpen ||
+        isOccurrenceActionModalOpen ||
+        isDeleteOccurrenceConfirmOpen ||
+        !!deletingSlot;
+
+    const parseUserManagerId = () => {
+        const userRaw = localStorage.getItem("user");
+        const user = userRaw ? JSON.parse(userRaw) : null;
+        return user?.id as number | undefined;
+    };
 
     const fetchData = useCallback(async () => {
         try {
@@ -78,6 +107,27 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             ]);
             setSlots(slotData);
             setClassrooms(roomData);
+
+            const uniqueCourseIds = Array.from(
+                new Set(slotData.map((slot) => slot.course?.id).filter((id): id is number => typeof id === "number"))
+            );
+
+            if (uniqueCourseIds.length > 0) {
+                const counts = await Promise.all(
+                    uniqueCourseIds.map(async (courseId) => {
+                        try {
+                            const students = await getStudentsInCourse(courseId);
+                            return [courseId, Array.isArray(students) ? students.length : 0] as const;
+                        } catch {
+                            return [courseId, 0] as const;
+                        }
+                    })
+                );
+
+                setCourseStudentCounts(Object.fromEntries(counts));
+            } else {
+                setCourseStudentCounts({});
+            }
         } catch (error) {
             console.error(error);
             toast.error("Cannot load class slots.");
@@ -131,7 +181,26 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             let current = dayjs(slot.startDate);
             while (!current.isAfter(dateEnd)) {
                 if (slot.daysOfWeek.some((d) => DAY_OF_WEEK_MAP[d] === current.day())) {
+                    const occurrenceDate = current.format("YYYY-MM-DD");
+                    if (slot.excludedDates?.includes(occurrenceDate)) {
+                        current = current.add(1, "day");
+                        continue;
+                    }
+
                     const courseName = slot.course?.name || "Class";
+                    const teacherName =
+                        slot.course?.teacherName ||
+                        slot.course?.teacher?.fullName ||
+                        slot.course?.teacher?.name ||
+                        [slot.course?.teacher?.firstName, slot.course?.teacher?.lastName].filter(Boolean).join(" ") ||
+                        "Not assigned";
+                    const studentCount =
+                        slot.course?.studentCount ??
+                        slot.course?.totalStudents ??
+                        slot.course?.totalStudent ??
+                        slot.course?.numberOfStudents ??
+                        slot.course?.students?.length ??
+                        (slot.course?.id ? courseStudentCounts[slot.course.id] : undefined);
                     const timeText = `${slot.startTime?.slice(0, 5)} - ${slot.endTime?.slice(0, 5)}`;
                     const daysText = `Days: ${(slot.daysOfWeek || []).join(", ") || "-"}`;
                     const rangeText = `Date Range: ${slot.startDate} -> ${slot.endDate}`;
@@ -139,6 +208,8 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
 
                     items.push({
                         id: counter++,
+                        slotId: slot.id,
+                        occurrenceDate,
                         group: groupId,
                         title: courseName,
                         start_time: current.hour(startH).minute(startM).second(0).valueOf(),
@@ -147,6 +218,8 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                         canResize: false,
                         courseId: slot.course?.id,
                         courseName,
+                        teacherText: `Teacher: ${teacherName}`,
+                        studentText: `Students: ${studentCount ?? "N/A"}`,
                         timeText,
                         daysText,
                         rangeText,
@@ -157,7 +230,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             }
             return items;
         });
-    }, [slots]);
+    }, [slots, courseStudentCounts]);
 
     const courseIdByItemId = useMemo(() => {
         const map = new Map<string, number>();
@@ -165,6 +238,19 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             if (item.courseId) {
                 map.set(String(item.id), item.courseId);
             }
+        });
+        return map;
+    }, [timelineItems]);
+
+    const occurrenceByItemId = useMemo(() => {
+        const map = new Map<string, { slotId: number; occurrenceDate: string; startTime: string; endTime: string }>();
+        timelineItems.forEach((item) => {
+            map.set(String(item.id), {
+                slotId: item.slotId,
+                occurrenceDate: item.occurrenceDate,
+                startTime: dayjs(item.start_time).format("HH:mm"),
+                endTime: dayjs(item.end_time).format("HH:mm"),
+            });
         });
         return map;
     }, [timelineItems]);
@@ -234,6 +320,72 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
         [courseIdByItemId, router]
     );
 
+    const handleItemClick = useCallback(
+        async (itemId: number | string) => {
+            if (isAnyOverlayOpen) return;
+            if (!isManager) return;
+
+            const occurrence = occurrenceByItemId.get(String(itemId));
+            if (!occurrence) return;
+
+            setSelectedOccurrence(occurrence);
+            setOccurrenceActionModalOpen(true);
+        },
+        [isAnyOverlayOpen, isManager, occurrenceByItemId]
+    );
+
+    const handleEditWholeSeries = useCallback(() => {
+        if (!selectedOccurrence) return;
+        const slot = slots.find((s) => s.id === selectedOccurrence.slotId);
+        if (!slot) {
+            toast.error("Cannot find slot to edit.");
+            return;
+        }
+        setOccurrenceActionModalOpen(false);
+        setEditingSlot(slot);
+        setModalOpen(true);
+    }, [selectedOccurrence, slots]);
+
+    const handleOpenOverrideModal = useCallback(() => {
+        if (!selectedOccurrence) return;
+
+        const slot = slots.find((s) => s.id === selectedOccurrence.slotId);
+        if (!slot) {
+            toast.error("Cannot find slot to edit.");
+            return;
+        }
+
+        setOccurrenceActionModalOpen(false);
+        setOccurrenceEditSlot(slot);
+        setOccurrenceEditModalOpen(true);
+    }, [selectedOccurrence, slots]);
+
+    const handleDeleteSelectedOccurrence = useCallback(() => {
+        if (!selectedOccurrence) return;
+        setOccurrenceActionModalOpen(false);
+        setDeleteOccurrenceConfirmOpen(true);
+    }, [selectedOccurrence]);
+
+    const confirmDeleteSelectedOccurrence = useCallback(async () => {
+        if (!selectedOccurrence) return;
+
+        const managerId = parseUserManagerId();
+        if (!managerId) {
+            toast.error("Cannot identify manager. Please login again.");
+            return;
+        }
+
+        try {
+            await deleteCenterClassSlotOccurrence(centerId, selectedOccurrence.slotId, selectedOccurrence.occurrenceDate, managerId);
+            toast.success("Selected occurrence deleted.");
+            setDeleteOccurrenceConfirmOpen(false);
+            setSelectedOccurrence(null);
+            fetchData();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.error || "Could not delete selected occurrence.");
+        }
+    }, [centerId, fetchData, selectedOccurrence]);
+
     const dayPrimaryHeaderLabel = useCallback((timeRange: [dayjs.Dayjs, dayjs.Dayjs]) => {
         return timeRange[0].format("dddd, MMM D, YYYY");
     }, []);
@@ -245,28 +397,29 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     const renderTimelineItem = useCallback(
         ({ item, getItemProps, itemContext }: any) => {
             const displayItem = item as TimelineDisplayItem;
+            const itemProps = getItemProps({
+                className:
+                    "group !bg-transparent !border-0 !shadow-none !text-inherit cursor-pointer overflow-visible",
+            });
+            const { key, ...restItemProps } = itemProps;
+
             return (
-                <div
-                    {...getItemProps({
-                        className:
-                            "group !bg-transparent !border-0 !shadow-none !text-inherit cursor-pointer overflow-visible",
-                    })}
-                >
+                <div key={key} {...restItemProps} onClick={() => handleItemClick(displayItem.id)}>
                     <div
-                        className={`h-full w-full rounded-md border border-[var(--color-main)] bg-[var(--color-soft-white)] p-2 text-[11px] leading-tight text-[var(--color-text)] shadow-sm transition-all group-hover:border-[var(--color-secondary)] group-hover:shadow-md ${
+                        className={`h-full w-full rounded-md border-2 border-[var(--color-main)] bg-[var(--color-secondary)]/80 p-2 leading-tight text-[var(--color-text)] shadow-sm transition-all group-hover:border-[var(--color-secondary)] group-hover:shadow-md ${
                             itemContext.dragging ? "opacity-70" : "opacity-100"
                         }`}
                     >
                         <div className="truncate font-semibold text-[var(--color-main)]">{displayItem.courseName}</div>
+                        <div className="truncate">{displayItem.teacherText}</div>
+                        <div className="truncate">{displayItem.studentText}</div>
                         <div className="truncate">{displayItem.timeText}</div>
-                        <div className="truncate">{displayItem.daysText}</div>
-                        <div className="truncate">{displayItem.rangeText}</div>
                         <div className="truncate">{displayItem.classroomText}</div>
                     </div>
                 </div>
             );
         },
-        []
+        [handleItemClick]
     );
 
     if (loading) {
@@ -284,6 +437,27 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 classrooms={classrooms}
             />
 
+            <ClassSlotModal
+                centerId={centerId}
+                isOpen={isOccurrenceEditModalOpen}
+                onClose={() => {
+                    setOccurrenceEditModalOpen(false);
+                    setOccurrenceEditSlot(null);
+                }}
+                onSuccess={() => {
+                    setOccurrenceEditModalOpen(false);
+                    setOccurrenceEditSlot(null);
+                    setSelectedOccurrence(null);
+                    fetchData();
+                }}
+                slot={occurrenceEditSlot}
+                classrooms={classrooms}
+                mode="occurrence"
+                occurrenceDate={selectedOccurrence?.occurrenceDate}
+                occurrenceSlotId={selectedOccurrence?.slotId}
+                lockCourse
+            />
+
             <ConfirmModal
                 isOpen={!!deletingSlot}
                 title="Delete Class Slot"
@@ -293,9 +467,59 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 onConfirm={() => (deletingSlot ? handleDelete(deletingSlot) : undefined)}
             />
 
+            <ConfirmModal
+                isOpen={isDeleteOccurrenceConfirmOpen}
+                title="Delete Selected Occurrence"
+                message={`Delete only ${selectedOccurrence?.occurrenceDate || "this occurrence"}?`}
+                confirmText="Delete"
+                onClose={() => setDeleteOccurrenceConfirmOpen(false)}
+                onConfirm={confirmDeleteSelectedOccurrence}
+            />
+
+            {isOccurrenceActionModalOpen && selectedOccurrence && (
+                <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
+                        <h3 className="text-lg font-bold text-[var(--color-text)]">Selected Slot Action</h3>
+                        <p className="text-sm text-gray-600">
+                            Date: {selectedOccurrence.occurrenceDate} | {selectedOccurrence.startTime} - {selectedOccurrence.endTime}
+                        </p>
+
+                        <div className="space-y-2">
+                            <button
+                                onClick={handleOpenOverrideModal}
+                                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--color-main)] hover:bg-[var(--color-soft-white)] transition"
+                            >
+                                Edit Selected Occurrence (Override)
+                            </button>
+                            <button
+                                onClick={handleEditWholeSeries}
+                                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--color-main)] hover:bg-[var(--color-soft-white)] transition"
+                            >
+                                Edit Whole Series
+                            </button>
+                            <button
+                                onClick={handleDeleteSelectedOccurrence}
+                                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--color-alert)] text-[var(--color-alert)] hover:bg-[var(--color-soft-white)] transition"
+                            >
+                                Delete Selected Occurrence
+                            </button>
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <button
+                                onClick={() => setOccurrenceActionModalOpen(false)}
+                                className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                    <CalendarDays size={18} /> Class Slots
+                    <CalendarDays size={18} /> Active Classes
                 </h3>
 
                 {isManager && (
@@ -317,7 +541,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
                         {slots.map((slot) => (
                             <div
                                 key={slot.id}
@@ -374,7 +598,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                     </div>
 
                     {/* Schedule Timeline */}
-                    <div className="schedule-timeline rounded-lg overflow-hidden border border-[var(--color-main)]">
+                    <div className={`schedule-timeline rounded-lg overflow-hidden border border-[var(--color-main)] relative z-0 ${isAnyOverlayOpen ? "pointer-events-none select-none" : ""}`}>
 
                         {/* Day/week navigation controller */}
                         <div className="bg-[var(--color-main)] text-white text-sm font-medium px-4 py-2 flex items-center gap-2 flex-wrap">
@@ -434,12 +658,14 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                                 <Timeline
                                     groups={timelineGroups}
                                     items={timelineItems}
+                                    selected={[]}
                                     keys={TIMELINE_KEYS}
                                     defaultTimeStart={visibleStart}
                                     defaultTimeEnd={visibleEnd}
                                     visibleTimeStart={visibleStart}
                                     visibleTimeEnd={visibleEnd}
                                     onTimeChange={handleTimeChange}
+                                    onItemClick={handleItemClick}
                                     onItemDoubleClick={handleItemDoubleClick}
                                     itemRenderer={renderTimelineItem}
                                     sidebarWidth={190}

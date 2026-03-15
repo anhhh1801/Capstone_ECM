@@ -1,6 +1,11 @@
 package com.extracenter.backend.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -8,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.dto.ClassSlotOccurrenceOverrideRequest;
 import com.extracenter.backend.dto.ClassSlotRequest;
 import com.extracenter.backend.dto.ClassroomRequest;
 import com.extracenter.backend.entity.Center;
@@ -312,6 +318,18 @@ public class CenterService {
                     .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
         }
 
+        validateSlotTimes(request.getStartTime(), request.getEndTime());
+        validateNoTimeConflicts(
+            centerId,
+            request.getCourseId(),
+            request.getClassroomId(),
+            course.getStartDate(),
+            course.getEndDate(),
+            request.getStartTime(),
+            request.getEndTime(),
+            request.getDaysOfWeek(),
+            null);
+
         ClassSlot slot = new ClassSlot();
         slot.setCenter(center);
         slot.setCourse(course);
@@ -346,6 +364,18 @@ public class CenterService {
                     .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
         }
 
+        validateSlotTimes(request.getStartTime(), request.getEndTime());
+        validateNoTimeConflicts(
+            centerId,
+            request.getCourseId(),
+            request.getClassroomId(),
+            course.getStartDate(),
+            course.getEndDate(),
+            request.getStartTime(),
+            request.getEndTime(),
+            request.getDaysOfWeek(),
+            slotId);
+
         slot.setCourse(course);
         slot.setClassroom(classroom);
         slot.setStartDate(course.getStartDate());
@@ -366,5 +396,205 @@ public class CenterService {
                 .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
 
         classSlotRepository.delete(slot);
+    }
+
+    @Transactional
+    public void deleteClassSlotOccurrence(Long centerId, Long slotId, LocalDate date, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        if (!isDateWithinRange(date, slot.getStartDate(), slot.getEndDate())) {
+            throw new RuntimeException("Selected date is outside the class slot date range.");
+        }
+
+        if (!isSlotScheduledOnDate(slot, date)) {
+            throw new RuntimeException("This class slot does not run on the selected date.");
+        }
+
+        if (slot.getExcludedDates() == null) {
+            slot.setExcludedDates(new HashSet<>());
+        }
+
+        slot.getExcludedDates().add(date);
+        classSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public ClassSlot overrideClassSlotOccurrence(
+            Long centerId,
+            Long slotId,
+            LocalDate date,
+            ClassSlotOccurrenceOverrideRequest request) {
+
+        getOwnedCenter(centerId, request.getManagerId());
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        if (!isDateWithinRange(date, slot.getStartDate(), slot.getEndDate())) {
+            throw new RuntimeException("Selected date is outside the class slot date range.");
+        }
+
+        if (!isSlotScheduledOnDate(slot, date)) {
+            throw new RuntimeException("This class slot does not run on the selected date.");
+        }
+
+        validateSlotTimes(request.getStartTime(), request.getEndTime());
+
+        Classroom overrideClassroom = null;
+        if (request.getClassroomId() != null) {
+            overrideClassroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+                    .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+        }
+
+        Set<DayOfWeek> singleDay = new HashSet<>();
+        singleDay.add(date.getDayOfWeek());
+
+        validateNoTimeConflicts(
+                centerId,
+                slot.getCourse() != null ? slot.getCourse().getId() : null,
+                request.getClassroomId(),
+                date,
+                date,
+                request.getStartTime(),
+                request.getEndTime(),
+                singleDay,
+                slotId);
+
+        if (slot.getExcludedDates() == null) {
+            slot.setExcludedDates(new HashSet<>());
+        }
+        slot.getExcludedDates().add(date);
+        classSlotRepository.save(slot);
+
+        ClassSlot overrideSlot = new ClassSlot();
+        overrideSlot.setCenter(slot.getCenter());
+        overrideSlot.setCourse(slot.getCourse());
+        overrideSlot.setClassroom(overrideClassroom);
+        overrideSlot.setStartDate(date);
+        overrideSlot.setEndDate(date);
+        overrideSlot.setStartTime(request.getStartTime());
+        overrideSlot.setEndTime(request.getEndTime());
+        overrideSlot.setDaysOfWeek(singleDay);
+        overrideSlot.setIsRecurring(false);
+
+        return classSlotRepository.save(overrideSlot);
+    }
+
+    private void validateSlotTimes(LocalTime startTime, LocalTime endTime) {
+        LocalTime earliestAllowed = LocalTime.of(7, 0);
+        LocalTime latestAllowed = LocalTime.of(22, 0);
+
+        if (startTime == null || endTime == null) {
+            throw new RuntimeException("Start time and end time are required.");
+        }
+
+        if (startTime.isBefore(earliestAllowed) || endTime.isAfter(latestAllowed)) {
+            throw new RuntimeException("Class time must be between 7:00 AM and 10:00 PM.");
+        }
+
+        if (!(startTime.getMinute() == 0 || startTime.getMinute() == 30)
+                || !(endTime.getMinute() == 0 || endTime.getMinute() == 30)) {
+            throw new RuntimeException("Time must be on 30-minute boundaries (:00 or :30).");
+        }
+
+        if (!endTime.isAfter(startTime)) {
+            throw new RuntimeException("End time must be after start time.");
+        }
+    }
+
+    private void validateNoTimeConflicts(
+            Long centerId,
+            Long requestCourseId,
+            Long requestClassroomId,
+            LocalDate requestStartDate,
+            LocalDate requestEndDate,
+            LocalTime requestStartTime,
+            LocalTime requestEndTime,
+            Set<DayOfWeek> requestDays,
+            Long excludeSlotId) {
+
+        List<ClassSlot> existingSlots = classSlotRepository.findByCenterId(centerId);
+
+        for (ClassSlot existing : existingSlots) {
+            if (excludeSlotId != null && excludeSlotId.equals(existing.getId())) {
+                continue;
+            }
+
+            if (!dateRangesOverlap(requestStartDate, requestEndDate, existing.getStartDate(), existing.getEndDate())) {
+                continue;
+            }
+
+            if (!daySetsOverlap(requestDays, getEffectiveDays(existing))) {
+                continue;
+            }
+
+            if (!timeRangesOverlap(requestStartTime, requestEndTime, existing.getStartTime(), existing.getEndTime())) {
+                continue;
+            }
+
+            Long existingCourseId = existing.getCourse() != null ? existing.getCourse().getId() : null;
+            Long existingClassroomId = existing.getClassroom() != null ? existing.getClassroom().getId() : null;
+
+            if (requestCourseId != null && requestCourseId.equals(existingCourseId)) {
+                throw new RuntimeException("This course already has another class slot at the same time.");
+            }
+
+            if (requestClassroomId != null && requestClassroomId.equals(existingClassroomId)) {
+                throw new RuntimeException("This classroom is already occupied at the selected time.");
+            }
+        }
+    }
+
+    private boolean timeRangesOverlap(LocalTime startA, LocalTime endA, LocalTime startB, LocalTime endB) {
+        return startA.isBefore(endB) && startB.isBefore(endA);
+    }
+
+    private boolean dateRangesOverlap(LocalDate startA, LocalDate endA, LocalDate startB, LocalDate endB) {
+        return !endA.isBefore(startB) && !endB.isBefore(startA);
+    }
+
+    private boolean daySetsOverlap(Set<DayOfWeek> daysA, Set<DayOfWeek> daysB) {
+        if (daysA == null || daysA.isEmpty() || daysB == null || daysB.isEmpty()) {
+            return false;
+        }
+
+        for (DayOfWeek day : daysA) {
+            if (daysB.contains(day)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isDateWithinRange(LocalDate date, LocalDate startDate, LocalDate endDate) {
+        return date != null && startDate != null && endDate != null
+                && !date.isBefore(startDate) && !date.isAfter(endDate);
+    }
+
+    private boolean isSlotScheduledOnDate(ClassSlot slot, LocalDate date) {
+        Set<DayOfWeek> days = getEffectiveDays(slot);
+        if (!days.contains(date.getDayOfWeek())) {
+            return false;
+        }
+
+        Set<LocalDate> excludedDates = slot.getExcludedDates();
+        return excludedDates == null || !excludedDates.contains(date);
+    }
+
+    private Set<DayOfWeek> getEffectiveDays(ClassSlot slot) {
+        Set<DayOfWeek> effectiveDays = new HashSet<>();
+
+        if (slot.getDaysOfWeek() != null) {
+            effectiveDays.addAll(slot.getDaysOfWeek());
+        }
+
+        if (slot.getDayOfWeek() != null) {
+            effectiveDays.add(slot.getDayOfWeek());
+        }
+
+        return effectiveDays;
     }
 }

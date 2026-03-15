@@ -65,17 +65,38 @@ export interface CenterClassSlot {
     endTime: string;
     daysOfWeek: string[];
     isRecurring: boolean;
+    excludedDates?: string[];
     course?: {
         id: number;
         name: string;
         startDate?: string;
         endDate?: string;
+        teacher?: {
+            id?: number;
+            firstName?: string;
+            lastName?: string;
+            name?: string;
+            fullName?: string;
+        };
+        teacherName?: string;
+        studentCount?: number;
+        totalStudents?: number;
+        totalStudent?: number;
+        numberOfStudents?: number;
+        students?: Array<{ id?: number }>;
     };
     classroom?: {
         id: number;
         location: string;
         seat?: number;
     };
+}
+
+export interface ClassSlotOccurrenceOverridePayload {
+    managerId: number;
+    startTime: string;
+    endTime: string;
+    classroomId?: number;
 }
 
 export interface ClassSlotPayload {
@@ -188,4 +209,26 @@ export const updateCenterClassSlot = async (centerId: number, slotId: number, da
 export const deleteCenterClassSlot = async (centerId: number, slotId: number, managerId: number) => {
     const response = await api.delete(`/centers/${centerId}/class-slots/${slotId}?managerId=${managerId}`);
     return response.data;
+};
+
+export const deleteCenterClassSlotOccurrence = async (
+    centerId: number,
+    slotId: number,
+    date: string,
+    managerId: number
+) => {
+    const response = await api.delete(
+        `/centers/${centerId}/class-slots/${slotId}/occurrences?date=${date}&managerId=${managerId}`
+    );
+    return response.data;
+};
+
+export const overrideCenterClassSlotOccurrence = async (
+    centerId: number,
+    slotId: number,
+    date: string,
+    data: ClassSlotOccurrenceOverridePayload
+) => {
+    const response = await api.post(`/centers/${centerId}/class-slots/${slotId}/occurrences/override?date=${date}`, data);
+    return response.data as CenterClassSlot;
 };
