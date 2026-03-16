@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.extracenter.backend.dto.ClassSessionCreateRequest;
 import com.extracenter.backend.dto.CourseRequest;
 import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.Course;
@@ -57,6 +58,18 @@ public class CourseController {
     @GetMapping("/{id}/sessions")
     public ResponseEntity<List<ClassSession>> getCourseSessions(@PathVariable Long id) {
         return ResponseEntity.ok(courseService.getClassSessionsByCourse(id));
+    }
+
+    @PostMapping("/{id}/sessions")
+    public ResponseEntity<?> createCourseSession(
+            @PathVariable Long id,
+            @Valid @RequestBody ClassSessionCreateRequest request) {
+        try {
+            ClassSession created = courseService.createClassSession(id, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // API: Update an existing course

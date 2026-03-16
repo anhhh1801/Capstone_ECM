@@ -37,8 +37,21 @@ export interface SaveAttendancePayload {
     }>;
 }
 
+export interface CreateCourseSessionPayload {
+    actorId: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+    note?: string;
+}
+
 export const getCourseSessions = async (courseId: number) => {
     const response = await api.get<CourseSession[]>(`/courses/${courseId}/sessions`);
+    return response.data;
+};
+
+export const createCourseSession = async (courseId: number, payload: CreateCourseSessionPayload) => {
+    const response = await api.post<CourseSession>(`/courses/${courseId}/sessions`, payload);
     return response.data;
 };
 

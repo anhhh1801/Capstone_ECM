@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.extracenter.backend.dto.ClassSessionCreateRequest;
 import com.extracenter.backend.dto.CourseRequest;
 import com.extracenter.backend.entity.Center;
 import com.extracenter.backend.entity.ClassSession;
@@ -173,6 +174,48 @@ public class CourseService {
         courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
         return classSessionRepository.findByCourseIdOrderByDateAsc(courseId);
+    }
+
+    @Transactional
+    public ClassSession createClassSession(Long courseId, ClassSessionCreateRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        boolean isTeacher = course.getTeacher() != null && course.getTeacher().getId().equals(request.getActorId());
+        boolean isManager = course.getCenter() != null
+                && course.getCenter().getManager() != null
+                && course.getCenter().getManager().getId().equals(request.getActorId());
+
+        if (!isTeacher && !isManager) {
+            throw new RuntimeException("Only assigned teacher or center manager can create sessions.");
+        }
+
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new RuntimeException("End time must be after start time.");
+        }
+
+        if (request.getStartTime().isBefore(java.time.LocalTime.of(7, 0))
+                || request.getEndTime().isAfter(java.time.LocalTime.of(22, 0))) {
+            throw new RuntimeException("Session time must be between 7:00 AM and 10:00 PM.");
+        }
+
+        if (classSessionRepository.existsByCourseIdAndDateAndStartTimeAndEndTime(
+                courseId,
+                request.getDate(),
+                request.getStartTime(),
+                request.getEndTime())) {
+            throw new RuntimeException("This session already exists.");
+        }
+
+        ClassSession session = new ClassSession();
+        session.setCourse(course);
+        session.setDate(request.getDate());
+        session.setStartTime(request.getStartTime());
+        session.setEndTime(request.getEndTime());
+        session.setStatus("SCHEDULED");
+        session.setNote(request.getNote());
+
+        return classSessionRepository.save(session);
     }
 
     @Transactional

@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import CenterTabsInCourse from "./components/CenterTabsInCourse";
 import CourseEnrollment from "./components/CourseEnrollment";
 import CourseAttendance from "./components/CourseAttendance";
+import StudentList from "./components/StudentList";
 import NotFound from "@/app/not-found";
 import { formatDateValue } from "@/utils/dateFormat";
 
@@ -314,7 +315,7 @@ export default function CourseDetailPage() {
 
                 <div>
 
-                    <CourseEnrollment courseId={courseId} />
+                    <StudentList courseId={courseId} />
 
                 </div>
 

@@ -17,6 +17,8 @@ public interface ClassSlotRepository extends JpaRepository<ClassSlot, Long> {
 
     Optional<ClassSlot> findByIdAndCenterId(Long slotId, Long centerId);
 
+    List<ClassSlot> findByCourseId(Long courseId);
+
     // FIX: Changed 'e.user.id' to 'e.student.id' to match the Enrollment entity
     @Query("SELECT DISTINCT s FROM ClassSlot s JOIN Enrollment e ON e.course.id = s.course.id WHERE e.student.id = :studentId")
     List<ClassSlot> findByStudentId(@Param("studentId") Long studentId);

@@ -6,6 +6,7 @@ import {
     AttendanceSheetStudentRow,
     AttendanceStatus,
     CourseSession,
+    createCourseSession,
     getAttendanceSheet,
     getCourseSessions,
     saveAttendance,
@@ -31,24 +32,37 @@ export default function CourseAttendance({ courseId }: Props) {
     const [rows, setRows] = useState<AttendanceSheetStudentRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [creatingSession, setCreatingSession] = useState(false);
+    const [newSessionDate, setNewSessionDate] = useState("");
+    const [newSessionStartTime, setNewSessionStartTime] = useState("07:00");
+    const [newSessionEndTime, setNewSessionEndTime] = useState("08:00");
+    const [newSessionNote, setNewSessionNote] = useState("");
+
+    const fetchSessions = async (targetSessionId?: number) => {
+        try {
+            setLoading(true);
+            const data = await getCourseSessions(courseId);
+            setSessions(data);
+
+            if (targetSessionId && data.some((s) => s.id === targetSessionId)) {
+                setSelectedSessionId(targetSessionId);
+                return;
+            }
+
+            if (data.length > 0) {
+                setSelectedSessionId(data[0].id);
+            } else {
+                setSelectedSessionId("");
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.error || "Cannot load sessions.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchSessions = async () => {
-            try {
-                setLoading(true);
-                const data = await getCourseSessions(courseId);
-                setSessions(data);
-                if (data.length > 0) {
-                    setSelectedSessionId(data[0].id);
-                }
-            } catch (error: any) {
-                console.error(error);
-                toast.error(error?.response?.data?.error || "Cannot load sessions.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchSessions();
     }, [courseId]);
 
@@ -114,12 +128,101 @@ export default function CourseAttendance({ courseId }: Props) {
         }
     };
 
+    const handleCreateSession = async () => {
+        const userRaw = localStorage.getItem("user");
+        const user = userRaw ? JSON.parse(userRaw) : null;
+        const actorId = user?.id as number | undefined;
+
+        if (!actorId) {
+            toast.error("Cannot identify user. Please login again.");
+            return;
+        }
+
+        if (!newSessionDate) {
+            toast.error("Please select session date.");
+            return;
+        }
+
+        if (!newSessionStartTime || !newSessionEndTime) {
+            toast.error("Please select session start and end time.");
+            return;
+        }
+
+        if (newSessionEndTime <= newSessionStartTime) {
+            toast.error("End time must be after start time.");
+            return;
+        }
+
+        try {
+            setCreatingSession(true);
+            const created = await createCourseSession(courseId, {
+                actorId,
+                date: newSessionDate,
+                startTime: newSessionStartTime,
+                endTime: newSessionEndTime,
+                note: newSessionNote || undefined,
+            });
+
+            toast.success("Session created.");
+            await fetchSessions(created.id);
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error?.response?.data?.error || "Cannot create session.");
+        } finally {
+            setCreatingSession(false);
+        }
+    };
+
     if (loading && sessions.length === 0) {
         return <div className="p-6 text-center text-[var(--color-text)]">Loading attendance...</div>;
     }
 
     return (
         <div className="space-y-4">
+            <div className="rounded-lg border border-[var(--color-main)] bg-[var(--color-soft-white)] p-3">
+                <div className="mb-2 text-sm font-semibold text-[var(--color-text)]">Create Session</div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+                    <input
+                        type="date"
+                        value={newSessionDate}
+                        onChange={(e) => setNewSessionDate(e.target.value)}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
+                    />
+                    <input
+                        type="time"
+                        min="07:00"
+                        max="22:00"
+                        step={1800}
+                        value={newSessionStartTime}
+                        onChange={(e) => setNewSessionStartTime(e.target.value)}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
+                    />
+                    <input
+                        type="time"
+                        min="07:00"
+                        max="22:00"
+                        step={1800}
+                        value={newSessionEndTime}
+                        onChange={(e) => setNewSessionEndTime(e.target.value)}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
+                    />
+                    <input
+                        type="text"
+                        placeholder="Optional note"
+                        value={newSessionNote}
+                        onChange={(e) => setNewSessionNote(e.target.value)}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
+                    />
+                    <button
+                        onClick={handleCreateSession}
+                        disabled={creatingSession}
+                        className="rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:opacity-50"
+                    >
+                        {creatingSession ? "Creating..." : "Create"}
+                    </button>
+                </div>
+            </div>
+
             <div className="flex flex-wrap items-center gap-3">
                 <select
                     value={selectedSessionId}
@@ -133,25 +236,18 @@ export default function CourseAttendance({ courseId }: Props) {
                         </option>
                     ))}
                 </select>
-
-                <button
-                    onClick={handleSave}
-                    disabled={saving || !selectedSessionId || rows.length === 0}
-                    className="rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:opacity-50"
-                >
-                    {saving ? "Saving..." : "Save Attendance"}
-                </button>
             </div>
 
             {selectedSession && (
                 <div className="rounded-lg border border-[var(--color-main)] bg-[var(--color-soft-white)] px-3 py-2 text-sm text-[var(--color-text)]">
                     Session: {formatDateValue(selectedSession.date)} | {selectedSession.startTime?.slice(0, 5)} - {selectedSession.endTime?.slice(0, 5)}
                 </div>
+                
             )}
 
             {rows.length === 0 ? (
                 <div className="rounded-lg border bg-white p-6 text-center text-gray-500">
-                    No students found for this session.
+                    {sessions.length === 0 ? "No session yet. Create one above to start attendance." : "No students found for this session."}
                 </div>
             ) : (
                 <div className="overflow-x-auto rounded-lg border border-[var(--color-main)] bg-white">
@@ -195,6 +291,16 @@ export default function CourseAttendance({ courseId }: Props) {
                     </table>
                 </div>
             )}
+
+            <div className="flex justify-center pt-2">
+                <button
+                    onClick={handleSave}
+                    disabled={saving || !selectedSessionId || rows.length === 0}
+                    className="rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-6 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:opacity-50"
+                >
+                    {saving ? "Saving..." : "Save Attendance"}
+                </button>
+            </div>
         </div>
     );
 }

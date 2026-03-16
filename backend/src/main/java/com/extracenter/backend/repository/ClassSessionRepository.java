@@ -1,6 +1,7 @@
 package com.extracenter.backend.repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,6 +39,8 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Long
             @Param("studentId") Long studentId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+        boolean existsByCourseIdAndDateAndStartTimeAndEndTime(Long courseId, LocalDate date, LocalTime startTime, LocalTime endTime);
 
         @Modifying
         @Transactional

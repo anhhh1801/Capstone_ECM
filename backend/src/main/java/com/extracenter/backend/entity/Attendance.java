@@ -1,5 +1,7 @@
 package com.extracenter.backend.entity;
 
+import java.time.LocalDate;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
@@ -38,6 +40,13 @@ public class Attendance {
     @JoinColumn(name = "session_id") // Link to the specific instance
     private ClassSession classSession;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_slot_id", nullable = false)
+    private ClassSlot classSlot;
+
+    @Column(name = "date", nullable = false)
+    private LocalDate date;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AttendanceStatus status = AttendanceStatus.ABSENT;
@@ -49,6 +58,10 @@ public class Attendance {
     @PrePersist
     @PreUpdate
     private void syncLegacyPresence() {
+        if (date == null && classSession != null) {
+            date = classSession.getDate();
+        }
+
         if (status == null && isPresent != null) {
             status = Boolean.TRUE.equals(isPresent) ? AttendanceStatus.ATTEND : AttendanceStatus.ABSENT;
         }
