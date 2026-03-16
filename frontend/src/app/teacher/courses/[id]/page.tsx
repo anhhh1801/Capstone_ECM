@@ -15,9 +15,12 @@ import {
 } from "lucide-react";
 import { getCourseById } from "@/services/courseService";
 import toast from "react-hot-toast";
-import CenterTabsInCourse from "./components/CenterTabsInCourse";
+import TabsInCourse from "./components/TabsInCourse";
 import CourseEnrollment from "./components/CourseEnrollment";
 import NotFound from "@/app/not-found";
+import StudentList from "./components/StudentList";
+import CourseMaterials from "./components/CourseMaterial";
+import CourseAssignments from "./components/CourseAssignment";
 
 export default function CourseDetailPage() {
     const params = useParams();
@@ -26,7 +29,7 @@ export default function CourseDetailPage() {
 
     const [course, setCourse] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<
-        "General Info" | "Students" | "Enrollment"
+        "General Info" | "Students" | "Enrollment" | "Materials" | "Assignments"
     >("General Info");
 
     const [loading, setLoading] = useState(true);
@@ -101,8 +104,8 @@ export default function CourseDetailPage() {
 
                             <span
                                 className={`px-3 py-1 rounded text-xs font-semibold border ${course.status === "ACTIVE"
-                                        ? "bg-green-50 text-green-700 border-green-200"
-                                        : "bg-gray-100 text-gray-600 border-gray-200"
+                                    ? "bg-green-50 text-green-700 border-green-200"
+                                    : "bg-gray-100 text-gray-600 border-gray-200"
                                     }`}
                             >
                                 {course.status || "ACTIVE"}
@@ -136,7 +139,7 @@ export default function CourseDetailPage() {
             </div>
 
             {/* TABS */}
-            <CenterTabsInCourse
+            <TabsInCourse
                 activeTab={activeTab}
                 setActiveTab={setActiveTab as any}
                 isManager={isManager}
@@ -309,29 +312,33 @@ export default function CourseDetailPage() {
 
             {/* STUDENTS */}
             {activeTab === "Students" && (
-
                 <div>
-
-                    <CourseEnrollment courseId={courseId} />
-
+                    <StudentList courseId={courseId} />
                 </div>
+            )}
 
+            {/* MATERIALS */}
+            {activeTab === "Materials" && (
+                <div>
+                    <CourseMaterials courseId={courseId} />
+                </div>
+            )}
+
+            {/* ASSIGNMENTS */}
+            {activeTab === "Assignments" && (
+                <div>
+                    <CourseAssignments courseId={courseId} />
+                </div>
             )}
 
             {/* ENROLLMENT (MANAGER ONLY) */}
             {activeTab === "Enrollment" && isManager && (
-
                 <div>
-
                     <div className="bg-[var(--color-main)]/10 border border-[var(--color-main)]/30 text-[var(--color-text)] p-4 rounded-lg mb-4 text-sm">
-
                         👋 Hello manager! You can add or remove students from
                         this class.
-
                     </div>
-
                     <CourseEnrollment courseId={courseId} />
-
                 </div>
 
             )}
