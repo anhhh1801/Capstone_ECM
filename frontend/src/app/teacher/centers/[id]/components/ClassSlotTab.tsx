@@ -18,6 +18,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { DateHeader, Timeline, TimelineHeaders, TimelineItemBase } from "react-calendar-timeline";
 import "react-calendar-timeline/dist/style.css";
 import dayjs from "dayjs";
+import { formatDateValue } from "../../../../../utils/dateFormat";
 
 /** Maps Java DayOfWeek enum values to dayjs .day() (0 = Sunday … 6 = Saturday) */
 const DAY_OF_WEEK_MAP: Record<string, number> = {
@@ -37,6 +38,27 @@ const TIMELINE_KEYS = {
     itemTimeStartKey: "start_time",
     itemTimeEndKey: "end_time",
 };
+
+const FILTER_DAY_OPTIONS = [
+    "ALL",
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY",
+] as const;
+
+const FILTER_TIME_OPTIONS = Array.from({ length: (22 - 7) * 2 + 1 }, (_, i) => {
+    const halfHourIndex = 14 + i;
+    const hour24 = Math.floor(halfHourIndex / 2);
+    const minute = halfHourIndex % 2 === 0 ? "00" : "30";
+    const value = `${String(hour24).padStart(2, "0")}:${minute}`;
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    const amPm = hour24 < 12 ? "AM" : "PM";
+    return { value, label: `${hour12}:${minute} ${amPm}` };
+});
 
 /** Returns the Monday of the week containing the given date. */
 function getWeekStart(d: dayjs.Dayjs): dayjs.Dayjs {
@@ -75,6 +97,10 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     const [deletingSlot, setDeletingSlot] = useState<CenterClassSlot | null>(null);
     const [viewMode, setViewMode] = useState<TimelineViewMode>("week");
     const [focusDate, setFocusDate] = useState(() => dayjs().startOf("day"));
+    const [searchTerm, setSearchTerm] = useState("");
+    const [dayFilter, setDayFilter] = useState<(typeof FILTER_DAY_OPTIONS)[number]>("ALL");
+    const [timeFrom, setTimeFrom] = useState("07:00");
+    const [timeTo, setTimeTo] = useState("22:00");
     const [selectedOccurrence, setSelectedOccurrence] = useState<{
         slotId: number;
         occurrenceDate: string;
@@ -140,6 +166,12 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
         fetchData();
     }, [fetchData]);
 
+    useEffect(() => {
+        if (timeFrom >= timeTo) {
+            setTimeTo("22:00");
+        }
+    }, [timeFrom, timeTo]);
+
     const handleDelete = async (slot: CenterClassSlot) => {
         const userRaw = localStorage.getItem("user");
         const user = userRaw ? JSON.parse(userRaw) : null;
@@ -160,19 +192,42 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
         }
     };
 
-    // Groups: one timeline row per classroom + a "No Classroom" fallback row
+    const filteredSlots = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+
+        return slots.filter((slot) => {
+            const courseName = slot.course?.name?.toLowerCase() || "";
+            const roomName = slot.classroom?.location?.toLowerCase() || "";
+            const searchMatch = !normalizedSearch || courseName.includes(normalizedSearch) || roomName.includes(normalizedSearch);
+
+            const dayMatch = dayFilter === "ALL" || (slot.daysOfWeek || []).includes(dayFilter);
+
+            const slotStart = slot.startTime?.slice(0, 5) || "00:00";
+            const slotEnd = slot.endTime?.slice(0, 5) || "00:00";
+            const timeMatch = slotStart < timeTo && timeFrom < slotEnd;
+
+            return searchMatch && dayMatch && timeMatch;
+        });
+    }, [slots, searchTerm, dayFilter, timeFrom, timeTo]);
+
+    const hasUnassignedClassroomSlots = useMemo(
+        () => filteredSlots.some((slot) => !slot.classroom?.id),
+        [filteredSlots]
+    );
+
+    // Groups: one timeline row per classroom, with fallback row only when needed
     const timelineGroups = useMemo(
         () => [
             ...classrooms.map((c) => ({ id: c.id, title: c.location })),
-            { id: 0, title: "No Classroom" },
+            ...(hasUnassignedClassroomSlots ? [{ id: 0, title: "No Classroom" }] : []),
         ],
-        [classrooms]
+        [classrooms, hasUnassignedClassroomSlots]
     );
 
     // Expand each slot into individual occurrences between startDate–endDate
     const timelineItems = useMemo(() => {
         let counter = 1;
-        return slots.flatMap((slot) => {
+        return filteredSlots.flatMap((slot) => {
             const groupId = slot.classroom?.id ?? 0;
             const [startH, startM] = slot.startTime.split(":").map(Number);
             const [endH, endM] = slot.endTime.split(":").map(Number);
@@ -203,7 +258,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                         (slot.course?.id ? courseStudentCounts[slot.course.id] : undefined);
                     const timeText = `${slot.startTime?.slice(0, 5)} - ${slot.endTime?.slice(0, 5)}`;
                     const daysText = `Days: ${(slot.daysOfWeek || []).join(", ") || "-"}`;
-                    const rangeText = `Date Range: ${slot.startDate} -> ${slot.endDate}`;
+                    const rangeText = `Date Range: ${formatDateValue(slot.startDate)} -> ${formatDateValue(slot.endDate)}`;
                     const classroomText = `Classroom: ${slot.classroom?.location || "Not assigned"}`;
 
                     items.push({
@@ -230,7 +285,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             }
             return items;
         });
-    }, [slots, courseStudentCounts]);
+    }, [filteredSlots, courseStudentCounts]);
 
     const courseIdByItemId = useMemo(() => {
         const map = new Map<string, number>();
@@ -406,9 +461,8 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             return (
                 <div key={key} {...restItemProps} onClick={() => handleItemClick(displayItem.id)}>
                     <div
-                        className={`h-full w-full rounded-md border-2 border-[var(--color-main)] bg-[var(--color-secondary)]/80 p-2 leading-tight text-[var(--color-text)] shadow-sm transition-all group-hover:border-[var(--color-secondary)] group-hover:shadow-md ${
-                            itemContext.dragging ? "opacity-70" : "opacity-100"
-                        }`}
+                        className={`h-full w-full rounded-md border-2 border-[var(--color-main)] bg-[var(--color-secondary)]/80 p-2 leading-tight text-[var(--color-text)] shadow-sm transition-all group-hover:border-[var(--color-secondary)] group-hover:shadow-md ${itemContext.dragging ? "opacity-70" : "opacity-100"
+                            }`}
                     >
                         <div className="truncate font-semibold text-[var(--color-main)]">{displayItem.courseName}</div>
                         <div className="truncate">{displayItem.teacherText}</div>
@@ -455,6 +509,8 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 mode="occurrence"
                 occurrenceDate={selectedOccurrence?.occurrenceDate}
                 occurrenceSlotId={selectedOccurrence?.slotId}
+                occurrenceStartTime={selectedOccurrence?.startTime}
+                occurrenceEndTime={selectedOccurrence?.endTime}
                 lockCourse
             />
 
@@ -470,7 +526,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             <ConfirmModal
                 isOpen={isDeleteOccurrenceConfirmOpen}
                 title="Delete Selected Occurrence"
-                message={`Delete only ${selectedOccurrence?.occurrenceDate || "this occurrence"}?`}
+                message={`Delete only ${selectedOccurrence ? formatDateValue(selectedOccurrence.occurrenceDate) : "this occurrence"}?`}
                 confirmText="Delete"
                 onClose={() => setDeleteOccurrenceConfirmOpen(false)}
                 onConfirm={confirmDeleteSelectedOccurrence}
@@ -478,37 +534,39 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
 
             {isOccurrenceActionModalOpen && selectedOccurrence && (
                 <div className="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
-                        <h3 className="text-lg font-bold text-[var(--color-text)]">Selected Slot Action</h3>
-                        <p className="text-sm text-gray-600">
-                            Date: {selectedOccurrence.occurrenceDate} | {selectedOccurrence.startTime} - {selectedOccurrence.endTime}
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-4 ">
+                        <h3 className="text-lg font-bold text-[var(--color-text)]">Selected Slot:</h3>
+                        <p className="text-sm text-[var(--color-text)] font-bold pb-2">
+                            Date: {formatDateValue(selectedOccurrence.occurrenceDate)} | {selectedOccurrence.startTime} - {selectedOccurrence.endTime}
                         </p>
 
-                        <div className="space-y-2">
+                        <div className="flex gap-2">
                             <button
                                 onClick={handleOpenOverrideModal}
-                                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--color-main)] hover:bg-[var(--color-soft-white)] transition"
+                                className="flex-1 whitespace-nowrap px-4 py-3 rounded-lg border-2 border-[var(--color-main)] font-bold hover:bg-[var(--color-main)]/30 transition"
                             >
-                                Edit Selected Occurrence (Override)
+                                Edit selected
                             </button>
+
                             <button
                                 onClick={handleEditWholeSeries}
-                                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--color-main)] hover:bg-[var(--color-soft-white)] transition"
+                                className="flex-1 whitespace-nowrap px-4 py-3 rounded-lg border-2 border-[var(--color-secondary)] font-bold hover:bg-[var(--color-secondary)]/30 transition"
                             >
-                                Edit Whole Series
+                                Edit all
                             </button>
+
                             <button
                                 onClick={handleDeleteSelectedOccurrence}
-                                className="w-full text-left px-4 py-3 rounded-lg border border-[var(--color-alert)] text-[var(--color-alert)] hover:bg-[var(--color-soft-white)] transition"
+                                className="flex-1 whitespace-nowrap px-4 py-3 rounded-lg border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white font-bold hover:bg-white hover:text-[var(--color-alert)] transition"
                             >
-                                Delete Selected Occurrence
+                                Delete selected
                             </button>
                         </div>
 
                         <div className="flex justify-end pt-2">
                             <button
                                 onClick={() => setOccurrenceActionModalOpen(false)}
-                                className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                                className=" text-left px-4 py-3 rounded-lg border-2 border-[var(--color-main)] font-bold hover:bg-[var(--color-main)]/30 transition"
                             >
                                 Cancel
                             </button>
@@ -535,14 +593,63 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 )}
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-lg border border-[var(--color-main)] bg-white p-3">
+                <input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by course or room"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                />
+
+                <select
+                    value={dayFilter}
+                    onChange={(e) => setDayFilter(e.target.value as (typeof FILTER_DAY_OPTIONS)[number])}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                >
+                    {FILTER_DAY_OPTIONS.map((day) => (
+                        <option key={day} value={day}>
+                            {day === "ALL" ? "All Days" : day}
+                        </option>
+                    ))}
+                </select>
+
+                <select
+                    value={timeFrom}
+                    onChange={(e) => setTimeFrom(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                >
+                    {FILTER_TIME_OPTIONS.filter((opt) => opt.value < "22:00").map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            From {opt.label}
+                        </option>
+                    ))}
+                </select>
+
+                <select
+                    value={timeTo}
+                    onChange={(e) => setTimeTo(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                >
+                    {FILTER_TIME_OPTIONS.filter((opt) => opt.value > timeFrom).map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            To {opt.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
             {slots.length === 0 ? (
                 <div className="p-10 text-center text-gray-500 border rounded-lg bg-white">
                     No class slots created yet.
                 </div>
+            ) : filteredSlots.length === 0 ? (
+                <div className="p-10 text-center text-gray-500 border rounded-lg bg-white">
+                    No class slots match your search/filter.
+                </div>
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-                        {slots.map((slot) => (
+                        {filteredSlots.map((slot) => (
                             <div
                                 key={slot.id}
                                 className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition rounded-lg"
@@ -581,7 +688,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                                     </div>
 
                                     <div>
-                                        Date Range: {slot.startDate} {"→"} {slot.endDate}
+                                        Date Range: {formatDateValue(slot.startDate)} {"→"} {formatDateValue(slot.endDate)}
                                     </div>
 
                                     <div>
@@ -607,21 +714,19 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                             <div className="flex items-center gap-1 rounded bg-white/15 p-1 ml-2">
                                 <button
                                     onClick={() => setViewMode("day")}
-                                    className={`px-2 py-1 rounded text-xs transition ${
-                                        viewMode === "day"
-                                            ? "bg-white text-[var(--color-main)]"
-                                            : "text-white hover:bg-white/20"
-                                    }`}
+                                    className={`px-2 py-1 rounded text-xs transition ${viewMode === "day"
+                                        ? "bg-white text-[var(--color-main)]"
+                                        : "text-white hover:bg-white/20"
+                                        }`}
                                 >
                                     Day
                                 </button>
                                 <button
                                     onClick={() => setViewMode("week")}
-                                    className={`px-2 py-1 rounded text-xs transition ${
-                                        viewMode === "week"
-                                            ? "bg-white text-[var(--color-main)]"
-                                            : "text-white hover:bg-white/20"
-                                    }`}
+                                    className={`px-2 py-1 rounded text-xs transition ${viewMode === "week"
+                                        ? "bg-white text-[var(--color-main)]"
+                                        : "text-white hover:bg-white/20"
+                                        }`}
                                 >
                                     Week
                                 </button>

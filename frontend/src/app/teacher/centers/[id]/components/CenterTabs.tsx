@@ -77,7 +77,7 @@ export default function CenterTabs({ activeTab, setActiveTab, isManager }: Props
                                 : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
                             }`}
                     >
-                        <CalendarDays size={18} /> Class Slots
+                        <CalendarDays size={18} /> Timeline
                     </button>
 
                     <button

@@ -1,8 +1,8 @@
-import { BookOpen, Users, UserCog } from "lucide-react";
+import { BookOpen, Users, UserCog, ClipboardCheck } from "lucide-react";
 
 interface Props {
     activeTab: string;
-    setActiveTab: (tab: "General Info" | "Students" | "Enrollment") => void;
+    setActiveTab: (tab: "General Info" | "Students" | "Attendance" | "Enrollment") => void;
     isManager: boolean;
 }
 
@@ -35,6 +35,14 @@ export default function CenterTabsInCourse({ activeTab, setActiveTab, isManager 
             >
                 <Users size={18} />
                 Students
+            </button>
+
+            <button
+                onClick={() => setActiveTab("Attendance")}
+                className={tabStyle("Attendance")}
+            >
+                <ClipboardCheck size={18} />
+                Attendance
             </button>
 
             {/* ENROLLMENT (Manager only) */}

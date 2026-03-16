@@ -264,3 +264,6 @@
 .rbc-day-slot .rbc-events-container {
     margin: 0px !important;
 }
+.rct-dateHeader-primary {
+    color: var(--color-text) !important;
+}

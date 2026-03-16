@@ -387,11 +387,8 @@ public class CenterService {
             throw new RuntimeException("Course does not belong to this center.");
         }
 
-        Classroom classroom = null;
-        if (request.getClassroomId() != null) {
-            classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
-                    .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
-        }
+        Classroom classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+            .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
 
         validateSlotTimes(request.getStartTime(), request.getEndTime());
         validateNoTimeConflicts(
@@ -433,11 +430,8 @@ public class CenterService {
             throw new RuntimeException("Course does not belong to this center.");
         }
 
-        Classroom classroom = null;
-        if (request.getClassroomId() != null) {
-            classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
-                    .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
-        }
+        Classroom classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+            .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
 
         validateSlotTimes(request.getStartTime(), request.getEndTime());
         validateNoTimeConflicts(
@@ -518,11 +512,8 @@ public class CenterService {
 
         validateSlotTimes(request.getStartTime(), request.getEndTime());
 
-        Classroom overrideClassroom = null;
-        if (request.getClassroomId() != null) {
-            overrideClassroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
-                    .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
-        }
+        Classroom overrideClassroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+            .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
 
         Set<DayOfWeek> singleDay = new HashSet<>();
         singleDay.add(date.getDayOfWeek());

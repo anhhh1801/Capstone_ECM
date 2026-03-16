@@ -17,7 +17,9 @@ import { getCourseById } from "@/services/courseService";
 import toast from "react-hot-toast";
 import CenterTabsInCourse from "./components/CenterTabsInCourse";
 import CourseEnrollment from "./components/CourseEnrollment";
+import CourseAttendance from "./components/CourseAttendance";
 import NotFound from "@/app/not-found";
+import { formatDateValue } from "@/utils/dateFormat";
 
 export default function CourseDetailPage() {
     const params = useParams();
@@ -26,7 +28,7 @@ export default function CourseDetailPage() {
 
     const [course, setCourse] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<
-        "General Info" | "Students" | "Enrollment"
+        "General Info" | "Students" | "Attendance" | "Enrollment"
     >("General Info");
 
     const [loading, setLoading] = useState(true);
@@ -284,13 +286,13 @@ export default function CourseDetailPage() {
 
                                         <p className="font-medium text-[var(--color-text)] text-sm">
 
-                                            {course.startDate}
+                                            {formatDateValue(course.startDate)}
 
                                             <span className="text-gray-400 mx-1">
                                                 →
                                             </span>
 
-                                            {course.endDate}
+                                            {formatDateValue(course.endDate)}
 
                                         </p>
 
@@ -316,6 +318,12 @@ export default function CourseDetailPage() {
 
                 </div>
 
+            )}
+
+            {activeTab === "Attendance" && (
+                <div>
+                    <CourseAttendance courseId={courseId} />
+                </div>
             )}
 
             {/* ENROLLMENT (MANAGER ONLY) */}

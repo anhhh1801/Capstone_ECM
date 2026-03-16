@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.extracenter.backend.dto.CourseRequest;
+import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.service.CourseService;
@@ -51,6 +52,11 @@ public class CourseController {
     @GetMapping("/{id}")
     public ResponseEntity<Course> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(courseService.getCourseById(id));
+    }
+
+    @GetMapping("/{id}/sessions")
+    public ResponseEntity<List<ClassSession>> getCourseSessions(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getClassSessionsByCourse(id));
     }
 
     // API: Update an existing course

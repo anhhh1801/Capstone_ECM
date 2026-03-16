@@ -10,6 +10,7 @@ import {
 } from "@/services/centerService";
 import ClassroomModal from "./ClassroomModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import { formatDateValue } from "@/utils/dateFormat";
 
 interface Props {
 	centerId: number;
@@ -143,7 +144,7 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 
 								<div className="text-sm text-[var(--color-text)] flex items-center gap-2">
 									<Wrench size={14} className="text-[var(--color-main)]" />
-									Last Maintain: {room.lastMaintainDate}
+									Last Maintain: {formatDateValue(room.lastMaintainDate)}
 								</div>
 							</div>
 						</div>

@@ -103,13 +103,13 @@ export interface ClassSlotOccurrenceOverridePayload {
     managerId: number;
     startTime: string;
     endTime: string;
-    classroomId?: number;
+    classroomId: number;
 }
 
 export interface ClassSlotPayload {
     managerId: number;
     courseId: number;
-    classroomId?: number;
+    classroomId: number;
     startTime: string;
     endTime: string;
     daysOfWeek: string[];

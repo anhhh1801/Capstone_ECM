@@ -13,6 +13,7 @@ import {
 	updateCenterClassSlot,
 } from "@/services/centerService";
 import { Course, getCoursesByCenter } from "@/services/courseService";
+import { formatDateValue } from "@/utils/dateFormat";
 
 interface Props {
 	centerId: number;
@@ -24,6 +25,8 @@ interface Props {
 	mode?: "series" | "occurrence";
 	occurrenceDate?: string;
 	occurrenceSlotId?: number;
+	occurrenceStartTime?: string;
+	occurrenceEndTime?: string;
 	lockCourse?: boolean;
 }
 
@@ -48,6 +51,11 @@ const TIME_OPTIONS = Array.from({ length: (22 - 7) * 2 + 1 }, (_, i) => {
 	return { value, label };
 });
 
+const normalizeTimeToHHmm = (time?: string) => {
+	if (!time) return "";
+	return time.slice(0, 5);
+};
+
 export default function ClassSlotModal({
 	centerId,
 	isOpen,
@@ -58,6 +66,8 @@ export default function ClassSlotModal({
 	mode = "series",
 	occurrenceDate,
 	occurrenceSlotId,
+	occurrenceStartTime,
+	occurrenceEndTime,
 	lockCourse = false,
 }: Props) {
 	const [courses, setCourses] = useState<Course[]>([]);
@@ -103,8 +113,15 @@ export default function ClassSlotModal({
 		if (slot) {
 			setCourseId(slot.course?.id ?? "");
 			setClassroomId(slot.classroom?.id ?? "");
-			setStartTime(slot.startTime?.slice(0, 5) ?? "");
-			setEndTime(slot.endTime?.slice(0, 5) ?? "");
+			const initialStartTime = isOccurrenceMode
+				? normalizeTimeToHHmm(occurrenceStartTime) || normalizeTimeToHHmm(slot.startTime)
+				: normalizeTimeToHHmm(slot.startTime);
+			const initialEndTime = isOccurrenceMode
+				? normalizeTimeToHHmm(occurrenceEndTime) || normalizeTimeToHHmm(slot.endTime)
+				: normalizeTimeToHHmm(slot.endTime);
+
+			setStartTime(initialStartTime);
+			setEndTime(initialEndTime);
 			setDaysOfWeek(slot.daysOfWeek ?? []);
 			setRecurring(Boolean(slot.isRecurring));
 		} else {
@@ -115,7 +132,7 @@ export default function ClassSlotModal({
 			setDaysOfWeek([]);
 			setRecurring(true);
 		}
-	}, [isOpen, slot]);
+	}, [isOpen, slot, isOccurrenceMode, occurrenceStartTime, occurrenceEndTime, occurrenceDate, occurrenceSlotId]);
 
 	if (!isOpen) return null;
 
@@ -139,6 +156,11 @@ export default function ClassSlotModal({
 
 		if (!courseId) {
 			toast.error("Please select a course.");
+			return;
+		}
+
+		if (!classroomId) {
+			toast.error("Please select a classroom.");
 			return;
 		}
 
@@ -186,14 +208,14 @@ export default function ClassSlotModal({
 					managerId,
 					startTime,
 					endTime,
-					classroomId: classroomId ? Number(classroomId) : undefined,
+					classroomId: Number(classroomId),
 				});
 				toast.success("Selected occurrence updated.");
 			} else {
 				const payload: ClassSlotPayload = {
 					managerId,
 					courseId: Number(courseId),
-					classroomId: classroomId ? Number(classroomId) : undefined,
+					classroomId: Number(classroomId),
 					startTime,
 					endTime,
 					daysOfWeek,
@@ -232,7 +254,7 @@ export default function ClassSlotModal({
 
 				{isOccurrenceMode && occurrenceDate && (
 					<div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-						<div><span className="font-medium">Date:</span> {occurrenceDate}</div>
+						<div><span className="font-medium">Date:</span> {formatDateValue(occurrenceDate)}</div>
 						<div><span className="font-medium">Day:</span> {occurrenceDayLabel}</div>
 					</div>
 				)}
@@ -262,13 +284,14 @@ export default function ClassSlotModal({
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Classroom (optional)</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Classroom</label>
 						<select
 							value={classroomId}
 							onChange={(e) => setClassroomId(e.target.value ? Number(e.target.value) : "")}
 							className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+							required
 						>
-							<option value="">No classroom</option>
+							<option value="">Select classroom</option>
 							{classrooms.map((room) => (
 								<option key={room.id} value={room.id}>
 									{room.location} (seat {room.seat})

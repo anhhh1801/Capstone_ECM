@@ -17,6 +17,7 @@ public class ClassSlotRequest {
     @NotNull(message = "Course ID is required")
     private Long courseId;
 
+    @NotNull(message = "Classroom ID is required")
     private Long classroomId;
 
     @NotNull(message = "Start time is required")

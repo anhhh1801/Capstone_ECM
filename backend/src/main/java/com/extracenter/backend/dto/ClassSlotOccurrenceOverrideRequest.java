@@ -17,5 +17,6 @@ public class ClassSlotOccurrenceOverrideRequest {
     @NotNull(message = "End time is required")
     private LocalTime endTime;
 
+    @NotNull(message = "Classroom ID is required")
     private Long classroomId;
 }

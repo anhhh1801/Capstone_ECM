@@ -1,11 +1,13 @@
 package com.extracenter.backend.dto;
 
+import java.util.List;
+
+import com.extracenter.backend.entity.AttendanceStatus;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
-import java.util.List;
 
 @Data
 public class AttendanceRequest {
@@ -24,8 +26,8 @@ public class AttendanceRequest {
         @NotNull(message = "Student ID is required")
         private Long studentId;
 
-        @NotNull(message = "Attendance status (isPresent) is required")
-        private Boolean isPresent; // true = present, false = absent
+        @NotNull(message = "Attendance status is required")
+        private AttendanceStatus status;
 
         private String note; // Optional: "Late", "Excused absence", etc.
     }

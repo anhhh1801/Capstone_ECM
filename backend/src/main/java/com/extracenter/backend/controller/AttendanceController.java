@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.extracenter.backend.dto.AttendanceRequest;
+import com.extracenter.backend.dto.AttendanceSheetResponse;
 import com.extracenter.backend.entity.Attendance;
 import com.extracenter.backend.service.AttendanceService;
 
@@ -51,5 +52,10 @@ public class AttendanceController {
     @GetMapping
     public ResponseEntity<List<Attendance>> viewAttendance(@RequestParam Long classSessionId) {
         return ResponseEntity.ok(attendanceService.getAttendanceList(classSessionId));
+    }
+
+    @GetMapping("/sheet")
+    public ResponseEntity<AttendanceSheetResponse> getAttendanceSheet(@RequestParam Long classSessionId) {
+        return ResponseEntity.ok(attendanceService.getAttendanceSheet(classSessionId));
     }
 }

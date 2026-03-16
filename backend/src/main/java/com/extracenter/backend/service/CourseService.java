@@ -169,6 +169,12 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
     }
 
+    public List<ClassSession> getClassSessionsByCourse(Long courseId) {
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+        return classSessionRepository.findByCourseIdOrderByDateAsc(courseId);
+    }
+
     @Transactional
     public Course updateCourse(Long courseId, CourseRequest request) {
         Course course = courseRepository.findById(courseId)
