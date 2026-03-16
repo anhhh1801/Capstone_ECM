@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
-    AttendanceSheetStudentRow,
     AttendanceStatus,
+    AttendanceSheetStudentRow,
     CourseSession,
-    createCourseSession,
+    getAttendanceList,
     getAttendanceSheet,
     getCourseSessions,
     saveAttendance,
@@ -32,11 +32,7 @@ export default function CourseAttendance({ courseId }: Props) {
     const [rows, setRows] = useState<AttendanceSheetStudentRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [creatingSession, setCreatingSession] = useState(false);
-    const [newSessionDate, setNewSessionDate] = useState("");
-    const [newSessionStartTime, setNewSessionStartTime] = useState("07:00");
-    const [newSessionEndTime, setNewSessionEndTime] = useState("08:00");
-    const [newSessionNote, setNewSessionNote] = useState("");
+    const [isChecklistLocked, setIsChecklistLocked] = useState(false);
 
     const fetchSessions = async (targetSessionId?: number) => {
         try {
@@ -75,8 +71,12 @@ export default function CourseAttendance({ courseId }: Props) {
         const fetchSheet = async () => {
             try {
                 setLoading(true);
-                const sheet = await getAttendanceSheet(Number(selectedSessionId));
+                const [sheet, attendance] = await Promise.all([
+                    getAttendanceSheet(Number(selectedSessionId)),
+                    getAttendanceList(Number(selectedSessionId)),
+                ]);
                 setRows(sheet.students || []);
+                setIsChecklistLocked((attendance || []).length > 0);
             } catch (error: any) {
                 console.error(error);
                 toast.error(error?.response?.data?.error || "Cannot load attendance sheet.");
@@ -93,13 +93,22 @@ export default function CourseAttendance({ courseId }: Props) {
         [sessions, selectedSessionId]
     );
 
+
     const setStatusForStudent = (studentId: number, status: AttendanceStatus) => {
+        if (isChecklistLocked) {
+            return;
+        }
+
         setRows((prev) =>
             prev.map((row) => (row.studentId === studentId ? { ...row, status } : row))
         );
     };
 
     const markAll = (status: AttendanceStatus) => {
+        if (isChecklistLocked) {
+            return;
+        }
+
         setRows((prev) => prev.map((row) => ({ ...row, status })));
     };
 
@@ -120,6 +129,7 @@ export default function CourseAttendance({ courseId }: Props) {
                 })),
             });
             toast.success("Attendance saved.");
+            setIsChecklistLocked(true);
         } catch (error: any) {
             console.error(error);
             toast.error(error?.response?.data?.error || "Cannot save attendance.");
@@ -128,50 +138,6 @@ export default function CourseAttendance({ courseId }: Props) {
         }
     };
 
-    const handleCreateSession = async () => {
-        const userRaw = localStorage.getItem("user");
-        const user = userRaw ? JSON.parse(userRaw) : null;
-        const actorId = user?.id as number | undefined;
-
-        if (!actorId) {
-            toast.error("Cannot identify user. Please login again.");
-            return;
-        }
-
-        if (!newSessionDate) {
-            toast.error("Please select session date.");
-            return;
-        }
-
-        if (!newSessionStartTime || !newSessionEndTime) {
-            toast.error("Please select session start and end time.");
-            return;
-        }
-
-        if (newSessionEndTime <= newSessionStartTime) {
-            toast.error("End time must be after start time.");
-            return;
-        }
-
-        try {
-            setCreatingSession(true);
-            const created = await createCourseSession(courseId, {
-                actorId,
-                date: newSessionDate,
-                startTime: newSessionStartTime,
-                endTime: newSessionEndTime,
-                note: newSessionNote || undefined,
-            });
-
-            toast.success("Session created.");
-            await fetchSessions(created.id);
-        } catch (error: any) {
-            console.error(error);
-            toast.error(error?.response?.data?.error || "Cannot create session.");
-        } finally {
-            setCreatingSession(false);
-        }
-    };
 
     if (loading && sessions.length === 0) {
         return <div className="p-6 text-center text-[var(--color-text)]">Loading attendance...</div>;
@@ -179,50 +145,6 @@ export default function CourseAttendance({ courseId }: Props) {
 
     return (
         <div className="space-y-4">
-            <div className="rounded-lg border border-[var(--color-main)] bg-[var(--color-soft-white)] p-3">
-                <div className="mb-2 text-sm font-semibold text-[var(--color-text)]">Create Session</div>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
-                    <input
-                        type="date"
-                        value={newSessionDate}
-                        onChange={(e) => setNewSessionDate(e.target.value)}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
-                    />
-                    <input
-                        type="time"
-                        min="07:00"
-                        max="22:00"
-                        step={1800}
-                        value={newSessionStartTime}
-                        onChange={(e) => setNewSessionStartTime(e.target.value)}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
-                    />
-                    <input
-                        type="time"
-                        min="07:00"
-                        max="22:00"
-                        step={1800}
-                        value={newSessionEndTime}
-                        onChange={(e) => setNewSessionEndTime(e.target.value)}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Optional note"
-                        value={newSessionNote}
-                        onChange={(e) => setNewSessionNote(e.target.value)}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none"
-                    />
-                    <button
-                        onClick={handleCreateSession}
-                        disabled={creatingSession}
-                        className="rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:opacity-50"
-                    >
-                        {creatingSession ? "Creating..." : "Create"}
-                    </button>
-                </div>
-            </div>
-
             <div className="flex flex-wrap items-center gap-3">
                 <select
                     value={selectedSessionId}
@@ -233,21 +155,35 @@ export default function CourseAttendance({ courseId }: Props) {
                     {sessions.map((session) => (
                         <option key={session.id} value={session.id}>
                             {formatDateValue(session.date)} | {session.startTime?.slice(0, 5)} - {session.endTime?.slice(0, 5)}
+                            {session.classroomLocation ? ` | ${session.classroomLocation}` : ""}
                         </option>
                     ))}
                 </select>
             </div>
 
             {selectedSession && (
-                <div className="rounded-lg border border-[var(--color-main)] bg-[var(--color-soft-white)] px-3 py-2 text-sm text-[var(--color-text)]">
-                    Session: {formatDateValue(selectedSession.date)} | {selectedSession.startTime?.slice(0, 5)} - {selectedSession.endTime?.slice(0, 5)}
+                <div className="rounded-lg border border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 text-sm text-[var(--color-text)]">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            Session: {formatDateValue(selectedSession.date)} | {selectedSession.startTime?.slice(0, 5)} - {selectedSession.endTime?.slice(0, 5)}
+                            {selectedSession.classroomLocation ? ` | ${selectedSession.classroomLocation}` : ""}
+                        </div>
+                        {isChecklistLocked && (
+                            <button
+                                type="button"
+                                onClick={() => setIsChecklistLocked(false)}
+                                className="rounded border border-[var(--color-main)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-main)]"
+                            >
+                                Edit
+                            </button>
+                        )}
+                    </div>
                 </div>
-                
             )}
 
             {rows.length === 0 ? (
                 <div className="rounded-lg border bg-white p-6 text-center text-gray-500">
-                    {sessions.length === 0 ? "No session yet. Create one above to start attendance." : "No students found for this session."}
+                    {sessions.length === 0 ? "No available sessions from active class slots." : "No students found for this session."}
                 </div>
             ) : (
                 <div className="overflow-x-auto rounded-lg border border-[var(--color-main)] bg-white">
@@ -259,6 +195,7 @@ export default function CourseAttendance({ courseId }: Props) {
                                     <th key={status} className="px-3 py-2 text-center">
                                         <button
                                             onClick={() => markAll(status)}
+                                            disabled={isChecklistLocked}
                                             className="rounded border border-white/40 px-2 py-1 text-xs hover:bg-white/20"
                                             type="button"
                                         >
@@ -280,6 +217,7 @@ export default function CourseAttendance({ courseId }: Props) {
                                             <input
                                                 type="radio"
                                                 name={`attendance-${row.studentId}`}
+                                                disabled={isChecklistLocked}
                                                 checked={row.status === status}
                                                 onChange={() => setStatusForStudent(row.studentId, status)}
                                             />
@@ -295,7 +233,7 @@ export default function CourseAttendance({ courseId }: Props) {
             <div className="flex justify-center pt-2">
                 <button
                     onClick={handleSave}
-                    disabled={saving || !selectedSessionId || rows.length === 0}
+                    disabled={saving || !selectedSessionId || rows.length === 0 || isChecklistLocked}
                     className="rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-6 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:opacity-50"
                 >
                     {saving ? "Saving..." : "Save Attendance"}

@@ -42,6 +42,13 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Long
 
         boolean existsByCourseIdAndDateAndStartTimeAndEndTime(Long courseId, LocalDate date, LocalTime startTime, LocalTime endTime);
 
+        boolean existsByCourseIdAndDateAndStartTimeAndEndTimeAndIdNot(
+                Long courseId,
+                LocalDate date,
+                LocalTime startTime,
+                LocalTime endTime,
+                Long id);
+
         @Modifying
         @Transactional
         void deleteByCourseId(Long courseId);

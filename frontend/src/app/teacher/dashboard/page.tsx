@@ -1,20 +1,113 @@
 "use client";
 
-import { BookOpen, Users, Calendar } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import { BookOpen, Users, CalendarDays, Clock3, MapPin } from "lucide-react";
+import toast from "react-hot-toast";
+import { getTeacherCourses, getStudentsInCourse } from "@/services/courseService";
+import api from "@/utils/axiosConfig";
+import { formatDateValue } from "@/utils/dateFormat";
+
+type UpcomingSession = {
+    sessionId?: number;
+    courseId?: number;
+    courseName?: string;
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    roomName?: string;
+    status?: string;
+};
 
 export default function TeacherDashboard() {
-    // Dữ liệu giả (Sau này gọi API lấy thật)
-    const stats = [
-        { label: "Active Classes", value: "4", icon: BookOpen, color: "bg-[var(--color-main)]" },
-        { label: "Total Students", value: "120", icon: Users, color: "bg-[var(--color-main)]" },
-        { label: "Today's Schedule", value: "2 Sessions", icon: Calendar, color: "bg-[var(--color-main)]" },
-    ];
+    const [loading, setLoading] = useState(true);
+    const [totalCourses, setTotalCourses] = useState(0);
+    const [totalStudents, setTotalStudents] = useState(0);
+    const [upcomingClasses, setUpcomingClasses] = useState<UpcomingSession[]>([]);
+
+    useEffect(() => {
+        const fetchOverview = async () => {
+            const userRaw = localStorage.getItem("user");
+            const user = userRaw ? JSON.parse(userRaw) : null;
+            const teacherId = user?.id as number | undefined;
+
+            if (!teacherId) {
+                toast.error("Cannot identify teacher. Please login again.");
+                setLoading(false);
+                return;
+            }
+
+            try {
+                setLoading(true);
+
+                const courses = await getTeacherCourses(teacherId);
+                setTotalCourses(Array.isArray(courses) ? courses.length : 0);
+
+                const studentLists = await Promise.all(
+                    (courses || []).map(async (course) => {
+                        try {
+                            return await getStudentsInCourse(course.id);
+                        } catch {
+                            return [];
+                        }
+                    })
+                );
+
+                const uniqueStudentIds = new Set<number>();
+                studentLists.forEach((students) => {
+                    (students || []).forEach((student: { id?: number }) => {
+                        if (typeof student?.id === "number") {
+                            uniqueStudentIds.add(student.id);
+                        }
+                    });
+                });
+                setTotalStudents(uniqueStudentIds.size);
+
+                const startDate = dayjs().format("YYYY-MM-DD");
+                const endDate = dayjs().add(14, "day").format("YYYY-MM-DD");
+                const sessionResponse = await api.get<UpcomingSession[]>(
+                    `/schedule/teacher/${teacherId}/sessions?startDate=${startDate}&endDate=${endDate}`
+                );
+
+                const now = dayjs();
+                const upcoming = (sessionResponse.data || [])
+                    .filter((session) => {
+                        if (!session.date || !session.startTime) return false;
+                        const start = dayjs(`${session.date}T${session.startTime}`);
+                        return start.isAfter(now) || start.isSame(now);
+                    })
+                    .sort((a, b) => {
+                        const aStart = dayjs(`${a.date}T${a.startTime}`).valueOf();
+                        const bStart = dayjs(`${b.date}T${b.startTime}`).valueOf();
+                        return aStart - bStart;
+                    })
+                    .slice(0, 8);
+
+                setUpcomingClasses(upcoming);
+            } catch (error) {
+                console.error(error);
+                toast.error("Cannot load dashboard overview.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOverview();
+    }, []);
+
+    const stats = useMemo(
+        () => [
+            { label: "Teaching Courses", value: String(totalCourses), icon: BookOpen, color: "bg-[var(--color-main)]" },
+            { label: "Teaching Students", value: String(totalStudents), icon: Users, color: "bg-[var(--color-main)]" },
+            { label: "Upcoming Classes", value: String(upcomingClasses.length), icon: CalendarDays, color: "bg-[var(--color-main)]" },
+        ],
+        [totalCourses, totalStudents, upcomingClasses.length]
+    );
 
     return (
         <div>
-            <h1 className="text-2xl font-bold text-[var(--color--text)] mb-6">Overall</h1>
+            <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">Overview</h1>
 
-            {/* Thống kê nhanh */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {stats.map((stat, index) => (
                     <div key={index} className="bg-white p-6 rounded-xl shadow-sm flex items-center gap-4">
@@ -29,17 +122,42 @@ export default function TeacherDashboard() {
                 ))}
             </div>
 
-            {/* Khu vực chức năng nhanh */}
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-                <h2 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
-                <div className="flex gap-4">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                        + New Course
-                    </button>
-                    <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
-                        Attendance
-                    </button>
-                </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-[var(--color-main)]/30">
+                <h2 className="text-lg font-bold text-[var(--color-text)] mb-4">Upcoming Classes</h2>
+
+                {loading ? (
+                    <p className="text-sm text-gray-500">Loading upcoming classes...</p>
+                ) : upcomingClasses.length === 0 ? (
+                    <p className="text-sm text-gray-500">No upcoming classes in the next 14 days.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {upcomingClasses.map((session, index) => (
+                            <div
+                                key={`${session.sessionId || "session"}-${index}`}
+                                className="rounded-lg border border-[var(--color-main)]/30 bg-[var(--color-soft-white)] p-3"
+                            >
+                                <div className="font-semibold text-[var(--color-text)]">
+                                    {session.courseName || "Course"}
+                                </div>
+
+                                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                                    <span className="inline-flex items-center gap-1">
+                                        <CalendarDays size={14} />
+                                        {formatDateValue(session.date)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1">
+                                        <Clock3 size={14} />
+                                        {session.startTime?.slice(0, 5)} - {session.endTime?.slice(0, 5)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1">
+                                        <MapPin size={14} />
+                                        {session.roomName || "TBD"}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

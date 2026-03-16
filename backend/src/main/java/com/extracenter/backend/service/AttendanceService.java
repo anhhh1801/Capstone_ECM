@@ -2,7 +2,6 @@ package com.extracenter.backend.service;
 
 import java.time.DayOfWeek;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,7 +49,7 @@ public class AttendanceService {
         // 2. Fetch existing attendance records for this specific lesson (if the teacher
         // is editing)
         List<Attendance> existingRecords = attendanceRepository.findByClassSessionId(request.getClassSessionId());
-        ClassSlot attendanceSlot = resolveOrCreateSlotForSession(session);
+        ClassSlot attendanceSlot = resolveRequiredSlotForSession(session);
 
         // OPTIMIZATION: Instead of saving one by one inside the loop, we collect them
         // all here
@@ -158,7 +157,7 @@ public class AttendanceService {
             .build();
         }
 
-    private ClassSlot resolveOrCreateSlotForSession(ClassSession session) {
+    private ClassSlot resolveRequiredSlotForSession(ClassSession session) {
         Long courseId = session.getCourse().getId();
         DayOfWeek sessionDay = session.getDate().getDayOfWeek();
 
@@ -179,16 +178,6 @@ public class AttendanceService {
             }
         }
 
-        ClassSlot fallback = new ClassSlot();
-        fallback.setCourse(session.getCourse());
-        fallback.setCenter(session.getCourse().getCenter());
-        fallback.setStartDate(session.getDate());
-        fallback.setEndDate(session.getDate());
-        fallback.setStartTime(session.getStartTime());
-        fallback.setEndTime(session.getEndTime());
-        fallback.setIsRecurring(false);
-        fallback.setDayOfWeek(sessionDay);
-        fallback.setDaysOfWeek(new HashSet<>(java.util.List.of(sessionDay)));
-        return classSlotRepository.save(fallback);
+        throw new RuntimeException("No valid class slot found for this session. Please edit the session to match an existing class slot.");
     }
 }

@@ -8,6 +8,21 @@ export interface CourseSession {
     startTime: string;
     endTime: string;
     status?: string;
+    note?: string;
+    classSlotId?: number;
+    classroomId?: number;
+    classroomLocation?: string;
+}
+
+export interface CourseSessionSlotOption {
+    classSlotId: number;
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    daysOfWeek: string[];
+    classroomId?: number;
+    classroomLocation?: string;
 }
 
 export interface AttendanceSheetStudentRow {
@@ -28,6 +43,10 @@ export interface AttendanceSheetResponse {
     students: AttendanceSheetStudentRow[];
 }
 
+export interface AttendanceRecord {
+    id: number;
+}
+
 export interface SaveAttendancePayload {
     classSessionId: number;
     studentStatuses: Array<{
@@ -40,8 +59,14 @@ export interface SaveAttendancePayload {
 export interface CreateCourseSessionPayload {
     actorId: number;
     date: string;
-    startTime: string;
-    endTime: string;
+    classSlotId: number;
+    note?: string;
+}
+
+export interface UpdateCourseSessionPayload {
+    actorId: number;
+    date: string;
+    classSlotId: number;
     note?: string;
 }
 
@@ -50,13 +75,37 @@ export const getCourseSessions = async (courseId: number) => {
     return response.data;
 };
 
+export const getCourseSessionSlotOptions = async (courseId: number) => {
+    const response = await api.get<CourseSessionSlotOption[]>(`/courses/${courseId}/session-slot-options`);
+    return response.data;
+};
+
 export const createCourseSession = async (courseId: number, payload: CreateCourseSessionPayload) => {
     const response = await api.post<CourseSession>(`/courses/${courseId}/sessions`, payload);
     return response.data;
 };
 
+export const updateCourseSession = async (
+    courseId: number,
+    sessionId: number,
+    payload: UpdateCourseSessionPayload
+) => {
+    const response = await api.put<CourseSession>(`/courses/${courseId}/sessions/${sessionId}`, payload);
+    return response.data;
+};
+
+export const deleteCourseSession = async (courseId: number, sessionId: number, actorId: number) => {
+    const response = await api.delete(`/courses/${courseId}/sessions/${sessionId}?actorId=${actorId}`);
+    return response.data;
+};
+
 export const getAttendanceSheet = async (classSessionId: number) => {
     const response = await api.get<AttendanceSheetResponse>(`/attendance/sheet?classSessionId=${classSessionId}`);
+    return response.data;
+};
+
+export const getAttendanceList = async (classSessionId: number) => {
+    const response = await api.get<AttendanceRecord[]>(`/attendance?classSessionId=${classSessionId}`);
     return response.data;
 };
 

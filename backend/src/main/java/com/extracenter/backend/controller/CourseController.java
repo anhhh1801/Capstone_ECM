@@ -19,8 +19,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.extracenter.backend.dto.ClassSessionCreateRequest;
+import com.extracenter.backend.dto.ClassSessionUpdateRequest;
 import com.extracenter.backend.dto.CourseRequest;
-import com.extracenter.backend.entity.ClassSession;
+import com.extracenter.backend.dto.CourseSessionResponse;
+import com.extracenter.backend.dto.CourseSessionSlotOptionResponse;
 import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.service.CourseService;
@@ -56,8 +58,13 @@ public class CourseController {
     }
 
     @GetMapping("/{id}/sessions")
-    public ResponseEntity<List<ClassSession>> getCourseSessions(@PathVariable Long id) {
+    public ResponseEntity<List<CourseSessionResponse>> getCourseSessions(@PathVariable Long id) {
         return ResponseEntity.ok(courseService.getClassSessionsByCourse(id));
+    }
+
+    @GetMapping("/{id}/session-slot-options")
+    public ResponseEntity<List<CourseSessionSlotOptionResponse>> getCourseSessionSlotOptions(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getSessionSlotOptionsByCourse(id));
     }
 
     @PostMapping("/{id}/sessions")
@@ -65,8 +72,34 @@ public class CourseController {
             @PathVariable Long id,
             @Valid @RequestBody ClassSessionCreateRequest request) {
         try {
-            ClassSession created = courseService.createClassSession(id, request);
+            CourseSessionResponse created = courseService.createClassSession(id, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{courseId}/sessions/{sessionId}")
+    public ResponseEntity<?> updateCourseSession(
+            @PathVariable Long courseId,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody ClassSessionUpdateRequest request) {
+        try {
+            CourseSessionResponse updated = courseService.updateClassSession(courseId, sessionId, request);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{courseId}/sessions/{sessionId}")
+    public ResponseEntity<?> deleteCourseSession(
+            @PathVariable Long courseId,
+            @PathVariable Long sessionId,
+            @RequestParam Long actorId) {
+        try {
+            courseService.deleteClassSession(courseId, sessionId, actorId);
+            return ResponseEntity.ok(Map.of("message", "Session deleted successfully."));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

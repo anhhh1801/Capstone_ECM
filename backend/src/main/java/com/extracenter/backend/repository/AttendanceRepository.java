@@ -1,9 +1,13 @@
 package com.extracenter.backend.repository;
 
-import com.extracenter.backend.entity.Attendance;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.extracenter.backend.entity.Attendance;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
@@ -17,4 +21,12 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     // This is very useful when a student marks themselves present or a teacher
     // edits a single row.
     Optional<Attendance> findByEnrollmentIdAndClassSessionId(Long enrollmentId, Long classSessionId);
+
+    @Modifying
+    @Transactional
+    void deleteByClassSlotId(Long classSlotId);
+
+    @Modifying
+    @Transactional
+    void deleteByClassSessionId(Long classSessionId);
 }

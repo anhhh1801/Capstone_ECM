@@ -25,6 +25,7 @@ import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
+import com.extracenter.backend.repository.AttendanceRepository;
 import com.extracenter.backend.repository.CenterRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
 import com.extracenter.backend.repository.ClassroomRepository;
@@ -53,6 +54,9 @@ public class CenterService {
 
     @Autowired
     private ClassSlotRepository classSlotRepository;
+
+    @Autowired
+    private AttendanceRepository attendanceRepository;
 
     @Autowired
     private CourseRepository courseRepository;
@@ -464,6 +468,7 @@ public class CenterService {
         ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
                 .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
 
+        attendanceRepository.deleteByClassSlotId(slotId);
         classSlotRepository.delete(slot);
     }
 
