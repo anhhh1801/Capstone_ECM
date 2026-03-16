@@ -26,6 +26,32 @@ export default function CourseEnrollment({ courseId }: Props) {
         loadEnrolled();
     }, [courseId]);
 
+    useEffect(() => {
+        // 1. If the input is empty, clear the results and stop.
+        if (!keyword.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        // 2. Set up a debounce timer
+        const delayDebounceFn = setTimeout(async () => {
+            try {
+                const data = await searchStudents(keyword);
+
+                const existingIds = enrolledStudents.map((s: any) => s.id);
+                const filtered = data.filter((s: any) => !existingIds.includes(s.id));
+
+                setSearchResults(filtered);
+            } catch {
+                toast.error("Search failed");
+            }
+        }, 300);
+
+        // 3. Cleanup function to cancel the previous timer if the user keeps typing
+        return () => clearTimeout(delayDebounceFn);
+
+    }, [keyword, enrolledStudents]);
+
     const loadEnrolled = async () => {
         try {
             const data = await getStudentsInCourse(courseId);
@@ -35,22 +61,6 @@ export default function CourseEnrollment({ courseId }: Props) {
         }
     };
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!keyword.trim()) return;
-
-        try {
-            const data = await searchStudents(keyword);
-
-            const existingIds = enrolledStudents.map(s => s.id);
-            const filtered = data.filter((s: any) => !existingIds.includes(s.id));
-
-            setSearchResults(filtered);
-
-        } catch {
-            toast.error("Search failed");
-        }
-    };
 
     const handleAdd = async (student: any) => {
         try {
@@ -102,71 +112,43 @@ export default function CourseEnrollment({ courseId }: Props) {
 
                 <div className="mb-6">
 
-                    <form onSubmit={handleSearch} className="flex gap-2">
-
+                    <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
                         <input
                             type="text"
                             placeholder="Search students by name or email..."
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
-                            className="flex-1 px-3 py-2 text-sm border border-[var(--color-main)] rounded
-                            focus:ring-2 focus:ring-[var(--color-secondary)] outline-none"
+                            className="flex-1 px-3 py-2 text-sm border border-[var(--color-main)] rounded focus:ring-2 focus:ring-[var(--color-secondary)] outline-none"
                         />
-
-                        <button
-                            type="submit"
-                            className="flex items-center gap-2 px-4 py-2 text-sm
-                            border border-[var(--color-main)]
-                            text-[var(--color-main)]
-                            rounded font-medium
-                            hover:bg-[var(--color-main)] hover:text-white transition"
-                        >
-                            <Search size={16} />
-                            Search
-                        </button>
-
                     </form>
 
                     {/* SEARCH RESULTS */}
 
                     {searchResults.length > 0 && (
-
                         <div className="mt-3 border border-[var(--color-main)] rounded overflow-hidden">
-
                             {searchResults.map(student => (
-
                                 <div
                                     key={student.id}
                                     className="flex justify-between items-center px-4 py-3 border-b last:border-b-0 hover:bg-[var(--color-secondary)]/10 transition"
                                 >
-
                                     <div>
-
                                         <p className="font-semibold text-[var(--color-text)]">
                                             {student.lastName} {student.firstName}
                                         </p>
-
                                         <p className="text-xs text-gray-500">
                                             {student.email}
                                         </p>
-
                                     </div>
 
                                     <button
                                         onClick={() => handleAdd(student)}
-                                        className="p-2 border border-[var(--color-main)]
-                                        text-[var(--color-main)] rounded
-                                        hover:bg-[var(--color-main)] hover:text-white transition"
+                                        className="p-2 border border-[var(--color-main)] text-[var(--color-main)] rounded hover:bg-[var(--color-main)] hover:text-white transition"
                                     >
                                         <UserPlus size={16} />
                                     </button>
-
                                 </div>
-
                             ))}
-
                         </div>
-
                     )}
 
                 </div>

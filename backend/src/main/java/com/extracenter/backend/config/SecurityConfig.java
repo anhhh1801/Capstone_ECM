@@ -46,7 +46,12 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.DELETE, "/api/courses", "/api/courses/**")
                                                 .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
                                                                 "ADMIN", "ROLE_ADMIN")
-
+                                                .requestMatchers("/api/materials", "/api/materials/**")
+                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
+                                                                "ADMIN", "ROLE_ADMIN")
+                                                .requestMatchers("/api/assignments", "/api/assignments/**")
+                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
+                                                                "ADMIN", "ROLE_ADMIN", "STUDENT", "ROLE_STUDENT")
                                                 // Tất cả các API khác BẮT BUỘC phải có Token
                                                 .anyRequest().authenticated())
                                 // Thêm Filter JWT vào trước filter mặc định

@@ -1,19 +1,18 @@
-import { BookOpen, Users, UserCog } from "lucide-react";
+import { BookOpen, Users, UserCog, Book, NotebookPen } from "lucide-react";
 
 interface Props {
     activeTab: string;
-    setActiveTab: (tab: "General Info" | "Students" | "Enrollment") => void;
+    setActiveTab: (tab: "General Info" | "Students" | "Materials" | "Enrollment" | "Assignments") => void;
     isManager: boolean;
 }
 
-export default function CenterTabsInCourse({ activeTab, setActiveTab, isManager }: Props) {
+export default function TabsInCourse({ activeTab, setActiveTab, isManager }: Props) {
 
     const tabStyle = (tab: string) =>
         `px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
-        ${
-            activeTab === tab
-                ? "border-[var(--color-main)] text-[var(--color-main)]"
-                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+        ${activeTab === tab
+            ? "border-[var(--color-main)] text-[var(--color-main)]"
+            : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
         }`;
 
     return (
@@ -35,6 +34,24 @@ export default function CenterTabsInCourse({ activeTab, setActiveTab, isManager 
             >
                 <Users size={18} />
                 Students
+            </button>
+
+            {/* MATERIALS */}
+            <button
+                onClick={() => setActiveTab("Materials")}
+                className={tabStyle("Materials")}
+            >
+                <Book size={18} />
+                Materials
+            </button>
+
+            {/* ASSIGNMENTS */}
+            <button
+                onClick={() => setActiveTab("Assignments")}
+                className={tabStyle("Assignments")}
+            >
+                <NotebookPen size={18} />
+                Assignments
             </button>
 
             {/* ENROLLMENT (Manager only) */}
