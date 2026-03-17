@@ -1,0 +1,17 @@
+package com.extracenter.backend.dto;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class ScoreRequest {
+
+    @NotNull(message = "Score is required")
+    @Min(value = 0, message = "Score cannot be less than 0")
+    @Max(value = 10, message = "Score cannot be greater than 10")
+    private Float score;
+
+    private String feedback;
+}

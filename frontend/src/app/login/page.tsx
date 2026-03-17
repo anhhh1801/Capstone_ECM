@@ -34,7 +34,7 @@ export default function LoginPage() {
                         router.replace("/");
                     }
                 }
-            } catch (_) {}
+            } catch (_) { }
         }
     }, [router]);
 
@@ -54,12 +54,12 @@ export default function LoginPage() {
             localStorage.setItem("user", JSON.stringify(user));
 
             setTimeout(() => {
-                if (roleName === "TEACHER") {
+                if (user.role.toString() === "TEACHER") {
                     router.push("/teacher/dashboard");
                 }
-                else if (roleName === "STUDENT") {
+                else if (user.role.toString() === "STUDENT") {
                     router.push("/student/dashboard");
-                } else if (roleName === "ADMIN") {
+                } else if (user.role.toString() === "ADMIN") {
                     router.push("/admin/users");
                 }
                 else {
@@ -98,8 +98,8 @@ export default function LoginPage() {
     };
 
     return (
-          <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
-           <Toaster position="top-center" />
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
+            <Toaster position="top-center" />
 
             <LockedAccountModal
                 isOpen={showLockedModal}
