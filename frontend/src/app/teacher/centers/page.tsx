@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import api from "@/utils/axiosConfig";
-import { Center, createCenter, getMyCenters } from "@/services/centerService";
-import { Building2, Plus, Briefcase, Bell, SaveIcon, Edit2Icon, DeleteIcon, Delete, Trash } from "lucide-react";
+import { Center, createCenter, getCenterInvitations, getMyCenters } from "@/services/centerService";
+import { Building2, Plus, Briefcase, Bell, SaveIcon, Edit2Icon, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
@@ -15,6 +15,7 @@ export default function CenterManagementPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"managed" | "teaching">("managed");
     const [invitations, setInvitations] = useState<Course[]>([]);
+    const [centerInvitations, setCenterInvitations] = useState<Center[]>([]);
 
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({ name: "", description: "", phoneNumber: "" });
@@ -37,6 +38,9 @@ export default function CenterManagementPage() {
 
             const pendingInvites = await getInvitations(user.id);
             setInvitations(pendingInvites);
+
+            const pendingCenterInvites = await getCenterInvitations(user.id);
+            setCenterInvitations(pendingCenterInvites);
         } catch (error) {
             console.error(error);
         } finally {
@@ -143,6 +147,35 @@ export default function CenterManagementPage() {
                                         Reject
                                     </button>
                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {centerInvitations.length > 0 && (
+                <div className="bg-[var(--color-main)]/10 border border-[var(--color-main)]/30 rounded-xl p-4 mb-6">
+                    <h3 className="text-[var(--color-main)] font-bold mb-3">
+                        <Bell className="inline" size={18} /> You were invited to {centerInvitations.length} center(s)
+                    </h3>
+
+                    <div className="space-y-2">
+                        {centerInvitations.map((center) => (
+                            <div
+                                key={center.id}
+                                className="bg-[var(--color-soft-white)] p-3 rounded-lg border border-[var(--color-main)]/30 flex justify-between items-center"
+                            >
+                                <div>
+                                    <p className="font-bold text-[var(--color-text)]">{center.name}</p>
+                                    <p className="text-sm text-[var(--color-text)]">Manager: {center.manager?.lastName} {center.manager?.firstName}</p>
+                                </div>
+
+                                <Link
+                                    href={`/teacher/centers/${center.id}`}
+                                    className="px-3 py-1.5 rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] text-white hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
+                                >
+                                    View Center
+                                </Link>
                             </div>
                         ))}
                     </div>

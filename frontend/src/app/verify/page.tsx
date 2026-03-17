@@ -17,12 +17,13 @@ function VerifyContent() {
         if (stored) {
             try {
                 const { user } = JSON.parse(stored);
-                if (user?.role?.name) {
-                    if (user.role.name === "TEACHER") {
+                const roleName = typeof user?.role === "string" ? user.role : user?.role?.name;
+                if (roleName) {
+                    if (roleName === "TEACHER") {
                         router.replace("/teacher/dashboard");
-                    } else if (user.role.name === "STUDENT") {
+                    } else if (roleName === "STUDENT") {
                         router.replace("/student/dashboard");
-                    } else if (user.role.name === "ADMIN") {
+                    } else if (roleName === "ADMIN") {
                         router.replace("/admin/users");
                     } else {
                         router.replace("/");

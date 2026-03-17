@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2Icon, Trash2 } from "lucide-react";
+import { Plus, Edit2Icon, Trash2, BookPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterGrade,
@@ -9,6 +9,7 @@ import {
     getCenterGrades,
 } from "@/services/centerService";
 import GradeModal from "./GradeModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Props {
     centerId: number;
@@ -38,13 +39,13 @@ export default function GradeListTab({ centerId, isManager }: Props) {
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
+    const [deletingGrade, setDeletingGrade] = useState<CenterGrade | null>(null);
 
     const handleDelete = async (grade: CenterGrade) => {
-        if (!confirm(`Delete grade "${grade.name}"?`)) return;
-
         try {
             await deleteCenterGrade(centerId, grade.id);
             toast.success("Grade deleted.");
+            setDeletingGrade(null);
             fetch();
         } catch (error) {
             console.error(error);
@@ -67,12 +68,21 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                 grade={editingGrade}
             />
 
+            <ConfirmModal
+                isOpen={!!deletingGrade}
+                title="Delete Grade"
+                message={`Delete grade "${deletingGrade?.name || ""}"?`}
+                confirmText="Delete"
+                onClose={() => setDeletingGrade(null)}
+                onConfirm={() => (deletingGrade ? handleDelete(deletingGrade) : undefined)}
+            />
+
             {/* HEADER */}
             <div className="flex items-center justify-between">
 
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                    <Plus size={18} className="text-[var(--color-main)]" />
-                    Grades
+                    <BookPlus size={18} /> Grades
+
                 </h3>
 
                 {isManager && (
@@ -150,7 +160,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
 
                                                 {/* DELETE */}
                                                 <button
-                                                    onClick={() => handleDelete(grade)}
+                                                    onClick={() => setDeletingGrade(grade)}
                                                     className="p-2 bg-[var(--color-alert)] text-white rounded-lg hover:bg-red-700 transition"
                                                 >
                                                     <Trash2 size={18} />

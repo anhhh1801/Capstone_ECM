@@ -1,21 +1,38 @@
 package com.extracenter.backend.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.dto.CenterRequest;
+import com.extracenter.backend.dto.ClassSlotOccurrenceOverrideRequest;
+import com.extracenter.backend.dto.ClassSlotRequest;
+import com.extracenter.backend.dto.ClassroomRequest;
 import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.entity.Classroom;
+import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
+import com.extracenter.backend.repository.AttendanceRepository;
 import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.ClassSlotRepository;
+import com.extracenter.backend.repository.ClassroomRepository;
+import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CenterService {
@@ -31,6 +48,18 @@ public class CenterService {
 
     @Autowired
     private GradeRepository gradeRepository;
+
+    @Autowired
+    private ClassroomRepository classroomRepository;
+
+    @Autowired
+    private ClassSlotRepository classSlotRepository;
+
+    @Autowired
+    private AttendanceRepository attendanceRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
 
     // 1. Create a new Center
     // @Transactional added: If saving the center works but updating the manager
@@ -73,7 +102,22 @@ public class CenterService {
 
     // 5. Get list of Centers where a teacher is currently teaching (Guest Teacher)
     public List<Center> getCentersTeaching(Long teacherId) {
-        return centerRepository.findCentersTeachingByTeacherId(teacherId);
+        List<Center> fromCourses = centerRepository.findCentersTeachingByTeacherId(teacherId);
+        List<Center> fromLinks = centerRepository.findLinkedCentersByTeacherId(teacherId);
+
+        Map<Long, Center> uniqueCenters = new LinkedHashMap<>();
+        for (Center center : fromCourses) {
+            uniqueCenters.put(center.getId(), center);
+        }
+        for (Center center : fromLinks) {
+            uniqueCenters.put(center.getId(), center);
+        }
+
+        return List.copyOf(uniqueCenters.values());
+    }
+
+    public List<Center> getPendingInvitedCenters(Long teacherId) {
+        return centerRepository.findPendingInvitedCentersByTeacherId(teacherId);
     }
 
     // Subject / Grade management for a Center
@@ -220,5 +264,408 @@ public class CenterService {
         } catch (Exception e) {
             throw new RuntimeException("An error occurred while deleting the center: " + e.getMessage());
         }
+    }
+
+    private Center getOwnedCenter(Long centerId, Long managerId) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+
+        if (!center.getManager().getId().equals(managerId)) {
+            throw new RuntimeException("Only the center owner can manage classrooms.");
+        }
+
+        return center;
+    }
+
+    public List<Classroom> getClassroomsByCenter(Long centerId) {
+        return classroomRepository.findByCenterId(centerId);
+    }
+
+    @Transactional
+    public Classroom createClassroom(Long centerId, ClassroomRequest request) {
+        Center center = getOwnedCenter(centerId, request.getManagerId());
+
+        Classroom classroom = new Classroom();
+        classroom.setSeat(request.getSeat());
+        classroom.setLocation(request.getLocation());
+        classroom.setLastMaintainDate(request.getLastMaintainDate());
+        classroom.setCenter(center);
+
+        return classroomRepository.save(classroom);
+    }
+
+    @Transactional
+    public Classroom updateClassroom(Long centerId, Long classroomId, ClassroomRequest request) {
+        getOwnedCenter(centerId, request.getManagerId());
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        classroom.setSeat(request.getSeat());
+        classroom.setLocation(request.getLocation());
+        classroom.setLastMaintainDate(request.getLastMaintainDate());
+
+        return classroomRepository.save(classroom);
+    }
+
+    @Transactional
+    public void deleteClassroom(Long centerId, Long classroomId, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        classroomRepository.delete(classroom);
+    }
+
+    public List<ClassSlot> getClassSlotsByCenter(Long centerId) {
+        return classSlotRepository.findByCenterId(centerId);
+    }
+
+    public List<User> getTeachersByCenter(Long centerId) {
+        return userRepository.findTeachersByCenterId(centerId);
+    }
+
+    @Transactional
+    public User inviteTeacherToCenter(Long centerId, Long managerId, String email) {
+        Center center = getOwnedCenter(centerId, managerId);
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Teacher not found."));
+
+        if (!"TEACHER".equalsIgnoreCase(teacher.getRole().getName())) {
+            throw new RuntimeException("This user is not registered as a Teacher.");
+        }
+
+        boolean alreadyLinked = teacher.getConnectedCenters().stream()
+                .anyMatch(c -> c.getId().equals(centerId));
+
+        if (alreadyLinked) {
+            throw new RuntimeException("Teacher is already linked to this center.");
+        }
+
+        teacher.getConnectedCenters().add(center);
+        return userRepository.save(teacher);
+    }
+
+    @Transactional
+    public void unlinkTeacherFromCenter(Long centerId, Long teacherId, Long managerId) {
+        Center center = getOwnedCenter(centerId, managerId);
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found."));
+
+        if (!"TEACHER".equalsIgnoreCase(teacher.getRole().getName())) {
+            throw new RuntimeException("Selected user is not a teacher.");
+        }
+
+        if (center.getManager().getId().equals(teacherId)) {
+            throw new RuntimeException("Cannot unlink the center manager.");
+        }
+
+        boolean removed = teacher.getConnectedCenters().removeIf(c -> c.getId().equals(centerId));
+        if (!removed) {
+            throw new RuntimeException("Teacher is not linked to this center.");
+        }
+
+        // Reassign this teacher's courses in this center to the center manager.
+        List<Course> teacherCourses = courseRepository.findByCenterIdAndTeacherId(centerId, teacherId);
+        for (Course course : teacherCourses) {
+            course.setTeacher(center.getManager());
+            course.setPendingTeacher(null);
+            course.setInvitationStatus("ACCEPTED");
+        }
+        courseRepository.saveAll(teacherCourses);
+
+        userRepository.save(teacher);
+    }
+
+    @Transactional
+    public ClassSlot createClassSlot(Long centerId, ClassSlotRequest request) {
+        Center center = getOwnedCenter(centerId, request.getManagerId());
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found."));
+
+        if (!course.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Course does not belong to this center.");
+        }
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+            .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        validateSlotTimes(request.getStartTime(), request.getEndTime());
+        validateNoTimeConflicts(
+            centerId,
+            request.getCourseId(),
+            request.getClassroomId(),
+            course.getStartDate(),
+            course.getEndDate(),
+            request.getStartTime(),
+            request.getEndTime(),
+            request.getDaysOfWeek(),
+            null);
+
+        ClassSlot slot = new ClassSlot();
+        slot.setCenter(center);
+        slot.setCourse(course);
+        slot.setClassroom(classroom);
+        slot.setStartDate(course.getStartDate());
+        slot.setEndDate(course.getEndDate());
+        slot.setStartTime(request.getStartTime());
+        slot.setEndTime(request.getEndTime());
+        slot.setDaysOfWeek(request.getDaysOfWeek());
+        slot.setIsRecurring(Boolean.TRUE.equals(request.getRecurring()) || request.getRecurring() == null);
+
+        return classSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public ClassSlot updateClassSlot(Long centerId, Long slotId, ClassSlotRequest request) {
+        getOwnedCenter(centerId, request.getManagerId());
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found."));
+
+        if (!course.getCenter().getId().equals(centerId)) {
+            throw new RuntimeException("Course does not belong to this center.");
+        }
+
+        Classroom classroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+            .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        validateSlotTimes(request.getStartTime(), request.getEndTime());
+        validateNoTimeConflicts(
+            centerId,
+            request.getCourseId(),
+            request.getClassroomId(),
+            course.getStartDate(),
+            course.getEndDate(),
+            request.getStartTime(),
+            request.getEndTime(),
+            request.getDaysOfWeek(),
+            slotId);
+
+        slot.setCourse(course);
+        slot.setClassroom(classroom);
+        slot.setStartDate(course.getStartDate());
+        slot.setEndDate(course.getEndDate());
+        slot.setStartTime(request.getStartTime());
+        slot.setEndTime(request.getEndTime());
+        slot.setDaysOfWeek(request.getDaysOfWeek());
+        slot.setIsRecurring(Boolean.TRUE.equals(request.getRecurring()) || request.getRecurring() == null);
+
+        return classSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public void deleteClassSlot(Long centerId, Long slotId, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        attendanceRepository.deleteByClassSlotId(slotId);
+        classSlotRepository.delete(slot);
+    }
+
+    @Transactional
+    public void deleteClassSlotOccurrence(Long centerId, Long slotId, LocalDate date, Long managerId) {
+        getOwnedCenter(centerId, managerId);
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        if (!isDateWithinRange(date, slot.getStartDate(), slot.getEndDate())) {
+            throw new RuntimeException("Selected date is outside the class slot date range.");
+        }
+
+        if (!isSlotScheduledOnDate(slot, date)) {
+            throw new RuntimeException("This class slot does not run on the selected date.");
+        }
+
+        if (slot.getExcludedDates() == null) {
+            slot.setExcludedDates(new HashSet<>());
+        }
+
+        slot.getExcludedDates().add(date);
+        classSlotRepository.save(slot);
+    }
+
+    @Transactional
+    public ClassSlot overrideClassSlotOccurrence(
+            Long centerId,
+            Long slotId,
+            LocalDate date,
+            ClassSlotOccurrenceOverrideRequest request) {
+
+        getOwnedCenter(centerId, request.getManagerId());
+
+        ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
+                .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
+
+        if (!isDateWithinRange(date, slot.getStartDate(), slot.getEndDate())) {
+            throw new RuntimeException("Selected date is outside the class slot date range.");
+        }
+
+        if (!isSlotScheduledOnDate(slot, date)) {
+            throw new RuntimeException("This class slot does not run on the selected date.");
+        }
+
+        validateSlotTimes(request.getStartTime(), request.getEndTime());
+
+        Classroom overrideClassroom = classroomRepository.findByIdAndCenterId(request.getClassroomId(), centerId)
+            .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        Set<DayOfWeek> singleDay = new HashSet<>();
+        singleDay.add(date.getDayOfWeek());
+
+        validateNoTimeConflicts(
+                centerId,
+                slot.getCourse() != null ? slot.getCourse().getId() : null,
+                request.getClassroomId(),
+                date,
+                date,
+                request.getStartTime(),
+                request.getEndTime(),
+                singleDay,
+                slotId);
+
+        if (slot.getExcludedDates() == null) {
+            slot.setExcludedDates(new HashSet<>());
+        }
+        slot.getExcludedDates().add(date);
+        classSlotRepository.save(slot);
+
+        ClassSlot overrideSlot = new ClassSlot();
+        overrideSlot.setCenter(slot.getCenter());
+        overrideSlot.setCourse(slot.getCourse());
+        overrideSlot.setClassroom(overrideClassroom);
+        overrideSlot.setStartDate(date);
+        overrideSlot.setEndDate(date);
+        overrideSlot.setStartTime(request.getStartTime());
+        overrideSlot.setEndTime(request.getEndTime());
+        overrideSlot.setDaysOfWeek(singleDay);
+        overrideSlot.setIsRecurring(false);
+
+        return classSlotRepository.save(overrideSlot);
+    }
+
+    private void validateSlotTimes(LocalTime startTime, LocalTime endTime) {
+        LocalTime earliestAllowed = LocalTime.of(7, 0);
+        LocalTime latestAllowed = LocalTime.of(22, 0);
+
+        if (startTime == null || endTime == null) {
+            throw new RuntimeException("Start time and end time are required.");
+        }
+
+        if (startTime.isBefore(earliestAllowed) || endTime.isAfter(latestAllowed)) {
+            throw new RuntimeException("Class time must be between 7:00 AM and 10:00 PM.");
+        }
+
+        if (!(startTime.getMinute() == 0 || startTime.getMinute() == 30)
+                || !(endTime.getMinute() == 0 || endTime.getMinute() == 30)) {
+            throw new RuntimeException("Time must be on 30-minute boundaries (:00 or :30).");
+        }
+
+        if (!endTime.isAfter(startTime)) {
+            throw new RuntimeException("End time must be after start time.");
+        }
+    }
+
+    private void validateNoTimeConflicts(
+            Long centerId,
+            Long requestCourseId,
+            Long requestClassroomId,
+            LocalDate requestStartDate,
+            LocalDate requestEndDate,
+            LocalTime requestStartTime,
+            LocalTime requestEndTime,
+            Set<DayOfWeek> requestDays,
+            Long excludeSlotId) {
+
+        List<ClassSlot> existingSlots = classSlotRepository.findByCenterId(centerId);
+
+        for (ClassSlot existing : existingSlots) {
+            if (excludeSlotId != null && excludeSlotId.equals(existing.getId())) {
+                continue;
+            }
+
+            if (!dateRangesOverlap(requestStartDate, requestEndDate, existing.getStartDate(), existing.getEndDate())) {
+                continue;
+            }
+
+            if (!daySetsOverlap(requestDays, getEffectiveDays(existing))) {
+                continue;
+            }
+
+            if (!timeRangesOverlap(requestStartTime, requestEndTime, existing.getStartTime(), existing.getEndTime())) {
+                continue;
+            }
+
+            Long existingCourseId = existing.getCourse() != null ? existing.getCourse().getId() : null;
+            Long existingClassroomId = existing.getClassroom() != null ? existing.getClassroom().getId() : null;
+
+            if (requestCourseId != null && requestCourseId.equals(existingCourseId)) {
+                throw new RuntimeException("This course already has another class slot at the same time.");
+            }
+
+            if (requestClassroomId != null && requestClassroomId.equals(existingClassroomId)) {
+                throw new RuntimeException("This classroom is already occupied at the selected time.");
+            }
+        }
+    }
+
+    private boolean timeRangesOverlap(LocalTime startA, LocalTime endA, LocalTime startB, LocalTime endB) {
+        return startA.isBefore(endB) && startB.isBefore(endA);
+    }
+
+    private boolean dateRangesOverlap(LocalDate startA, LocalDate endA, LocalDate startB, LocalDate endB) {
+        return !endA.isBefore(startB) && !endB.isBefore(startA);
+    }
+
+    private boolean daySetsOverlap(Set<DayOfWeek> daysA, Set<DayOfWeek> daysB) {
+        if (daysA == null || daysA.isEmpty() || daysB == null || daysB.isEmpty()) {
+            return false;
+        }
+
+        for (DayOfWeek day : daysA) {
+            if (daysB.contains(day)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isDateWithinRange(LocalDate date, LocalDate startDate, LocalDate endDate) {
+        return date != null && startDate != null && endDate != null
+                && !date.isBefore(startDate) && !date.isAfter(endDate);
+    }
+
+    private boolean isSlotScheduledOnDate(ClassSlot slot, LocalDate date) {
+        Set<DayOfWeek> days = getEffectiveDays(slot);
+        if (!days.contains(date.getDayOfWeek())) {
+            return false;
+        }
+
+        Set<LocalDate> excludedDates = slot.getExcludedDates();
+        return excludedDates == null || !excludedDates.contains(date);
+    }
+
+    private Set<DayOfWeek> getEffectiveDays(ClassSlot slot) {
+        Set<DayOfWeek> effectiveDays = new HashSet<>();
+
+        if (slot.getDaysOfWeek() != null) {
+            effectiveDays.addAll(slot.getDaysOfWeek());
+        }
+
+        if (slot.getDayOfWeek() != null) {
+            effectiveDays.add(slot.getDayOfWeek());
+        }
+
+        return effectiveDays;
     }
 }

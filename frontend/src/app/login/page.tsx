@@ -22,12 +22,13 @@ export default function LoginPage() {
         if (stored) {
             try {
                 const { user } = JSON.parse(stored);
-                if (user?.role?.name) {
-                    if (user.role.name === "TEACHER") {
+                const roleName = typeof user?.role === "string" ? user.role : user?.role?.name;
+                if (roleName) {
+                    if (roleName === "TEACHER") {
                         router.replace("/teacher/dashboard");
-                    } else if (user.role.name === "STUDENT") {
+                    } else if (roleName === "STUDENT") {
                         router.replace("/student/dashboard");
-                    } else if (user.role.name === "ADMIN") {
+                    } else if (roleName === "ADMIN") {
                         router.replace("/admin/users");
                     } else {
                         router.replace("/");
@@ -46,6 +47,7 @@ export default function LoginPage() {
             localStorage.setItem("loginResponse", JSON.stringify({ ...loginResponse, loginTime: Date.now() }));
 
             const user = loginResponse.user;
+            const roleName = typeof user?.role === "string" ? user.role : user?.role?.name;
 
             toast.success(`Hello ${user.firstName} ${user.lastName}!`);
 

@@ -1,13 +1,14 @@
 package com.extracenter.backend.repository;
 
-import com.extracenter.backend.entity.User;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import com.extracenter.backend.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -32,6 +33,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // centerId
     @Query("SELECT u FROM User u JOIN u.connectedCenters c WHERE c.id = :centerId AND u.role.name = 'STUDENT'")
     List<User> findStudentsByCenterId(@Param("centerId") Long centerId);
+
+    // Find teachers who are linked to a specific center.
+    @Query("SELECT u FROM User u JOIN u.connectedCenters c WHERE c.id = :centerId AND u.role.name = 'TEACHER'")
+    List<User> findTeachersByCenterId(@Param("centerId") Long centerId);
 
     // Find users who have not verified their accounts within a certain time frame
     // (Used by a scheduled Cron Job to delete dead/spam accounts)

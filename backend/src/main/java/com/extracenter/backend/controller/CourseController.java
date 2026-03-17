@@ -1,19 +1,33 @@
 package com.extracenter.backend.controller;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.extracenter.backend.dto.ClassSessionCreateRequest;
+import com.extracenter.backend.dto.ClassSessionUpdateRequest;
 import com.extracenter.backend.dto.CourseRequest;
+import com.extracenter.backend.dto.CourseSessionResponse;
+import com.extracenter.backend.dto.CourseSessionSlotOptionResponse;
 import com.extracenter.backend.entity.Course;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.service.CourseService;
 
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -43,6 +57,54 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseById(id));
     }
 
+    @GetMapping("/{id}/sessions")
+    public ResponseEntity<List<CourseSessionResponse>> getCourseSessions(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getClassSessionsByCourse(id));
+    }
+
+    @GetMapping("/{id}/session-slot-options")
+    public ResponseEntity<List<CourseSessionSlotOptionResponse>> getCourseSessionSlotOptions(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.getSessionSlotOptionsByCourse(id));
+    }
+
+    @PostMapping("/{id}/sessions")
+    public ResponseEntity<?> createCourseSession(
+            @PathVariable Long id,
+            @Valid @RequestBody ClassSessionCreateRequest request) {
+        try {
+            CourseSessionResponse created = courseService.createClassSession(id, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{courseId}/sessions/{sessionId}")
+    public ResponseEntity<?> updateCourseSession(
+            @PathVariable Long courseId,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody ClassSessionUpdateRequest request) {
+        try {
+            CourseSessionResponse updated = courseService.updateClassSession(courseId, sessionId, request);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{courseId}/sessions/{sessionId}")
+    public ResponseEntity<?> deleteCourseSession(
+            @PathVariable Long courseId,
+            @PathVariable Long sessionId,
+            @RequestParam Long actorId) {
+        try {
+            courseService.deleteClassSession(courseId, sessionId, actorId);
+            return ResponseEntity.ok(Map.of("message", "Session deleted successfully."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // API: Update an existing course
     // PUT: http://localhost:8080/api/courses/1
     @PutMapping("/{id}")
@@ -61,6 +123,35 @@ public class CourseController {
     public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
         try {
             courseService.deleteCourse(id);
+            return ResponseEntity.ok(Map.of("message", "Course deleted successfully!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Send OTP for secure course deletion to owner personal email
+    // POST: http://localhost:8080/api/courses/1/delete-otp?managerId=2
+    @PostMapping("/{id}/delete-otp")
+    public ResponseEntity<?> sendDeleteOtp(
+            @PathVariable Long id,
+            @RequestParam Long managerId) {
+        try {
+            courseService.sendDeleteCourseOtp(id, managerId);
+            return ResponseEntity.ok(Map.of("message", "OTP sent to owner personal email."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Confirm secure course deletion with OTP
+    // DELETE: http://localhost:8080/api/courses/1/confirm-delete?managerId=2&otp=123456
+    @DeleteMapping("/{id}/confirm-delete")
+    public ResponseEntity<?> confirmDeleteCourse(
+            @PathVariable Long id,
+            @RequestParam Long managerId,
+            @RequestParam String otp) {
+        try {
+            courseService.deleteCourseWithOtp(id, managerId, otp);
             return ResponseEntity.ok(Map.of("message", "Course deleted successfully!"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -93,6 +184,21 @@ public class CourseController {
             courseService.inviteTeacherToCourse(id, email);
             return ResponseEntity.ok(Map.of("message", "Invitation sent successfully!"));
         } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Assign center teacher to a course (Used by Center Managers)
+    // PUT: http://localhost:8080/api/courses/1/teacher?teacherId=7&managerId=2
+    @PutMapping("/{id}/teacher")
+    public ResponseEntity<?> assignTeacherToCourse(
+            @PathVariable Long id,
+            @RequestParam Long teacherId,
+            @RequestParam Long managerId) {
+        try {
+            Course updated = courseService.assignTeacherToCourse(id, teacherId, managerId);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

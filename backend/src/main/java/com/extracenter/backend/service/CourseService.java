@@ -1,17 +1,24 @@
 package com.extracenter.backend.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.time.DayOfWeek;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.extracenter.backend.dto.ClassSessionCreateRequest;
+import com.extracenter.backend.dto.ClassSessionUpdateRequest;
 import com.extracenter.backend.dto.CourseRequest;
+import com.extracenter.backend.dto.CourseSessionResponse;
+import com.extracenter.backend.dto.CourseSessionSlotOptionResponse;
 import com.extracenter.backend.entity.Center;
 import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.ClassSlot;
@@ -20,6 +27,8 @@ import com.extracenter.backend.entity.Enrollment;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
+import com.extracenter.backend.entity.VerificationToken;
+import com.extracenter.backend.repository.AttendanceRepository;
 import com.extracenter.backend.repository.CenterRepository;
 import com.extracenter.backend.repository.ClassSessionRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
@@ -28,6 +37,7 @@ import com.extracenter.backend.repository.EnrollmentRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
+import com.extracenter.backend.repository.VerificationTokenRepository;
 
 @Service
 public class CourseService {
@@ -38,6 +48,8 @@ public class CourseService {
     private ClassSlotRepository classSlotRepository;
     @Autowired
     private ClassSessionRepository classSessionRepository; // ADDED THIS
+    @Autowired
+    private AttendanceRepository attendanceRepository;
     @Autowired
     private CenterRepository centerRepository;
     @Autowired
@@ -50,6 +62,12 @@ public class CourseService {
     // THÊM REPOSITORY NÀY ĐỂ QUẢN LÝ VIỆC ĐĂNG KÝ HỌC
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private VerificationTokenRepository verificationTokenRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     @Transactional
     public Course createCourse(CourseRequest request) {
@@ -93,10 +111,13 @@ public class CourseService {
         if (request.getSlots() != null && !request.getSlots().isEmpty()) {
             for (CourseRequest.SlotRequest slotReq : request.getSlots()) {
                 ClassSlot slot = new ClassSlot();
-                slot.setDayOfWeek(slotReq.getDayOfWeek());
+                slot.setDaysOfWeek(Collections.singleton(slotReq.getDayOfWeek()));
                 slot.setStartTime(slotReq.getStartTime());
                 slot.setEndTime(slotReq.getEndTime());
+                slot.setStartDate(savedCourse.getStartDate());
+                slot.setEndDate(savedCourse.getEndDate());
                 slot.setIsRecurring(true);
+                slot.setCenter(center);
                 slot.setCourse(savedCourse);
                 savedSlots.add(classSlotRepository.save(slot));
             }
@@ -123,7 +144,7 @@ public class CourseService {
             DayOfWeek currentDayOfWeek = currentDate.getDayOfWeek();
 
             for (ClassSlot slot : slots) {
-                if (slot.getDayOfWeek() == currentDayOfWeek) {
+                if (slot.getDaysOfWeek() != null && slot.getDaysOfWeek().contains(currentDayOfWeek)) {
                     ClassSession session = new ClassSession();
                     session.setCourse(course);
                     session.setDate(currentDate);
@@ -154,6 +175,124 @@ public class CourseService {
     public Course getCourseById(Long id) {
         return courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
+    }
+
+        @Transactional
+        public List<CourseSessionResponse> getClassSessionsByCourse(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        synchronizeSessionsFromActiveClassSlots(course);
+
+        return classSessionRepository.findByCourseIdOrderByDateAsc(courseId)
+                .stream()
+                .map(session -> mapToSessionResponse(session, findMatchingSlot(session)))
+                .filter(response -> response.getClassSlotId() != null)
+                .collect(Collectors.toList());
+    }
+
+    public List<CourseSessionSlotOptionResponse> getSessionSlotOptionsByCourse(Long courseId) {
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        return classSlotRepository.findByCourseId(courseId)
+                .stream()
+                .map(slot -> CourseSessionSlotOptionResponse.builder()
+                        .classSlotId(slot.getId())
+                        .startDate(slot.getStartDate())
+                        .endDate(slot.getEndDate())
+                        .startTime(slot.getStartTime())
+                        .endTime(slot.getEndTime())
+                        .daysOfWeek(slot.getDaysOfWeek())
+                        .classroomId(slot.getClassroom() != null ? slot.getClassroom().getId() : null)
+                        .classroomLocation(slot.getClassroom() != null ? slot.getClassroom().getLocation() : null)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CourseSessionResponse createClassSession(Long courseId, ClassSessionCreateRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        validateSessionEditor(course, request.getActorId(), "create");
+
+        ClassSlot slot = classSlotRepository.findById(request.getClassSlotId())
+                .orElseThrow(() -> new RuntimeException("Class slot not found."));
+        validateSlotBelongsToCourse(courseId, slot);
+        validateDateFitsSlot(request.getDate(), slot);
+
+        if (classSessionRepository.existsByCourseIdAndDateAndStartTimeAndEndTime(
+                courseId,
+                request.getDate(),
+                slot.getStartTime(),
+                slot.getEndTime())) {
+            throw new RuntimeException("This session already exists.");
+        }
+
+        ClassSession session = new ClassSession();
+        session.setCourse(course);
+        session.setDate(request.getDate());
+        session.setStartTime(slot.getStartTime());
+        session.setEndTime(slot.getEndTime());
+        session.setStatus("SCHEDULED");
+        session.setNote(request.getNote());
+
+        ClassSession saved = classSessionRepository.save(session);
+        return mapToSessionResponse(saved, slot);
+    }
+
+    @Transactional
+    public CourseSessionResponse updateClassSession(Long courseId, Long sessionId, ClassSessionUpdateRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+        validateSessionEditor(course, request.getActorId(), "edit");
+
+        ClassSession session = classSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Class session not found."));
+
+        if (!session.getCourse().getId().equals(courseId)) {
+            throw new RuntimeException("Class session does not belong to this course.");
+        }
+
+        ClassSlot slot = classSlotRepository.findById(request.getClassSlotId())
+                .orElseThrow(() -> new RuntimeException("Class slot not found."));
+        validateSlotBelongsToCourse(courseId, slot);
+        validateDateFitsSlot(request.getDate(), slot);
+
+        if (classSessionRepository.existsByCourseIdAndDateAndStartTimeAndEndTimeAndIdNot(
+                courseId,
+                request.getDate(),
+                slot.getStartTime(),
+                slot.getEndTime(),
+                sessionId)) {
+            throw new RuntimeException("Another session already exists for this slot and date.");
+        }
+
+        session.setDate(request.getDate());
+        session.setStartTime(slot.getStartTime());
+        session.setEndTime(slot.getEndTime());
+        session.setNote(request.getNote());
+
+        ClassSession saved = classSessionRepository.save(session);
+        return mapToSessionResponse(saved, slot);
+    }
+
+    @Transactional
+    public void deleteClassSession(Long courseId, Long sessionId, Long actorId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+        validateSessionEditor(course, actorId, "delete");
+
+        ClassSession session = classSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Class session not found."));
+
+        if (!session.getCourse().getId().equals(courseId)) {
+            throw new RuntimeException("Class session does not belong to this course.");
+        }
+
+        attendanceRepository.deleteByClassSessionId(sessionId);
+        classSessionRepository.delete(session);
     }
 
     @Transactional
@@ -189,12 +328,61 @@ public class CourseService {
     @Transactional
     public void deleteCourse(Long courseId) {
         try {
-            // CascadeType.ALL on the Entity will auto-delete Enrollments, Slots, and
-            // Sessions!
+            classSessionRepository.deleteByCourseId(courseId);
+            classSlotRepository.deleteByCourseId(courseId);
             courseRepository.deleteById(courseId);
         } catch (Exception e) {
             throw new RuntimeException("Error deleting course: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void sendDeleteCourseOtp(Long courseId, Long managerId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        User owner = course.getCenter().getManager();
+        if (!owner.getId().equals(managerId)) {
+            throw new RuntimeException("You do not have permission to delete this course.");
+        }
+
+        String otp = generateOtp();
+        VerificationToken token = verificationTokenRepository.findByUser(owner)
+                .orElseGet(() -> new VerificationToken(owner, otp));
+
+        token.setToken(otp);
+        token.setExpiryDate(LocalDateTime.now().plusMinutes(10));
+        verificationTokenRepository.save(token);
+
+        emailService.sendCourseDeleteOtpEmail(owner.getPersonalEmail(), course.getName(), otp);
+    }
+
+    @Transactional
+    public void deleteCourseWithOtp(Long courseId, Long managerId, String otp) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        User owner = course.getCenter().getManager();
+        if (!owner.getId().equals(managerId)) {
+            throw new RuntimeException("You do not have permission to delete this course.");
+        }
+
+        VerificationToken token = verificationTokenRepository.findByUser(owner)
+                .orElseThrow(() -> new RuntimeException("OTP not found. Please request a new OTP."));
+
+        if (!token.getToken().equals(otp) || token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Invalid or expired OTP.");
+        }
+
+        classSessionRepository.deleteByCourseId(courseId);
+        classSlotRepository.deleteByCourseId(courseId);
+        courseRepository.deleteById(courseId);
+        verificationTokenRepository.delete(token);
+    }
+
+    private String generateOtp() {
+        int randomPin = (int) (Math.random() * 900000) + 100000;
+        return String.valueOf(randomPin);
     }
 
     @Transactional
@@ -212,6 +400,34 @@ public class CourseService {
         course.setPendingTeacher(invitedUser);
         course.setInvitationStatus("PENDING");
         courseRepository.save(course);
+    }
+
+    @Transactional
+    public Course assignTeacherToCourse(Long courseId, Long teacherId, Long managerId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        if (!course.getCenter().getManager().getId().equals(managerId)) {
+            throw new RuntimeException("You do not have permission to assign teacher for this course.");
+        }
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        if (!"TEACHER".equalsIgnoreCase(teacher.getRole().getName())) {
+            throw new RuntimeException("Selected user is not a teacher.");
+        }
+
+        boolean isLinkedToCenter = teacher.getConnectedCenters().stream()
+                .anyMatch(c -> c.getId().equals(course.getCenter().getId()));
+        if (!isLinkedToCenter) {
+            throw new RuntimeException("Teacher is not linked to this center.");
+        }
+
+        course.setTeacher(teacher);
+        course.setPendingTeacher(null);
+        course.setInvitationStatus("ACCEPTED");
+        return courseRepository.save(course);
     }
 
     @Transactional
@@ -287,5 +503,160 @@ public class CourseService {
         return enrollments.stream()
                 .map(Enrollment::getStudent)
                 .collect(Collectors.toSet());
+    }
+
+    private void validateSessionEditor(Course course, Long actorId, String action) {
+        boolean isTeacher = course.getTeacher() != null && course.getTeacher().getId().equals(actorId);
+        boolean isManager = course.getCenter() != null
+                && course.getCenter().getManager() != null
+                && course.getCenter().getManager().getId().equals(actorId);
+
+        if (!isTeacher && !isManager) {
+            throw new RuntimeException("Only assigned teacher or center manager can " + action + " sessions.");
+        }
+    }
+
+    private void validateSlotBelongsToCourse(Long courseId, ClassSlot slot) {
+        if (slot.getCourse() == null || !slot.getCourse().getId().equals(courseId)) {
+            throw new RuntimeException("Selected class slot does not belong to this course.");
+        }
+    }
+
+    private void validateDateFitsSlot(LocalDate date, ClassSlot slot) {
+        if (date.isBefore(slot.getStartDate()) || date.isAfter(slot.getEndDate())) {
+            throw new RuntimeException("Session date must be inside selected class slot date range.");
+        }
+
+        Set<DayOfWeek> effectiveDays = slot.getDaysOfWeek();
+        if ((effectiveDays == null || effectiveDays.isEmpty()) && slot.getDayOfWeek() != null) {
+            effectiveDays = Set.of(slot.getDayOfWeek());
+        }
+
+        if (effectiveDays == null || effectiveDays.isEmpty() || !effectiveDays.contains(date.getDayOfWeek())) {
+            throw new RuntimeException("Session date does not match selected class slot day of week.");
+        }
+
+        if (slot.getExcludedDates() != null && slot.getExcludedDates().contains(date)) {
+            throw new RuntimeException("Selected date is excluded from this class slot.");
+        }
+    }
+
+    private void synchronizeSessionsFromActiveClassSlots(Course course) {
+        if (course.getStartDate() == null || course.getEndDate() == null) {
+            return;
+        }
+
+        List<ClassSlot> activeSlots = classSlotRepository.findByCourseId(course.getId())
+                .stream()
+                .filter(slot -> slot.getClassroom() != null)
+                .collect(Collectors.toList());
+
+        if (activeSlots.isEmpty()) {
+            return;
+        }
+
+        Set<String> existingKeys = classSessionRepository.findByCourseIdOrderByDateAsc(course.getId())
+                .stream()
+                .map(this::buildSessionKey)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        List<ClassSession> sessionsToCreate = new ArrayList<>();
+
+        for (ClassSlot slot : activeSlots) {
+            LocalDate slotStart = slot.getStartDate() != null && slot.getStartDate().isAfter(course.getStartDate())
+                    ? slot.getStartDate()
+                    : course.getStartDate();
+            LocalDate slotEnd = slot.getEndDate() != null && slot.getEndDate().isBefore(course.getEndDate())
+                    ? slot.getEndDate()
+                    : course.getEndDate();
+
+            if (slotStart.isAfter(slotEnd) || slot.getStartTime() == null || slot.getEndTime() == null) {
+                continue;
+            }
+
+            Set<DayOfWeek> effectiveDays = slot.getDaysOfWeek();
+            if ((effectiveDays == null || effectiveDays.isEmpty()) && slot.getDayOfWeek() != null) {
+                effectiveDays = Set.of(slot.getDayOfWeek());
+            }
+
+            if (effectiveDays == null || effectiveDays.isEmpty()) {
+                continue;
+            }
+
+            LocalDate current = slotStart;
+            while (!current.isAfter(slotEnd)) {
+                boolean isExcluded = slot.getExcludedDates() != null && slot.getExcludedDates().contains(current);
+                if (!isExcluded && effectiveDays.contains(current.getDayOfWeek())) {
+                    String key = current + "|" + slot.getStartTime() + "|" + slot.getEndTime();
+                    if (!existingKeys.contains(key)) {
+                        ClassSession session = new ClassSession();
+                        session.setCourse(course);
+                        session.setDate(current);
+                        session.setStartTime(slot.getStartTime());
+                        session.setEndTime(slot.getEndTime());
+                        session.setStatus("SCHEDULED");
+                        sessionsToCreate.add(session);
+                        existingKeys.add(key);
+                    }
+                }
+
+                current = current.plusDays(1);
+            }
+        }
+
+        if (!sessionsToCreate.isEmpty()) {
+            classSessionRepository.saveAll(sessionsToCreate);
+        }
+    }
+
+    private String buildSessionKey(ClassSession session) {
+        return session.getDate() + "|" + session.getStartTime() + "|" + session.getEndTime();
+    }
+
+    private ClassSlot findMatchingSlot(ClassSession session) {
+        LocalDate date = session.getDate();
+
+        for (ClassSlot slot : classSlotRepository.findByCourseId(session.getCourse().getId())) {
+            if (date.isBefore(slot.getStartDate()) || date.isAfter(slot.getEndDate())) {
+                continue;
+            }
+
+            Set<DayOfWeek> effectiveDays = slot.getDaysOfWeek();
+            if ((effectiveDays == null || effectiveDays.isEmpty()) && slot.getDayOfWeek() != null) {
+                effectiveDays = Set.of(slot.getDayOfWeek());
+            }
+
+            if (effectiveDays == null || !effectiveDays.contains(date.getDayOfWeek())) {
+                continue;
+            }
+
+            if (slot.getExcludedDates() != null && slot.getExcludedDates().contains(date)) {
+                continue;
+            }
+
+            if (slot.getStartTime() == null || slot.getEndTime() == null
+                    || !slot.getStartTime().equals(session.getStartTime())
+                    || !slot.getEndTime().equals(session.getEndTime())) {
+                continue;
+            }
+
+            return slot;
+        }
+
+        return null;
+    }
+
+    private CourseSessionResponse mapToSessionResponse(ClassSession session, ClassSlot slot) {
+        return CourseSessionResponse.builder()
+                .id(session.getId())
+                .date(session.getDate())
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .status(session.getStatus())
+                .note(session.getNote())
+                .classSlotId(slot != null ? slot.getId() : null)
+                .classroomId(slot != null && slot.getClassroom() != null ? slot.getClassroom().getId() : null)
+                .classroomLocation(slot != null && slot.getClassroom() != null ? slot.getClassroom().getLocation() : null)
+                .build();
     }
 }

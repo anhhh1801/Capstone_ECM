@@ -2,7 +2,9 @@ package com.extracenter.backend.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -41,6 +43,12 @@ public class ScheduleController {
         return ResponseEntity.ok(mapToResponse(slots));
     }
 
+    @GetMapping("/teacher/{teacherId}/class-slots")
+    public ResponseEntity<List<ClassSlot>> getTeacherClassSlots(@PathVariable Long teacherId) {
+        List<ClassSlot> slots = classSlotRepository.findByTeacherId(teacherId);
+        return ResponseEntity.ok(slots);
+    }
+
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<ScheduleResponse>> getStudentScheduleRules(@PathVariable Long studentId) {
         List<ClassSlot> slots = classSlotRepository.findByStudentId(studentId);
@@ -77,18 +85,19 @@ public class ScheduleController {
 
     // Mapper for ClassSlot (Weekly Rules)
     private List<ScheduleResponse> mapToResponse(List<ClassSlot> slots) {
-        return slots.stream().map(slot -> {
+        return slots.stream().flatMap(slot -> {
 
             // Safe variable extraction
             String teacherName = "Chưa phân công";
             String subjectName = "N/A";
             Long courseId = null;
             String courseName = "Unknown Course";
+            String roomName = slot.getClassroom() != null ? slot.getClassroom().getLocation() : "N/A";
 
             if (slot.getCourse() != null) {
                 courseId = slot.getCourse().getId();
                 courseName = slot.getCourse().getName();
-                subjectName = slot.getCourse().getSubject().getName(); // Assuming Course has getSubject()
+                subjectName = slot.getCourse().getSubject() != null ? slot.getCourse().getSubject().getName() : "N/A";
 
                 if (slot.getCourse().getTeacher() != null) {
                     teacherName = slot.getCourse().getTeacher().getFirstName() + " " +
@@ -96,22 +105,44 @@ public class ScheduleController {
                 }
             }
 
-            // FIX: Explicitly assign to a typed variable to resolve Java compiler inference
-            // errors!
-            ScheduleResponse response = ScheduleResponse.builder()
-                    .courseId(courseId)
-                    .courseName(courseName)
-                    .subject(subjectName)
-                    .dayOfWeek(slot.getDayOfWeek().getValue())
-                    .startTime(slot.getStartTime())
-                    .endTime(slot.getEndTime())
-                    .roomName("Room A01")
-                    .teacherName(teacherName)
-                    .status("Weekly Rule") // Custom status for generic rules
-                    // Note: sessionId and date remain null automatically!
-                    .build();
+            if (slot.getDaysOfWeek() == null || slot.getDaysOfWeek().isEmpty()) {
+                if (slot.getDayOfWeek() == null) {
+                    return Stream.empty();
+                }
 
-            return response;
+                return Stream.of(
+                        ScheduleResponse.builder()
+                                .courseId(courseId)
+                                .courseName(courseName)
+                                .subject(subjectName)
+                                .dayOfWeek(slot.getDayOfWeek().getValue())
+                                .startTime(slot.getStartTime())
+                                .endTime(slot.getEndTime())
+                                .roomName(roomName)
+                                .teacherName(teacherName)
+                                .status(Boolean.TRUE.equals(slot.getIsRecurring()) ? "Recurring Rule" : "One-time Rule")
+                                .build());
+            }
+
+            final Long finalCourseId = courseId;
+            final String finalCourseName = courseName;
+            final String finalSubjectName = subjectName;
+            final String finalRoomName = roomName;
+            final String finalTeacherName = teacherName;
+            final String finalStatus = Boolean.TRUE.equals(slot.getIsRecurring()) ? "Recurring Rule" : "One-time Rule";
+
+            return slot.getDaysOfWeek().stream()
+                    .map(day -> ScheduleResponse.builder()
+                            .courseId(finalCourseId)
+                            .courseName(finalCourseName)
+                            .subject(finalSubjectName)
+                            .dayOfWeek(day.getValue())
+                            .startTime(slot.getStartTime())
+                            .endTime(slot.getEndTime())
+                            .roomName(finalRoomName)
+                            .teacherName(finalTeacherName)
+                            .status(finalStatus)
+                            .build());
 
         }).collect(Collectors.toList());
     }
@@ -128,13 +159,17 @@ public class ScheduleController {
             if (session.getCourse() != null) {
                 courseId = session.getCourse().getId();
                 courseName = session.getCourse().getName();
-                subjectName = session.getCourse().getSubject().getName();
+                subjectName = session.getCourse().getSubject() != null
+                        ? session.getCourse().getSubject().getName()
+                        : "N/A";
 
                 if (session.getCourse().getTeacher() != null) {
                     teacherName = session.getCourse().getTeacher().getFirstName() + " " +
                             session.getCourse().getTeacher().getLastName();
                 }
             }
+
+            String roomName = resolveSessionRoomName(session);
 
             // FIX: Explicitly assign to a typed variable to resolve Java compiler inference
             // errors!
@@ -147,7 +182,7 @@ public class ScheduleController {
                     .dayOfWeek(session.getDate().getDayOfWeek().getValue()) // Extracts 1-7 from the date
                     .startTime(session.getStartTime())
                     .endTime(session.getEndTime())
-                    .roomName("Room A01")
+                    .roomName(roomName)
                     .teacherName(teacherName)
                     .status(session.getStatus())
                     .build();
@@ -155,5 +190,42 @@ public class ScheduleController {
             return response;
 
         }).collect(Collectors.toList());
+    }
+
+    private String resolveSessionRoomName(ClassSession session) {
+        if (session.getCourse() == null || session.getDate() == null
+                || session.getStartTime() == null || session.getEndTime() == null) {
+            return "N/A";
+        }
+
+        List<ClassSlot> slots = classSlotRepository.findByCourseId(session.getCourse().getId());
+        for (ClassSlot slot : slots) {
+            if (session.getDate().isBefore(slot.getStartDate()) || session.getDate().isAfter(slot.getEndDate())) {
+                continue;
+            }
+
+            Set<java.time.DayOfWeek> effectiveDays = slot.getDaysOfWeek();
+            if ((effectiveDays == null || effectiveDays.isEmpty()) && slot.getDayOfWeek() != null) {
+                effectiveDays = Set.of(slot.getDayOfWeek());
+            }
+
+            if (effectiveDays == null || !effectiveDays.contains(session.getDate().getDayOfWeek())) {
+                continue;
+            }
+
+            if (slot.getExcludedDates() != null && slot.getExcludedDates().contains(session.getDate())) {
+                continue;
+            }
+
+            if (slot.getStartTime() == null || slot.getEndTime() == null
+                    || !slot.getStartTime().equals(session.getStartTime())
+                    || !slot.getEndTime().equals(session.getEndTime())) {
+                continue;
+            }
+
+            return slot.getClassroom() != null ? slot.getClassroom().getLocation() : "N/A";
+        }
+
+        return "N/A";
     }
 }

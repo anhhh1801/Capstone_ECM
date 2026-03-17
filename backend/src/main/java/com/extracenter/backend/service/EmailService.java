@@ -79,4 +79,30 @@ public class EmailService {
             logger.error("Failed to send credential email to {}: {}", toEmail, e.getMessage());
         }
     }
+
+    @Async
+    public void sendCourseDeleteOtpEmail(String toEmail, String courseName, String otp) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(senderEmail);
+            message.setTo(toEmail);
+            message.setSubject("[ECM] Confirm Course Deletion OTP");
+
+            String content = "Hello,\n\n" +
+                    "You requested to delete course: \"" + courseName + "\".\n" +
+                    "Please use this OTP to confirm deletion:\n\n" +
+                    "    " + otp + "\n\n" +
+                    "This OTP will expire in 10 minutes.\n" +
+                    "If you did not request this action, please ignore this email.\n\n" +
+                    "Best regards,\n" +
+                    "The ECM Team";
+
+            message.setText(content);
+            mailSender.send(message);
+
+            logger.info("Course deletion OTP email successfully sent to: {}", toEmail);
+        } catch (Exception e) {
+            logger.error("Failed to send course deletion OTP email to {}: {}", toEmail, e.getMessage());
+        }
+    }
 }

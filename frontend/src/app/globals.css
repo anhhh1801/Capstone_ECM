@@ -145,14 +145,17 @@
     background: var(--color-text);
     color: var(--color-soft-white);
 }
+
 .rbc-toolbar .rbc-btn-group button.rbc-active:focus {
     background: var(--color-text);
     color: var(--color-soft-white);
 }
+
 .rbc-toolbar .rbc-btn-group button.rbc-active:active {
     background: var(--color-text);
     color: var(--color-soft-white);
 }
+
 .rbc-toolbar .rbc-btn-group button.rbc-active:hover {
     background: var(--color-text);
     color: var(--color-soft-white);
@@ -176,4 +179,91 @@
 /* Selected day background */
 .rbc-selected {
     background: rgba(48, 134, 204, 0.2);
+}
+
+.teacher-schedule-rbc-event {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.teacher-schedule-event-card {
+    height: 100%;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #2f7ec0;
+    background: #e8f3ff;
+    color: #0f2740;
+    font-size: 11px;
+    line-height: 13px;
+    padding: 2px 4px;
+    overflow: hidden;
+}
+
+.teacher-schedule-event-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Schedule timeline theme (react-calendar-timeline) */
+.schedule-timeline .react-calendar-timeline {
+    background: var(--color-soft-white);
+    color: var(--color-text);
+    border: 0;
+}
+
+.schedule-timeline .rct-header-root {
+    background: #ffffff;
+    border-bottom: 1px solid rgba(48, 134, 204, 0.3);
+}
+
+.schedule-timeline .rct-sidebar-header,
+.schedule-timeline .rct-sidebar .rct-sidebar-row {
+    background: var(--color-soft-white);
+    color: var(--color-text);
+    border-right: 1px solid rgba(48, 134, 204, 0.28);
+    border-bottom: 1px solid rgba(48, 134, 204, 0.22);
+}
+
+.react-calendar-timeline .rct-header-root {
+    background: var(--color-soft-white) !important;
+    color: var(--color-text);
+    font-weight: 600;
+    border-left: 1px solid rgba(48, 134, 204, 0.2);
+    border-bottom: 1px solid rgba(48, 134, 204, 0.28);
+}
+
+.react-calendar-timeline .rct-dateHeader-primary {
+    color: var(--color-text);
+    font-weight: 700;
+}
+
+.rct-dateHeader {
+    color: var(--color-text);
+    padding: 5px;
+}
+
+.schedule-timeline .rct-vertical-lines .rct-vl {
+    border-left: 1px solid rgba(70, 88, 125, 0.14);
+}
+
+.schedule-timeline .rct-horizontal-lines .rct-hl-even,
+.schedule-timeline .rct-horizontal-lines .rct-hl-odd {
+    border-bottom: 1px solid rgba(48, 134, 204, 0.2);
+}
+
+.schedule-timeline .rct-horizontal-lines .rct-hl-even {
+    background: rgba(48, 134, 204, 0.035);
+}
+
+.schedule-timeline .rct-horizontal-lines .rct-hl-odd {
+    background: #ffffff;
+}
+.rbc-day-slot .rbc-events-container {
+    margin: 0px !important;
+}
+.rct-dateHeader-primary {
+    color: var(--color-text) !important;
 }

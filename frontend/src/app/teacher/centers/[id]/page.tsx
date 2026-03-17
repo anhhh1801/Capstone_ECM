@@ -5,9 +5,6 @@ import { useParams } from "next/navigation";
 import { User } from "@/services/authService";
 import api from "@/utils/axiosConfig";
 import { Course } from "@/services/courseService";
-import { removeStudentFromCenter } from "@/services/userService";
-import toast from "react-hot-toast";
-import { UserPlus, Users } from "lucide-react";
 
 import CenterHeader from "./components/CenterHeader";
 import CenterTabs from "./components/CenterTabs";
@@ -15,27 +12,26 @@ import CourseListTab from "./components/CourseListTab";
 import TeacherListTab from "./components/TeacherListTab";
 import SubjectListTab from "./components/SubjectListTab";
 import GradeListTab from "./components/GradeListTab";
-import StudentTable from "../../students/components/StudentTable";
-import StudentModal from "../../students/components/StudentModal";
-import AssignStudentModal from "./components/AssignStudentModal";
+import ClassroomTab from "./components/ClassroomTab";
+import ClassSlotTab from "./components/ClassSlotTab";
+import StudentTab from "./components/StudentTab";
+
+type StudentCenterCard = User & {
+    courses: { id: number; name: string }[];
+};
 
 export default function CenterDetailPage() {
     const params = useParams();
     const centerId = Number(params.id);
 
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [centerInfo, setCenterInfo] = useState<any>(null);
     const [isManager, setIsManager] = useState(false);
-    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades">("courses");
+    const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades" | "classrooms" | "class-slots">("courses");
     const [loading, setLoading] = useState(true);
 
     const [courses, setCourses] = useState<Course[]>([]);
     const [teachers, setTeachers] = useState<User[]>([]);
-    const [centerStudents, setCenterStudents] = useState<User[]>([]);
-
-    const [isStudentModalOpen, setStudentModalOpen] = useState(false);
-    const [isAssignModalOpen, setAssignModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<any>(null);
+    const [centerStudents, setCenterStudents] = useState<StudentCenterCard[]>([]);
 
     const fetchData = async () => {
         if (!centerId) return;
@@ -43,7 +39,6 @@ export default function CenterDetailPage() {
         const userStr = localStorage.getItem("user");
         if (!userStr) return;
         const user = JSON.parse(userStr);
-        setCurrentUser(user);
 
         try {
             setLoading(true);
@@ -66,7 +61,43 @@ export default function CenterDetailPage() {
             setCourses(fetchedCourses);
 
             const resStudents = await api.get(`/centers/${centerId}/students`);
-            setCenterStudents(resStudents.data);
+            const students = resStudents.data ?? [];
+
+            // Build student -> courses map for this center by querying each course's members.
+            const courseMembers = await Promise.all(
+                fetchedCourses.map(async (course: Course) => {
+                    try {
+                        const res = await api.get(`/courses/${course.id}/students`);
+                        return {
+                            courseId: course.id,
+                            courseName: course.name,
+                            students: res.data as Array<{ id: number }>,
+                        };
+                    } catch {
+                        return {
+                            courseId: course.id,
+                            courseName: course.name,
+                            students: [] as Array<{ id: number }>,
+                        };
+                    }
+                })
+            );
+
+            const studentCoursesMap = new Map<number, { id: number; name: string }[]>();
+            for (const cm of courseMembers) {
+                for (const st of cm.students) {
+                    const list = studentCoursesMap.get(st.id) ?? [];
+                    list.push({ id: cm.courseId, name: cm.courseName });
+                    studentCoursesMap.set(st.id, list);
+                }
+            }
+
+            const cardStudents: StudentCenterCard[] = students.map((s: User) => ({
+                ...s,
+                courses: studentCoursesMap.get(s.id) ?? [],
+            }));
+
+            setCenterStudents(cardStudents);
 
             if (managerCheck) {
                 const resTeachers = await api.get(`/centers/${centerId}/teachers`);
@@ -83,18 +114,6 @@ export default function CenterDetailPage() {
     useEffect(() => {
         fetchData();
     }, [centerId]);
-
-    const handleRemoveStudent = async (studentId: number) => {
-        if (!confirm("Remove student from this center?")) return;
-
-        try {
-            await removeStudentFromCenter(centerId, studentId);
-            toast.success("Student removed!");
-            fetchData();
-        } catch {
-            toast.error("Error removing student");
-        }
-    };
 
     if (loading)
         return (
@@ -138,78 +157,32 @@ export default function CenterDetailPage() {
                     <GradeListTab centerId={centerId} isManager={isManager} />
                 )}
 
+                {activeTab === "classrooms" && (
+                    <ClassroomTab centerId={centerId} isManager={isManager} />
+                )}
+
+                {activeTab === "class-slots" && (
+                    <ClassSlotTab centerId={centerId} isManager={isManager} />
+                )}
+
                 {activeTab === "teachers" && (
                     <TeacherListTab
+                        centerId={centerId}
                         teachers={teachers}
                         isManager={isManager}
+                        onUpdate={fetchData}
                     />
                 )}
 
                 {activeTab === "students" && (
-                    <div>
-
-                        {/* STUDENT HEADER */}
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
-                                <Users size={18} className="text-[var(--color-main)]" />
-                                Student List ({centerStudents.length})
-                            </h3>
-
-                            <div className="flex gap-2">
-
-                                <button
-                                    onClick={() => setAssignModalOpen(true)}
-                                    className="flex items-center gap-2 whitespace-nowrap border-2 border-[var(--color-main)] text-[var(--color-main)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-main)] hover:text-white transition"
-                                >
-                                    <UserPlus size={16} />
-                                    Assign Existing Student
-                                </button>
-
-                                <button
-                                    onClick={() => {
-                                        setEditingStudent(null);
-                                        setStudentModalOpen(true);
-                                    }}
-                                    className="flex items-center gap-2 whitespace-nowrap bg-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-secondary)] transition"
-                                >
-                                    <UserPlus size={16} />
-                                    Create new
-                                </button>
-
-                            </div>
-                        </div>
-
-                        {/* STUDENT TABLE */}
-                        <StudentTable
-                            students={centerStudents}
-                            loading={false}
-                            onDelete={handleRemoveStudent}
-                            deleteLabel="Remove"
-                            onEdit={(student) => {
-                                setEditingStudent(student);
-                                setStudentModalOpen(true);
-                            }}
-                        />
-
-                    </div>
+                    <StudentTab
+                        centerId={centerId}
+                        students={centerStudents}
+                        isManager={isManager}
+                        onUpdate={fetchData}
+                    />
                 )}
             </div>
-
-            {/* MODALS */}
-            <StudentModal
-                isOpen={isStudentModalOpen}
-                onClose={() => setStudentModalOpen(false)}
-                onSuccess={fetchData}
-                studentToEdit={editingStudent}
-                preSelectedCenterId={centerId}
-            />
-
-            <AssignStudentModal
-                isOpen={isAssignModalOpen}
-                onClose={() => setAssignModalOpen(false)}
-                centerId={centerId}
-                onSuccess={fetchData}
-            />
 
         </div>
     );

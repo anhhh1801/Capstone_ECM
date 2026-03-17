@@ -19,6 +19,7 @@ interface Props {
     onDelete: (studentId: number) => void;
     deleteLabel?: string;
     onEdit: (student: any) => void;
+    showAffiliatedCenters?: boolean;
 }
 
 export default function StudentTable({
@@ -27,7 +28,8 @@ export default function StudentTable({
     onAssign,
     onDelete,
     deleteLabel = "Delete",
-    onEdit
+    onEdit,
+    showAffiliatedCenters = true,
 }: Props) {
 
     if (loading) {
@@ -56,7 +58,9 @@ export default function StudentTable({
                     <tr>
                         <th className="px-6 py-4">Student</th>
                         <th className="px-6 py-4">Contact Info</th>
-                        <th className="px-6 py-4">Affiliated Centers</th>
+                        {showAffiliatedCenters && (
+                            <th className="px-6 py-4">Affiliated Centers</th>
+                        )}
                         <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -109,35 +113,37 @@ export default function StudentTable({
                             </td>
 
                             {/* CENTERS */}
-                            <td className="px-6 py-4">
+                            {showAffiliatedCenters && (
+                                <td className="px-6 py-4">
 
-                                <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-2">
 
-                                    {student.connectedCenters && student.connectedCenters.length > 0 ? (
+                                        {student.connectedCenters && student.connectedCenters.length > 0 ? (
 
-                                        student.connectedCenters.map((c) => (
+                                            student.connectedCenters.map((c) => (
 
-                                            <span
-                                                key={c.id}
-                                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30"
-                                            >
-                                                <Building2 size={12} />
-                                                {c.name}
+                                                <span
+                                                    key={c.id}
+                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30"
+                                                >
+                                                    <Building2 size={12} />
+                                                    {c.name}
+                                                </span>
+
+                                            ))
+
+                                        ) : (
+
+                                            <span className="text-xs text-gray-400 italic">
+                                                Unassigned
                                             </span>
 
-                                        ))
+                                        )}
 
-                                    ) : (
+                                    </div>
 
-                                        <span className="text-xs text-gray-400 italic">
-                                            Unassigned
-                                        </span>
-
-                                    )}
-
-                                </div>
-
-                            </td>
+                                </td>
+                            )}
 
                             {/* ACTIONS */}
                             <td className="px-6 py-4 text-right">

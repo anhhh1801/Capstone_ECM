@@ -1,18 +1,26 @@
 package com.extracenter.backend.service;
 
-import com.extracenter.backend.dto.AttendanceRequest;
-import com.extracenter.backend.entity.Attendance;
-import com.extracenter.backend.entity.ClassSession;
-import com.extracenter.backend.entity.Enrollment;
-import com.extracenter.backend.repository.AttendanceRepository;
-import com.extracenter.backend.repository.ClassSessionRepository;
-import com.extracenter.backend.repository.EnrollmentRepository;
+import java.time.DayOfWeek;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.extracenter.backend.dto.AttendanceRequest;
+import com.extracenter.backend.dto.AttendanceSheetResponse;
+import com.extracenter.backend.entity.Attendance;
+import com.extracenter.backend.entity.AttendanceStatus;
+import com.extracenter.backend.entity.ClassSession;
+import com.extracenter.backend.entity.ClassSlot;
+import com.extracenter.backend.entity.Enrollment;
+import com.extracenter.backend.repository.AttendanceRepository;
+import com.extracenter.backend.repository.ClassSessionRepository;
+import com.extracenter.backend.repository.ClassSlotRepository;
+import com.extracenter.backend.repository.EnrollmentRepository;
 
 @Service
 public class AttendanceService {
@@ -22,6 +30,9 @@ public class AttendanceService {
 
     @Autowired
     private ClassSessionRepository classSessionRepository;
+
+    @Autowired
+    private ClassSlotRepository classSlotRepository;
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
@@ -38,6 +49,7 @@ public class AttendanceService {
         // 2. Fetch existing attendance records for this specific lesson (if the teacher
         // is editing)
         List<Attendance> existingRecords = attendanceRepository.findByClassSessionId(request.getClassSessionId());
+        ClassSlot attendanceSlot = resolveRequiredSlotForSession(session);
 
         // OPTIMIZATION: Instead of saving one by one inside the loop, we collect them
         // all here
@@ -71,7 +83,9 @@ public class AttendanceService {
             }
 
             // 5. Update the status and notes
-            attendance.setIsPresent(status.getIsPresent());
+            attendance.setDate(session.getDate());
+            attendance.setClassSlot(attendanceSlot);
+            attendance.setStatus(status.getStatus());
             attendance.setNote(status.getNote());
 
             // Add to our batch list instead of saving immediately
@@ -87,5 +101,83 @@ public class AttendanceService {
     // Fetch the attendance data to display on the Frontend UI
     public List<Attendance> getAttendanceList(Long classSessionId) {
         return attendanceRepository.findByClassSessionId(classSessionId);
+    }
+
+        public AttendanceSheetResponse getAttendanceSheet(Long classSessionId) {
+        ClassSession session = classSessionRepository.findById(classSessionId)
+            .orElseThrow(() -> new RuntimeException("Error: Class session not found!"));
+
+        Long courseId = session.getCourse().getId();
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseId(courseId);
+
+        Map<Long, Attendance> existingByStudentId = attendanceRepository.findByClassSessionId(classSessionId)
+            .stream()
+            .filter(att -> att.getEnrollment() != null && att.getEnrollment().getStudent() != null)
+            .collect(Collectors.toMap(
+                att -> att.getEnrollment().getStudent().getId(),
+                att -> att,
+                (a, b) -> b));
+
+        List<AttendanceSheetResponse.StudentAttendanceRow> students = enrollments.stream()
+            .filter(enrollment -> enrollment.getStudent() != null)
+            .map(enrollment -> {
+                Long studentId = enrollment.getStudent().getId();
+                Attendance existing = existingByStudentId.get(studentId);
+
+                AttendanceStatus status = AttendanceStatus.ABSENT;
+                String note = null;
+
+                if (existing != null) {
+                status = existing.getStatus() != null
+                    ? existing.getStatus()
+                    : (Boolean.TRUE.equals(existing.getIsPresent())
+                        ? AttendanceStatus.ATTEND
+                        : AttendanceStatus.ABSENT);
+                note = existing.getNote();
+                }
+
+                return AttendanceSheetResponse.StudentAttendanceRow.builder()
+                    .studentId(studentId)
+                    .firstName(enrollment.getStudent().getFirstName())
+                    .lastName(enrollment.getStudent().getLastName())
+                    .email(enrollment.getStudent().getEmail())
+                    .status(status)
+                    .note(note)
+                    .build();
+            })
+            .collect(Collectors.toList());
+
+        return AttendanceSheetResponse.builder()
+            .classSessionId(session.getId())
+            .courseId(courseId)
+            .date(session.getDate())
+            .startTime(session.getStartTime())
+            .endTime(session.getEndTime())
+            .students(students)
+            .build();
+        }
+
+    private ClassSlot resolveRequiredSlotForSession(ClassSession session) {
+        Long courseId = session.getCourse().getId();
+        DayOfWeek sessionDay = session.getDate().getDayOfWeek();
+
+        List<ClassSlot> courseSlots = classSlotRepository.findByCourseId(courseId);
+        for (ClassSlot slot : courseSlots) {
+            boolean inDateRange = !session.getDate().isBefore(slot.getStartDate())
+                    && !session.getDate().isAfter(slot.getEndDate());
+            boolean dayMatches = (slot.getDaysOfWeek() != null && slot.getDaysOfWeek().contains(sessionDay))
+                    || sessionDay.equals(slot.getDayOfWeek());
+            boolean timeMatches = slot.getStartTime() != null
+                    && slot.getEndTime() != null
+                    && slot.getStartTime().equals(session.getStartTime())
+                    && slot.getEndTime().equals(session.getEndTime());
+            boolean excluded = slot.getExcludedDates() != null && slot.getExcludedDates().contains(session.getDate());
+
+            if (inDateRange && dayMatches && timeMatches && !excluded) {
+                return slot;
+            }
+        }
+
+        throw new RuntimeException("No valid class slot found for this session. Please edit the session to match an existing class slot.");
     }
 }

@@ -10,17 +10,19 @@ import {
 
 import { Trash2, UserPlus, Search, User as UserIcon } from "lucide-react";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Props {
     courseId: number;
     readOnly?: boolean;
 }
 
-export default function CourseEnrollment({ courseId }: Props) {
+export default function CourseEnrollment({ courseId, readOnly = false }: Props) {
 
     const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [keyword, setKeyword] = useState("");
+    const [removingStudentId, setRemovingStudentId] = useState<number | null>(null);
 
     useEffect(() => {
         loadEnrolled();
@@ -80,12 +82,11 @@ export default function CourseEnrollment({ courseId }: Props) {
     };
 
     const handleRemove = async (studentId: number) => {
-        if (!confirm("Remove this student from the class?")) return;
-
         try {
             await removeStudentFromCourse(courseId, studentId);
 
             toast.success("Student removed");
+            setRemovingStudentId(null);
 
             setEnrolledStudents(
                 enrolledStudents.filter(s => s.id !== studentId)
@@ -96,8 +97,19 @@ export default function CourseEnrollment({ courseId }: Props) {
         }
     };
 
+    const removingStudent = enrolledStudents.find((s) => s.id === removingStudentId);
+
     return (
         <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm mt-6 overflow-hidden">
+
+            <ConfirmModal
+                isOpen={!readOnly && removingStudentId !== null}
+                title="Remove Student"
+                message={`Remove "${removingStudent?.lastName || ""} ${removingStudent?.firstName || ""}" from this class?`}
+                confirmText="Remove"
+                onClose={() => setRemovingStudentId(null)}
+                onConfirm={() => (removingStudentId !== null ? handleRemove(removingStudentId) : undefined)}
+            />
 
             {/* HEADER */}
 
@@ -110,6 +122,7 @@ export default function CourseEnrollment({ courseId }: Props) {
 
                 {/* SEARCH */}
 
+                {!readOnly && (
                 <div className="mb-6">
 
                     <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
@@ -152,6 +165,7 @@ export default function CourseEnrollment({ courseId }: Props) {
                     )}
 
                 </div>
+                )}
 
                 {/* STUDENT LIST */}
 
@@ -192,14 +206,16 @@ export default function CourseEnrollment({ courseId }: Props) {
 
                                 </div>
 
-                                <button
-                                    onClick={() => handleRemove(student.id)}
-                                    className="p-2 border-2 border-[var(--color-alert)]
-                                    bg-[var(--color-alert)] text-white rounded
-                                    hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                {!readOnly && (
+                                    <button
+                                        onClick={() => setRemovingStudentId(student.id)}
+                                        className="p-2 border-2 border-[var(--color-alert)]
+                                        bg-[var(--color-alert)] text-white rounded
+                                        hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
 
                             </div>
 

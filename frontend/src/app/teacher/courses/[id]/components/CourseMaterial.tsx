@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from '@/utils/axiosConfig';
-import MaterialAddForm from "../../components/MaterialAddForm";
+import MaterialAddForm from "./MaterialAddForm";
 
 
 interface Props {
