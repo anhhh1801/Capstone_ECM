@@ -52,7 +52,7 @@ export default function TeacherLayout({
     ];
 
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex flex-1 min-h-0 bg-gray-100">
             {/* SIDEBAR */}
             <aside
                 className={`${
@@ -108,7 +108,7 @@ export default function TeacherLayout({
             </aside>
 
             {/* MAIN CONTENT */}
-            <main className="flex-1 overflow-y-auto p-8 transition-all duration-300">
+            <main className="flex-1 min-h-0 overflow-y-auto p-8 transition-all duration-300">
                 {children}
             </main>
         </div>

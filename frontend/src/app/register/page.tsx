@@ -107,6 +107,7 @@ export default function RegisterPage() {
         </div>
 
         <form className="space-y-6" onSubmit={handleRegister}>
+          <p className="text-sm text-[var(--color-text)]/70">Fields marked with <span className="text-[var(--color-negative)]">*</span> are required.</p>
 
           {/* Name row */}
           <div className="flex gap-4">
@@ -115,7 +116,7 @@ export default function RegisterPage() {
               <input
                 name="firstName"
                 required
-                placeholder="First Name"
+                placeholder="First Name *"
                 value={formData.firstName}
                 onChange={handleChange}
                 className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
@@ -126,7 +127,7 @@ export default function RegisterPage() {
               <input
                 name="lastName"
                 required
-                placeholder="Last Name"
+                placeholder="Last Name *"
                 value={formData.lastName}
                 onChange={handleChange}
                 className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
@@ -141,7 +142,7 @@ export default function RegisterPage() {
               name="personalEmail"
               type="email"
               required
-              placeholder="Personal Email"
+              placeholder="Personal Email *"
               value={formData.personalEmail}
               onChange={handleChange}
               className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
@@ -154,7 +155,7 @@ export default function RegisterPage() {
             <input
               name="phoneNumber"
               required
-              placeholder="Phone Number"
+              placeholder="Phone Number *"
               value={formData.phoneNumber}
               onChange={handleChange}
               className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"

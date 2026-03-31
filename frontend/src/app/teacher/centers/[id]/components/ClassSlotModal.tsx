@@ -261,7 +261,7 @@ export default function ClassSlotModal({
 
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Course</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Course <span className="text-[var(--color-negative)]">*</span></label>
 						<select
 							value={courseId}
 							onChange={(e) => setCourseId(e.target.value ? Number(e.target.value) : "")}
@@ -284,7 +284,7 @@ export default function ClassSlotModal({
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Classroom</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Classroom <span className="text-[var(--color-negative)]">*</span></label>
 						<select
 							value={classroomId}
 							onChange={(e) => setClassroomId(e.target.value ? Number(e.target.value) : "")}
@@ -302,7 +302,7 @@ export default function ClassSlotModal({
 
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Start Time</label>
+							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Start Time <span className="text-[var(--color-negative)]">*</span></label>
 							<select
 								value={startTime}
 								onChange={(e) => setStartTime(e.target.value)}
@@ -318,7 +318,7 @@ export default function ClassSlotModal({
 							</select>
 						</div>
 						<div>
-							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">End Time</label>
+							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">End Time <span className="text-[var(--color-negative)]">*</span></label>
 							<select
 								value={endTime}
 								onChange={(e) => setEndTime(e.target.value)}

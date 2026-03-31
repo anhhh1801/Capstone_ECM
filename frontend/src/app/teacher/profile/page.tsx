@@ -213,7 +213,7 @@ export default function ProfilePage() {
                     {/* FIRST NAME */}
                     <div>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            Last name
+                            Last name <span className="text-[var(--color-negative)]">*</span>
                         </label>
                         <input
                             name="firstName"
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                     {/* LAST NAME */}
                     <div>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            First name
+                            First name <span className="text-[var(--color-negative)]">*</span>
                         </label>
                         <input
                             name="lastName"
@@ -298,7 +298,7 @@ export default function ProfilePage() {
                     {/* PHONE */}
                     <div>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            Phone Number
+                            Phone Number <span className="text-[var(--color-negative)]">*</span>
                         </label>
 
                         <div className="relative">
@@ -323,7 +323,7 @@ export default function ProfilePage() {
                     {/* DOB */}
                     <div>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            Date of Birth
+                            Date of Birth <span className="text-[var(--color-negative)]">*</span>
                         </label>
 
                         <div className="relative">
@@ -400,7 +400,7 @@ export default function ProfilePage() {
 
                             <input
                                 type="password"
-                                placeholder="Old password"
+                                placeholder="Old password *"
                                 className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-alert)]"
                                 value={passData.oldPassword}
                                 onChange={(e) =>
@@ -410,7 +410,7 @@ export default function ProfilePage() {
 
                             <input
                                 type="password"
-                                placeholder="New password"
+                                placeholder="New password *"
                                 className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-alert)]"
                                 value={passData.newPassword}
                                 onChange={(e) =>
@@ -420,7 +420,7 @@ export default function ProfilePage() {
 
                             <input
                                 type="password"
-                                placeholder="Confirm password"
+                                placeholder="Confirm password *"
                                 className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-alert)]"
                                 value={passData.confirmPassword}
                                 onChange={(e) =>

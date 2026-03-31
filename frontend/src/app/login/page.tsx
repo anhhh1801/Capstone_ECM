@@ -125,7 +125,7 @@ export default function LoginPage() {
                 <form onSubmit={handleLogin} className="space-y-6">
                     {/* Input Email */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Email</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Email <span className="text-[var(--color-negative)]">*</span></label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
                                 <Mail size={20} />
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
                     {/* Input Password */}
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Password</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Password <span className="text-[var(--color-negative)]">*</span></label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
                                 <Lock size={20} />

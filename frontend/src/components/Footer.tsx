@@ -1,6 +1,6 @@
 export default function Footer() {
     return (
-        <footer className="bg-[var(--color-main)] text-[var(--color-soft-white)] mt-auto">
+        <footer className="bg-[var(--color-main)] text-[var(--color-soft-white)]">
             <div className="container mx-auto mb-4 py-4">
                 <p className="font-bold">Contact Us: </p>
                 <p>tung.le.cit20@eiu.edu.vn</p>

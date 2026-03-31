@@ -127,7 +127,7 @@ export default function GradeModal({
 
                     <div>
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            Display Name
+                                Display Name <span className="text-[var(--color-negative)]">*</span>
                         </label>
                         <input
                             required

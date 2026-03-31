@@ -44,7 +44,7 @@ export default function StudentLayout({
     ];
 
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex flex-1 min-h-0 bg-gray-100">
 
             {/* SIDEBAR */}
             <aside
@@ -116,7 +116,7 @@ export default function StudentLayout({
             </aside>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 h-screen overflow-y-auto bg-gray-50/50 p-4 md:p-8 relative z-10">
+            <main className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50 p-4 md:p-8 relative z-10">
                 <div className="max-w-7xl mx-auto">
                     {children}
                 </div>

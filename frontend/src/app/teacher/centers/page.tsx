@@ -305,7 +305,7 @@ export default function CenterManagementPage() {
 
                     <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="font-medium text-[var(--color-text)]">Center Name</label>
+                            <label className="font-medium text-[var(--color-text)]">Center Name <span className="text-[var(--color-negative)]">*</span></label>
                             <input
                                 required
                                 type="text"

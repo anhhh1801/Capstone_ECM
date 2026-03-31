@@ -212,7 +212,7 @@ export default function StudentModal({
                         <div>
 
                             <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                                Affiliated Center
+                                Affiliated Center <span className="text-[var(--color-negative)]">*</span>
                             </label>
 
                             {preSelectedCenterId ? (
@@ -256,7 +256,7 @@ export default function StudentModal({
                         <div>
 
                             <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                                Last Name
+                                Last Name <span className="text-[var(--color-negative)]">*</span>
                             </label>
 
                             <input
@@ -273,7 +273,7 @@ export default function StudentModal({
                         <div>
 
                             <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                                First Name
+                                First Name <span className="text-[var(--color-negative)]">*</span>
                             </label>
 
                             <input
@@ -308,7 +308,7 @@ export default function StudentModal({
                     <div>
 
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            Date of Birth
+                            Date of Birth <span className="text-[var(--color-negative)]">*</span>
                         </label>
 
                         <input

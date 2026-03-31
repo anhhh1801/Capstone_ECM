@@ -64,7 +64,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Last Name</label>
+							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Last Name <span className="text-[var(--color-negative)]">*</span></label>
 							<input
 								required
 								value={form.lastName}
@@ -74,7 +74,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 						</div>
 
 						<div>
-							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">First Name</label>
+							<label className="block text-sm font-medium text-[var(--color-text)] mb-1">First Name <span className="text-[var(--color-negative)]">*</span></label>
 							<input
 								required
 								value={form.firstName}
@@ -94,7 +94,7 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Date of Birth</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Date of Birth <span className="text-[var(--color-negative)]">*</span></label>
 						<input
 							type="date"
 							required

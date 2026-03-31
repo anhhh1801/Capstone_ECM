@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Save, Building2, Calendar, Plus } from "lucide-react";
 import { Center, CenterSubject, CenterGrade, getCenterSubjects, getCenterGrades } from "@/services/centerService";
 import SubjectModal from "../../centers/[id]/components/SubjectModal";
@@ -56,15 +56,15 @@ export default function CourseForm({
     const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
     const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
     const hasAvailableCenterSelection = Boolean(formData.centerId) || centers.length > 0;
+    const hasMountedRef = useRef(false);
+    const skipNextOnChangeRef = useRef(false);
 
     const updateFormData = (
         updater: CourseFormData | ((prev: CourseFormData) => CourseFormData)
     ) => {
-        setFormData((prev) => {
-            const next = typeof updater === "function" ? updater(prev) : updater;
-            onChange?.(next);
-            return next;
-        });
+        setFormData((prev) =>
+            typeof updater === "function" ? updater(prev) : updater
+        );
     };
 
     const handleSubjectModalSuccess = (newSubject?: CenterSubject) => {
@@ -109,6 +109,7 @@ export default function CourseForm({
 
     useEffect(() => {
         if (initialData) {
+            skipNextOnChangeRef.current = true;
             setFormData(prev => {
                 const next = { ...prev, ...initialData };
 
@@ -128,6 +129,20 @@ export default function CourseForm({
             });
         }
     }, [initialData]);
+
+    useEffect(() => {
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            return;
+        }
+
+        if (skipNextOnChangeRef.current) {
+            skipNextOnChangeRef.current = false;
+            return;
+        }
+
+        onChange?.(formData);
+    }, [formData, onChange]);
 
     useEffect(() => {
         fetchCenterOptions(formData.centerId);
@@ -211,7 +226,7 @@ export default function CourseForm({
                 {/* COURSE NAME */}
                 <div>
                     <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                        Course name
+                        Course name <span className="text-[var(--color-negative)]">*</span>
                     </label>
                     <input
                         required

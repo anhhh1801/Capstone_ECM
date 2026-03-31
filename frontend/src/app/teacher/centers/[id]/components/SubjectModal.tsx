@@ -96,7 +96,7 @@ export default function SubjectModal({
 
           <div>
             <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-              Subject Name
+              Subject Name <span className="text-[var(--color-negative)]">*</span>
             </label>
 
             <input

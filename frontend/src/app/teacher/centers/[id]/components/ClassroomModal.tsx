@@ -116,7 +116,7 @@ export default function ClassroomModal({
 
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Seat</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Seat <span className="text-[var(--color-negative)]">*</span></label>
 						<input
 							type="number"
 							min={1}
@@ -128,7 +128,7 @@ export default function ClassroomModal({
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Location</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Location <span className="text-[var(--color-negative)]">*</span></label>
 						<input
 							value={location}
 							onChange={(e) => setLocation(e.target.value)}
@@ -138,7 +138,7 @@ export default function ClassroomModal({
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Last Maintain Date</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Last Maintain Date <span className="text-[var(--color-negative)]">*</span></label>
 						<input
 							type="date"
 							value={lastMaintainDate}

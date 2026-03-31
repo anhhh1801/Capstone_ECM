@@ -151,13 +151,6 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 })}
             </div>
 
-            <div className="flex items-center gap-2 text-[var(--color-text)]">
-                <BookOpen size={18} className="text-[var(--color-main)]" />
-                <h4 className="text-lg font-semibold">
-                    {getCourseStatusLabel(statusFilter)} {isManager ? "Center Courses" : "Courses You Teach"}
-                </h4>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                 {filteredCourses.length === 0 ? (
