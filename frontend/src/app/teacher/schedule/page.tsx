@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import api from "@/utils/axiosConfig";
 import { getStudentsInCourse, getTeacherCourses } from "@/services/courseService";
 import { CenterClassSlot } from "@/services/centerService";
+import { isCourseOngoing } from "@/utils/courseStatus";
 
 interface ScheduleEvent {
     id: number;
@@ -195,7 +196,7 @@ export default function SchedulePage() {
 
                 const activeCourseIds = new Set(
                     teacherCourses
-                        .filter((course) => course.status === "ACTIVE")
+                        .filter((course) => isCourseOngoing(course.status))
                         .map((course) => course.id)
                 );
 

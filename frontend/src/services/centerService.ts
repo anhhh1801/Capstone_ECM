@@ -5,6 +5,7 @@ export interface Center {
     name: string;
     description: string;
     phoneNumber: string;
+    archivedAt?: string | null;
     manager: {
         id: number;
         firstName: string;
@@ -15,6 +16,11 @@ export interface Center {
 // Lấy danh sách trung tâm của giáo viên
 export const getMyCenters = async (teacherId: number) => {
     const response = await api.get<Center[]>(`/centers/teacher/${teacherId}`);
+    return response.data;
+};
+
+export const getArchivedCenters = async (teacherId: number) => {
+    const response = await api.get<Center[]>(`/centers/teacher/${teacherId}/archived`);
     return response.data;
 };
 
@@ -31,6 +37,26 @@ export const createCenter = async (data: {
     managerId: number
 }) => {
     const response = await api.post('/centers', data);
+    return response.data;
+};
+
+export const updateCenter = async (centerId: number, data: {
+    name: string;
+    description: string;
+    phoneNumber: string;
+    managerId: number;
+}) => {
+    const response = await api.put(`/centers/${centerId}`, data);
+    return response.data;
+};
+
+export const archiveCenter = async (centerId: number, managerId: number) => {
+    const response = await api.put(`/centers/${centerId}/archive?managerId=${managerId}`);
+    return response.data;
+};
+
+export const restoreCenter = async (centerId: number, managerId: number) => {
+    const response = await api.put(`/centers/${centerId}/restore?managerId=${managerId}`);
     return response.data;
 };
 

@@ -57,9 +57,14 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
             toast.success("Subject deleted.");
             setDeletingSubject(null);
             fetch();
-        } catch (error) {
-            console.error(error);
-            toast.error("Could not delete subject.");
+        } catch (error: any) {
+            const responseData = error?.response?.data;
+            const message =
+                responseData?.error ||
+                responseData?.message ||
+                (typeof responseData === "string" ? responseData : null) ||
+                "Could not delete subject.";
+            toast.error(message);
         }
     };
 

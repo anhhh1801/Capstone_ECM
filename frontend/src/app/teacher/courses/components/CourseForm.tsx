@@ -20,6 +20,7 @@ export interface CourseFormData {
 interface Props {
     initialData?: CourseFormData;
     onSubmit: (data: CourseFormData) => void;
+    onChange?: (data: CourseFormData) => void;
     loading: boolean;
     centers: Center[];
     isCenterLocked?: boolean;
@@ -29,6 +30,7 @@ interface Props {
 export default function CourseForm({
     initialData,
     onSubmit,
+    onChange,
     loading,
     centers,
     isCenterLocked = false,
@@ -53,13 +55,24 @@ export default function CourseForm({
     const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
     const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
+    const hasAvailableCenterSelection = Boolean(formData.centerId) || centers.length > 0;
+
+    const updateFormData = (
+        updater: CourseFormData | ((prev: CourseFormData) => CourseFormData)
+    ) => {
+        setFormData((prev) => {
+            const next = typeof updater === "function" ? updater(prev) : updater;
+            onChange?.(next);
+            return next;
+        });
+    };
 
     const handleSubjectModalSuccess = (newSubject?: CenterSubject) => {
         if (formData.centerId) {
             fetchCenterOptions(formData.centerId);
         }
         if (newSubject) {
-            setFormData(prev => ({ ...prev, subjectId: newSubject.id }));
+            updateFormData(prev => ({ ...prev, subjectId: newSubject.id }));
         }
         setIsSubjectModalOpen(false);
     };
@@ -69,7 +82,7 @@ export default function CourseForm({
             fetchCenterOptions(formData.centerId);
         }
         if (newGrade) {
-            setFormData(prev => ({ ...prev, gradeId: newGrade.id }));
+            updateFormData(prev => ({ ...prev, gradeId: newGrade.id }));
         }
         setIsGradeModalOpen(false);
     };
@@ -96,7 +109,23 @@ export default function CourseForm({
 
     useEffect(() => {
         if (initialData) {
-            setFormData(prev => ({ ...prev, ...initialData }));
+            setFormData(prev => {
+                const next = { ...prev, ...initialData };
+
+                if (
+                    prev.name === next.name &&
+                    prev.subjectId === next.subjectId &&
+                    prev.gradeId === next.gradeId &&
+                    prev.description === next.description &&
+                    prev.startDate === next.startDate &&
+                    prev.endDate === next.endDate &&
+                    prev.centerId === next.centerId
+                ) {
+                    return prev;
+                }
+
+                return next;
+            });
         }
     }, [initialData]);
 
@@ -151,7 +180,7 @@ export default function CourseForm({
                             required
                             disabled={isCenterLocked}
                             value={formData.centerId || ""}
-                            onChange={e => setFormData({ ...formData, centerId: Number(e.target.value) })}
+                            onChange={e => updateFormData({ ...formData, centerId: Number(e.target.value) })}
                             className={`w-full p-3 border-2 rounded-lg outline-none appearance-none transition
                             ${isCenterLocked
                                     ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
@@ -188,7 +217,7 @@ export default function CourseForm({
                         required
                         type="text"
                         value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        onChange={e => updateFormData({ ...formData, name: e.target.value })}
                         className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
                         placeholder="Example: Fast-track Math 10 Preparation"
                     />
@@ -223,7 +252,7 @@ export default function CourseForm({
                             <select
                                 value={formData.subjectId ?? ""}
                                 onChange={e =>
-                                    setFormData({
+                                    updateFormData({
                                         ...formData,
                                         subjectId: e.target.value ? Number(e.target.value) : undefined,
                                     })
@@ -273,7 +302,7 @@ export default function CourseForm({
                         <div className="relative">
                             <select
                                 value={formData.gradeId ?? ""}
-                                onChange={e => setFormData({
+                                onChange={e => updateFormData({
                                     ...formData,
                                     gradeId: e.target.value ? Number(e.target.value) : undefined,
                                 })}
@@ -315,7 +344,7 @@ export default function CourseForm({
                                     required
                                     type="date"
                                     value={(formData as any)[field]}
-                                    onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                                    onChange={e => updateFormData({ ...formData, [field]: e.target.value })}
                                     className="w-full p-3 pl-10 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
                                 />
                             </div>
@@ -331,7 +360,7 @@ export default function CourseForm({
                     <textarea
                         rows={4}
                         value={formData.description}
-                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                        onChange={e => updateFormData({ ...formData, description: e.target.value })}
                         className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg focus:ring-2 focus:ring-[var(--color-secondary)] outline-none bg-white"
                         placeholder="Course details, goals, and outcomes..."
                     />
@@ -341,13 +370,13 @@ export default function CourseForm({
                 <div className="pt-4">
                     <button
                         type="submit"
-                        disabled={loading || centers.length === 0}
+                        disabled={loading || !hasAvailableCenterSelection}
                         className="w-full bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white py-3 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition disabled:bg-gray-400 disabled:border-gray-400 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                     >
                         {loading ? "Processing..." : <><Save size={20} /> {btnLabel}</>}
                     </button>
 
-                    {centers.length === 0 && (
+                    {!hasAvailableCenterSelection && (
                         <p className="text-center text-[var(--color-negative)] text-sm mt-2">
                             You don't have any centers to create a course.
                         </p>

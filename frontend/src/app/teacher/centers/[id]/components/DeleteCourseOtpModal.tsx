@@ -151,12 +151,13 @@ export default function DeleteCourseOtpModal({
       <div className="w-full max-w-md rounded-xl border border-[var(--color-main)] bg-[var(--color-soft-white)] shadow-xl">
         <div className="border-b border-[var(--color-main)]/20 px-5 py-4">
           <h4 className="text-lg font-bold text-[var(--color-text)]">Delete Course</h4>
-        </div>
+        </div>  
 
         <div className="space-y-4 px-5 py-4">
           <p className="text-sm text-[var(--color-text)]">
             You are deleting <span className="font-semibold">{courseName || "this course"}</span>.
-            This will delete all class slots of this course.
+            The course must already be ended and must not have any active classes.
+            If deletion is confirmed, all related enrollments, materials, assignments, attendance records, sessions, and class slots will also be deleted.
           </p>
 
           <button

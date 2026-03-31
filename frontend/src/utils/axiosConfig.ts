@@ -7,6 +7,21 @@ const api = axios.create({
     },
 });
 
+const AUTH_FLOW_PATHS = [
+    "/users/login",
+    "/users/register-teacher",
+    "/users/verify-otp",
+    "/users/resend-otp",
+];
+
+const isAuthFlowRequest = (url?: string) => {
+    if (!url) {
+        return false;
+    }
+
+    return AUTH_FLOW_PATHS.some((path) => url.includes(path));
+};
+
 
 
 api.interceptors.request.use((config) => {
@@ -33,6 +48,11 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         const status = error.response?.status;
+        const requestUrl = error.config?.url;
+
+        if (isAuthFlowRequest(requestUrl)) {
+            return Promise.reject(error);
+        }
 
         // 401 UNAUTHORIZED: Token is missing, expired, or invalid. 
         // Action: Log them out.
@@ -55,8 +75,8 @@ api.interceptors.response.use(
             console.warn(`Access Denied (403) - redirecting`);
 
             // Redirect to your unauthorized page
-            if (typeof window !== "undefined" && window.location.pathname !== "/unauthorized") {
-                window.location.href = "/unauthorized";
+            if (typeof window !== "undefined" && window.location.pathname !== "/AccessDenied") {
+                window.location.href = "/AccessDenied";
             }
         }
 

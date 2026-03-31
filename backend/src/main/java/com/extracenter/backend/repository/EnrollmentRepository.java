@@ -1,13 +1,17 @@
 package com.extracenter.backend.repository;
 
-import com.extracenter.backend.entity.Enrollment;
-import com.extracenter.backend.entity.User;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.extracenter.backend.entity.Enrollment;
+import com.extracenter.backend.entity.User;
 
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
@@ -30,6 +34,10 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     // 4. Get the list of students in a specific course (Used by teachers to view
     // their class roster).
     List<Enrollment> findByCourseId(Long courseId);
+
+    @Modifying
+    @Transactional
+    void deleteByCourseId(Long courseId);
 
     // 5. Advanced Query: Find all unique Users (Students) registered in courses
     // belonging to a specific Center.

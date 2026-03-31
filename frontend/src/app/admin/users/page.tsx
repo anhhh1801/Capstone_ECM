@@ -1,11 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
     getAllUsers,
     toggleUserLock,
     getUserStats,
 } from "@/services/adminService";
-import { ChartColumnDecreasingIcon, Lock, LockIcon, LockOpen } from "lucide-react";
+import { AlertTriangle, ChartColumnDecreasingIcon, Lock, LockOpen } from "lucide-react";
 
 interface User {
     id: number;
@@ -23,21 +25,61 @@ interface UserStats {
     totalStudents: number;
 }
 
+interface StoredUser {
+    id: number;
+    role?: string | { name?: string };
+}
+
 const UserManagement = () => {
+    const router = useRouter();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAuthorized, setIsAuthorized] = useState(false);
     const [stats, setStats] = useState<UserStats | null>(null);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [lockConfirmUser, setLockConfirmUser] = useState<User | null>(null);
+    const [currentAdminId, setCurrentAdminId] = useState(0);
+    const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null);
 
-    const userStr =
-        typeof window !== "undefined" ? localStorage.getItem("user") : null;
-    const user = userStr ? JSON.parse(userStr) : null;
-    const CURRENT_ADMIN_ID = user ? user.id : 0;
+    const getRoleName = (role?: StoredUser["role"]) => {
+        if (!role) {
+            return "";
+        }
+
+        return typeof role === "string" ? role : role.name || "";
+    };
 
     useEffect(() => {
-        loadUsers();
-    }, []);
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        const userStr = localStorage.getItem("user");
+
+        if (!userStr) {
+            router.replace("/login");
+            return;
+        }
+
+        try {
+            const storedUser: StoredUser = JSON.parse(userStr);
+            const roleName = getRoleName(storedUser.role);
+
+            if (roleName !== "ADMIN") {
+                router.replace("/AccessDenied");
+                return;
+            }
+
+            setCurrentAdminId(storedUser.id || 0);
+            setIsAuthorized(true);
+            loadUsers();
+        } catch (error) {
+            console.error("Invalid user session", error);
+            localStorage.removeItem("user");
+            localStorage.removeItem("loginResponse");
+            router.replace("/login");
+        }
+    }, [router]);
 
     const loadUsers = async () => {
         try {
@@ -45,6 +87,10 @@ const UserManagement = () => {
             setUsers(data);
         } catch (error) {
             console.error("Failed to load users", error);
+            setErrorModal({
+                title: "Unable to Load Users",
+                message: "The admin user list could not be loaded. Please try again.",
+            });
         } finally {
             setLoading(false);
         }
@@ -55,10 +101,10 @@ const UserManagement = () => {
     };
 
     const confirmToggleLock = async () => {
-        if (!lockConfirmUser) return;
+        if (!lockConfirmUser || !currentAdminId) return;
 
         try {
-            await toggleUserLock(CURRENT_ADMIN_ID, lockConfirmUser.id);
+            await toggleUserLock(currentAdminId, lockConfirmUser.id);
 
             setUsers((prev) =>
                 prev.map((u) =>
@@ -70,7 +116,11 @@ const UserManagement = () => {
 
             setLockConfirmUser(null);
         } catch (error) {
-            alert("Failed to change lock status");
+            console.error("Failed to change lock status", error);
+            setErrorModal({
+                title: "Update Failed",
+                message: "The user lock status could not be changed. Please try again.",
+            });
         }
     };
 
@@ -78,12 +128,25 @@ const UserManagement = () => {
         try {
             setSelectedUser(user);
             setStats(null);
-            const data = await getUserStats(CURRENT_ADMIN_ID, user.id);
+            const data = await getUserStats(currentAdminId, user.id);
             setStats(data);
         } catch (error) {
-            console.error("Could not fetch stats");
+            console.error("Could not fetch stats", error);
+            setSelectedUser(null);
+            setErrorModal({
+                title: "Unable to Load Statistics",
+                message: "The selected user's statistics could not be retrieved right now.",
+            });
         }
     };
+
+    if (!isAuthorized) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[var(--color-soft-white)] p-6 text-[var(--color-text)]">
+                <div className="text-sm font-medium">Checking admin access...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 bg-[var(--color-soft-white)] min-h-screen">
@@ -249,47 +312,40 @@ const UserManagement = () => {
                 </div>
             )}
 
-            {/* LOCK CONFIRM MODAL */}
-            {lockConfirmUser && (
-                <div
-                    className="fixed inset-0 bg-[var(--color-main)]/20 flex items-center justify-center z-50"
-                    onClick={() => setLockConfirmUser(null)}
-                >
-                    <div
-                        className="bg-white rounded-xl p-6 w-80 shadow-xl text-center"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="text-lg font-bold text-[var(--color-text)] mb-4">
-                            Confirm {lockConfirmUser.locked ? "Unlock" : "Lock"}
-                        </h3>
+            <ConfirmModal
+                isOpen={!!lockConfirmUser}
+                title={lockConfirmUser ? `Confirm ${lockConfirmUser.locked ? "Unlock" : "Lock"}` : "Confirm Action"}
+                message={lockConfirmUser
+                    ? `Are you sure you want to ${lockConfirmUser.locked ? "unlock" : "lock"} ${lockConfirmUser.firstName} ${lockConfirmUser.lastName}?`
+                    : ""
+                }
+                confirmText={lockConfirmUser?.locked ? "Unlock" : "Lock"}
+                cancelText="Cancel"
+                onConfirm={confirmToggleLock}
+                onClose={() => setLockConfirmUser(null)}
+            />
 
-                        <p className="mb-6 text-[var(--color-text)]">
-                            Are you sure you want to{" "}
-                            <span className="font-bold">
-                                {lockConfirmUser.locked ? "UNLOCK" : "LOCK"}
-                            </span>{" "}
-                            user:
-                            <br />
-                            <span className="font-semibold">
-                                {lockConfirmUser.firstName}{" "}
-                                {lockConfirmUser.lastName}
-                            </span>
-                            ?
-                        </p>
+            {errorModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/45 p-4">
+                    <div className="w-full max-w-md rounded-xl border border-red-200 bg-white shadow-xl">
+                        <div className="flex items-center gap-3 border-b border-red-100 px-5 py-4">
+                            <div className="rounded-full bg-red-100 p-2 text-red-600">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <h4 className="text-lg font-bold text-[var(--color-text)]">{errorModal.title}</h4>
+                        </div>
 
-                        <div className="flex justify-center gap-4">
+                        <div className="px-5 py-4">
+                            <p className="text-sm leading-relaxed text-[var(--color-text)]">{errorModal.message}</p>
+                        </div>
+
+                        <div className="flex justify-end px-5 pb-5">
                             <button
-                                onClick={() => setLockConfirmUser(null)}
-                                className="px-4 py-1 font-bold rounded-lg border-2 border-[var(--color-main)] text-[var(--color-soft-white)] bg-[var(--color-main)] hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
+                                type="button"
+                                onClick={() => setErrorModal(null)}
+                                className="rounded-lg border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-red-500"
                             >
-                                Cancel
-                            </button>
-
-                            <button
-                                onClick={confirmToggleLock}
-                                className="px-4 py-1 font-bold rounded-lg border-2 border-[var(--color-alert)] text-[var(--color-alert)] bg-[var(--color-soft-white)] hover:bg-[var(--color-alert)] hover:text-[var(--color-soft-white)] transition"
-                            >
-                                {lockConfirmUser.locked ? "Unlock" : "Lock"}
+                                Close
                             </button>
                         </div>
                     </div>

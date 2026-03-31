@@ -2,13 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { getTeacherCourses, Course } from "@/services/courseService";
+import { getMyCenters } from "@/services/centerService";
 import { Plus, Search, BookOpen, ExternalLink } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { CourseStatus, getCourseStatusClasses, getCourseStatusLabel } from "@/utils/courseStatus";
 
 export default function CourseListPage() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState<CourseStatus>("IN_PROGRESS");
+    const [canCreateCourse, setCanCreateCourse] = useState(false);
+
+    const statusOptions: CourseStatus[] = ["UPCOMING", "IN_PROGRESS", "ENDED"];
+
+    const visibleCourses = courses.filter((course) => course.status === statusFilter);
 
     const fetchCourses = async () => {
         try {
@@ -16,8 +24,12 @@ export default function CourseListPage() {
             if (!userStr) return;
             const user = JSON.parse(userStr);
 
-            const data = await getTeacherCourses(user.id);
+            const [data, managedCenters] = await Promise.all([
+                getTeacherCourses(user.id),
+                getMyCenters(user.id),
+            ]);
             setCourses(data);
+            setCanCreateCourse(managedCenters.length > 0);
         } catch (error) {
             toast.error("Unable to load course list");
             console.error(error);
@@ -40,13 +52,15 @@ export default function CourseListPage() {
                     Manage Courses
                 </h1>
 
-                <Link
-                    href={`/teacher/courses/create`}
-                    className="flex items-center gap-2 bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
-                >
-                    <Plus size={20} />
-                    Create new course
-                </Link>
+                {canCreateCourse && (
+                    <Link
+                        href={`/teacher/courses/create`}
+                        className="flex items-center gap-2 bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
+                    >
+                        <Plus size={20} />
+                        Create new course
+                    </Link>
+                )}
             </div>
 
             {/* Search Bar */}
@@ -62,6 +76,34 @@ export default function CourseListPage() {
                 />
             </div>
 
+            <div className="flex flex-wrap gap-2">
+                {statusOptions.map((status) => {
+                    const isActive = statusFilter === status;
+
+                    return (
+                        <button
+                            key={status}
+                            type="button"
+                            onClick={() => setStatusFilter(status)}
+                            className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
+                                isActive
+                                    ? "border-[var(--color-main)] bg-[var(--color-main)] text-white"
+                                    : "border-[var(--color-main)] bg-[var(--color-soft-white)] text-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-white"
+                            }`}
+                        >
+                            {getCourseStatusLabel(status)}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div className="flex items-center gap-2 text-[var(--color-text)]">
+                <BookOpen size={18} className="text-[var(--color-main)]" />
+                <h2 className="text-lg font-semibold">
+                    {getCourseStatusLabel(statusFilter)} Courses
+                </h2>
+            </div>
+
             {/* Table Container */}
             <div className="bg-[var(--color-soft-white)] rounded-xl shadow-sm border-2 border-[var(--color-main)] overflow-hidden">
 
@@ -69,10 +111,10 @@ export default function CourseListPage() {
                     <div className="p-8 text-center text-[var(--color-text)]">
                         Loading data...
                     </div>
-                ) : courses.length === 0 ? (
+                ) : visibleCourses.length === 0 ? (
                     <div className="p-12 text-center text-[var(--color-text)] flex flex-col items-center">
                         <BookOpen size={48} className="text-[var(--color-main)] mb-4" />
-                        <p>You don't have any courses yet.</p>
+                        <p>{courses.length === 0 ? "You don't have any courses yet." : `No ${getCourseStatusLabel(statusFilter).toLowerCase()} courses to show.`}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -88,7 +130,7 @@ export default function CourseListPage() {
                             </thead>
 
                             <tbody className="divide-y divide-[var(--color-main)]/20">
-                                {courses.map((course) => (
+                                {visibleCourses.map((course) => (
                                     <tr
                                         key={course.id}
                                         className="hover:bg-[var(--color-main)]/5 transition"
@@ -112,16 +154,9 @@ export default function CourseListPage() {
 
                                         <td className="px-6 py-4">
                                             <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border-2
-                                                ${
-                                                    course.status === "ACTIVE"
-                                                        ? "border-[var(--color-positive)] text-[var(--color-positive)]"
-                                                        : "border-[var(--color-alert)] text-[var(--color-alert)]"
-                                                }`}
+                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border-2 ${getCourseStatusClasses(course.status)}`}
                                             >
-                                                {course.status === "ACTIVE"
-                                                    ? "Ongoing"
-                                                    : course.status}
+                                                {getCourseStatusLabel(course.status)}
                                             </span>
                                         </td>
 

@@ -47,9 +47,14 @@ export default function GradeListTab({ centerId, isManager }: Props) {
             toast.success("Grade deleted.");
             setDeletingGrade(null);
             fetch();
-        } catch (error) {
-            console.error(error);
-            toast.error("Could not delete grade.");
+        } catch (error: any) {
+            const responseData = error?.response?.data;
+            const message =
+                responseData?.error ||
+                responseData?.message ||
+                (typeof responseData === "string" ? responseData : null) ||
+                "Could not delete grade.";
+            toast.error(message);
         }
     };
 

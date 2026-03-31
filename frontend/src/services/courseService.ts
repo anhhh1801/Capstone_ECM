@@ -1,4 +1,5 @@
 import api from '../utils/axiosConfig';
+import type { CourseStatus } from '@/utils/courseStatus';
 
 // Định nghĩa kiểu dữ liệu Course (khớp với Java)
 export interface CourseSubject {
@@ -20,11 +21,18 @@ export interface Course {
     name: string;
     subject?: CourseSubject;
     grade?: CourseGrade;
-    status: string;
+    description: string;
+    status: CourseStatus;
     startDate: string;
     endDate: string;
     center: {
+        id?: number;
         name: string;
+        manager?: {
+            id?: number;
+            firstName?: string;
+            lastName?: string;
+        };
     };
     teacher: {
         id: number;
@@ -33,6 +41,18 @@ export interface Course {
         lastName: string;
     };
     invitationStatus: string; // PENDING, ACCEPTED
+}
+
+export interface CourseUpsertData {
+    name: string;
+    subjectId?: number;
+    gradeId?: number;
+    description: string;
+    startDate: string;
+    endDate: string;
+    centerId: number;
+    teacherId: number;
+    slots?: any[];
 }
 
 // Hàm gọi API lấy danh sách
@@ -48,20 +68,8 @@ export const getCoursesByCenter = async (centerId: number) => {
     return response.data;
 };
 
-export interface CreateCourseData {
-    name: string;
-    subject?: string;
-    grade?: number;
-    description: string;
-    startDate: string; // YYYY-MM-DD
-    endDate: string;
-    centerId: number;
-    teacherId: number;
-    slots?: any[]; // Tạm thời để trống, xử lý lịch sau
-}
-
 // API Tạo
-export const createCourse = async (data: CreateCourseData) => {
+export const createCourse = async (data: CourseUpsertData) => {
     console.log("Creating course with data:", data);
     const rawToken = JSON.parse(localStorage.getItem('loginResponse') || '{}').token;
     console.log("🔍 SỰ THẬT BÊN TRONG TOKEN:", rawToken ? JSON.parse(atob(rawToken.split('.')[1])) : "Chưa có token");
@@ -92,10 +100,20 @@ export const getCourseById = async (id: number) => {
 }
 
 // Cập nhật khóa học
-export const updateCourse = async (id: number, data: any) => {
+export const updateCourse = async (id: number, data: CourseUpsertData) => {
     const res = await api.put(`/courses/${id}`, data);
     return res.data;
 }
+
+export const endCourseEarly = async (id: number) => {
+    const response = await api.put<Course>(`/courses/${id}/end-early`);
+    return response.data;
+};
+
+export const reopenCourse = async (id: number, data: CourseUpsertData) => {
+    const response = await api.put<Course>(`/courses/${id}/reopen`, data);
+    return response.data;
+};
 
 // Hàm mời
 export const inviteTeacher = async (courseId: number, email: string) => {

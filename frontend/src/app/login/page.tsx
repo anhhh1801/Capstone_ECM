@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/services/authService";
+import { loginUser, type User as AuthUser } from "@/services/authService";
 import toast, { Toaster } from "react-hot-toast";
-import { User, Lock, Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import LockedAccountModal from '@/components/LockedAccountModal';
 
 export default function LoginPage() {
@@ -16,13 +16,17 @@ export default function LoginPage() {
     const [showLockedModal, setShowLockedModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
+    const getRoleName = (role: AuthUser["role"]) => {
+        return typeof role === "string" ? role : role?.name;
+    };
+
     // redirect away if already logged in
     useEffect(() => {
         const stored = localStorage.getItem("loginResponse");
         if (stored) {
             try {
                 const { user } = JSON.parse(stored);
-                const roleName = typeof user?.role === "string" ? user.role.toString() : user?.role?.name;
+                const roleName = getRoleName(user?.role);
                 if (roleName) {
                     if (roleName === "TEACHER") {
                         router.replace("/teacher/dashboard");
@@ -41,25 +45,27 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMessage("");
+        setShowLockedModal(false);
 
         try {
             const loginResponse = await loginUser(email, password);
             localStorage.setItem("loginResponse", JSON.stringify({ ...loginResponse, loginTime: Date.now() }));
 
             const user = loginResponse.user;
-            const roleName = typeof user?.role === "string" ? user.role.toString() : user?.role?.name;
+            const roleName = getRoleName(user?.role);
 
             toast.success(`Hello ${user.firstName} ${user.lastName}!`);
 
             localStorage.setItem("user", JSON.stringify(user));
 
             setTimeout(() => {
-                if (user.role.toString() === "TEACHER") {
+                if (roleName === "TEACHER") {
                     router.push("/teacher/dashboard");
                 }
-                else if (user.role.toString() === "STUDENT") {
+                else if (roleName === "STUDENT") {
                     router.push("/student/dashboard");
-                } else if (user.role.toString() === "ADMIN") {
+                } else if (roleName === "ADMIN") {
                     router.push("/admin/users");
                 }
                 else {
@@ -69,7 +75,9 @@ export default function LoginPage() {
 
         } catch (error: any) {
             console.error("Login Error:", error);
-            const msg = error.response?.data || "Login Failed! Please check again.";
+            const msg = typeof error.response?.data === "string"
+                ? error.response.data
+                : error.response?.data?.message || "Login Failed! Please check again.";
 
             if (typeof msg === 'string' && msg.includes("ACCOUNT_DEACTIVATED")) {
                 toast((t) => (
@@ -84,7 +92,7 @@ export default function LoginPage() {
                 }, 2000);
             }
 
-            else if (typeof msg === 'string' && msg.includes("locked")) {
+            else if (typeof msg === 'string' && msg.toLowerCase().includes("locked")) {
                 setShowLockedModal(true);
             }
             else if (typeof msg === 'string' && msg.includes("PENDING_VERIFICATION")) {
@@ -98,7 +106,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
             <Toaster position="top-center" />
 
             <LockedAccountModal
@@ -106,7 +114,7 @@ export default function LoginPage() {
                 onClose={() => setShowLockedModal(false)}
             />
 
-            <div className="w-full max-w-md rounded-2xl bg-[var(--color-secondary)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
                 <div className="mb-8 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-main)] text-white">
                         <Lock size={32} />
@@ -150,6 +158,12 @@ export default function LoginPage() {
                             />
                         </div>
                     </div>
+
+                    {errorMessage && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {errorMessage}
+                        </div>
+                    )}
 
                     {/* Button Submit */}
                     <button

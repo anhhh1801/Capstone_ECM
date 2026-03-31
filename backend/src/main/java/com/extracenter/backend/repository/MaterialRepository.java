@@ -2,7 +2,9 @@ package com.extracenter.backend.repository;
 
 import com.extracenter.backend.entity.Material;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,4 +17,10 @@ public interface MaterialRepository extends JpaRepository<Material, Long> {
 
     // 2. Fetch materials attached to a specific day/lesson (e.g., "Day 1 Slides")
     List<Material> findByClassSessionId(Long classSessionId);
+
+    List<Material> findByCourseId(Long courseId);
+
+    @Modifying
+    @Transactional
+    void deleteByCourseId(Long courseId);
 }

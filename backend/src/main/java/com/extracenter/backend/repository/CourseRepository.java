@@ -17,6 +17,10 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // Find all courses belonging to a specific Center
     List<Course> findByCenterId(Long centerId);
 
+    boolean existsBySubjectId(Long subjectId);
+
+    boolean existsByGradeId(Long gradeId);
+
     // Find all courses taught by a specific teacher
     List<Course> findByTeacherId(Long teacherId);
 

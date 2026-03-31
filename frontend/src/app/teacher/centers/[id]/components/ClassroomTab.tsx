@@ -57,7 +57,13 @@ export default function ClassroomTab({ centerId, isManager }: Props) {
 			setDeletingClassroom(null);
 			fetchClassrooms();
 		} catch (error: any) {
-			toast.error(error?.response?.data?.error || "Could not delete classroom.");
+				const responseData = error?.response?.data;
+				const message =
+					responseData?.error ||
+					responseData?.message ||
+					(typeof responseData === "string" ? responseData : null) ||
+					"Could not delete classroom.";
+				toast.error(message);
 		}
 	};
 

@@ -117,6 +117,26 @@ public class CourseController {
         }
     }
 
+    @PutMapping("/{id}/end-early")
+    public ResponseEntity<?> endCourseEarly(@PathVariable Long id) {
+        try {
+            Course updated = courseService.endCourseEarly(id);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/reopen")
+    public ResponseEntity<?> reopenCourse(@PathVariable Long id, @Valid @RequestBody CourseRequest request) {
+        try {
+            Course updated = courseService.reopenCourse(id, request);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // API: Delete a course
     // DELETE: http://localhost:8080/api/courses/1
     @DeleteMapping("/{id}")

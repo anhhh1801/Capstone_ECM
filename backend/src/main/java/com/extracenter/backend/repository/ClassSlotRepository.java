@@ -1,5 +1,6 @@
 package com.extracenter.backend.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,10 @@ public interface ClassSlotRepository extends JpaRepository<ClassSlot, Long> {
     Optional<ClassSlot> findByIdAndCenterId(Long slotId, Long centerId);
 
     List<ClassSlot> findByCourseId(Long courseId);
+
+    boolean existsByCourseIdAndEndDateGreaterThanEqual(Long courseId, LocalDate date);
+
+    boolean existsByClassroomId(Long classroomId);
 
     // FIX: Changed 'e.user.id' to 'e.student.id' to match the Enrollment entity
     @Query("SELECT DISTINCT s FROM ClassSlot s JOIN Enrollment e ON e.course.id = s.course.id WHERE e.student.id = :studentId")

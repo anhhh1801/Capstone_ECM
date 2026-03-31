@@ -44,6 +44,9 @@ public class Center {
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate = LocalDateTime.now();
 
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
     private String avatarImg;
 
     // RELATIONSHIP: The manager of the center (typically a User with TEACHER or

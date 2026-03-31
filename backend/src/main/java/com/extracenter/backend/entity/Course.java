@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -52,7 +53,9 @@ public class Course {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    private String status; // e.g., "ACTIVE", "CLOSED"
+    @Convert(converter = CourseStatusConverter.class)
+    @Column(nullable = false)
+    private CourseStatus status = CourseStatus.UPCOMING;
 
     @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ACCEPTED'")
     private String invitationStatus = "ACCEPTED";

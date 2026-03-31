@@ -15,26 +15,62 @@ function CreateCourseLogic() {
 
     const [loading, setLoading] = useState(false);
     const [centers, setCenters] = useState<Center[]>([]);
+    const [canCreateCourse, setCanCreateCourse] = useState(true);
+    const [centersLoading, setCentersLoading] = useState(true);
 
     useEffect(() => {
         const fetchCenters = async () => {
             const userStr = localStorage.getItem("user");
-            if (!userStr) return;
+            if (!userStr) {
+                setCanCreateCourse(false);
+                setCentersLoading(false);
+                return;
+            }
+
             const user = JSON.parse(userStr);
+
             try {
-                const res = await getMyCenters(user.id);
-                setCenters(res);
+                const managedCenters = await getMyCenters(user.id);
+
+                if (centerIdParam) {
+                    const lockedCenterId = Number(centerIdParam);
+                    const selectedCenter = managedCenters.find((center) => center.id === lockedCenterId);
+
+                    if (selectedCenter) {
+                        setCenters([selectedCenter]);
+                        setCanCreateCourse(true);
+                        return;
+                    }
+
+                    setCanCreateCourse(false);
+                    setCenters([]);
+                    toast.error("You can only create courses for centers you manage.");
+                    router.replace("/teacher/courses");
+                    return;
+                }
+
+                setCenters(managedCenters);
+                setCanCreateCourse(managedCenters.length > 0);
             } catch (error) {
                 console.error(error);
+                setCanCreateCourse(false);
+                toast.error("Unable to load your managed centers.");
+            } finally {
+                setCentersLoading(false);
             }
         };
         fetchCenters();
-    }, []);
+    }, [centerIdParam, router]);
 
     const handleCreate = async (data: CourseFormData) => {
         const finalCenterId = centerIdParam
             ? Number(centerIdParam)
             : data.centerId;
+
+        if (!canCreateCourse) {
+            toast.error("Only center managers can create courses.");
+            return;
+        }
 
         if (!finalCenterId) {
             toast.error("Please select a center!");
@@ -88,9 +124,15 @@ function CreateCourseLogic() {
                 </p>
             </div>
 
+            {!centersLoading && !canCreateCourse && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Only center managers can create courses.
+                </div>
+            )}
+
             <CourseForm
                 onSubmit={handleCreate}
-                loading={loading}
+                loading={loading || centersLoading}
                 centers={centers}
                 isCenterLocked={!!centerIdParam}
                 initialData={{

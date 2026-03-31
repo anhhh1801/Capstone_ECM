@@ -21,6 +21,7 @@ import NotFound from "@/app/not-found";
 import CourseMaterials from "./components/CourseMaterial";
 import CourseAssignments from "./components/CourseAssignment";
 import { formatDateValue } from "@/utils/dateFormat";
+import { getCourseStatusClasses, getCourseStatusLabel } from "@/utils/courseStatus";
 
 export default function CourseDetailPage() {
     const params = useParams();
@@ -103,12 +104,9 @@ export default function CourseDetailPage() {
                             </h1>
 
                             <span
-                                className={`px-3 py-1 rounded text-xs font-semibold border ${course.status === "ACTIVE"
-                                    ? "bg-green-50 text-green-700 border-green-200"
-                                    : "bg-gray-100 text-gray-600 border-gray-200"
-                                    }`}
+                                className={`px-3 py-1 rounded text-xs font-semibold border ${getCourseStatusClasses(course.status)}`}
                             >
-                                {course.status || "ACTIVE"}
+                                {getCourseStatusLabel(course.status)}
                             </span>
 
                         </div>

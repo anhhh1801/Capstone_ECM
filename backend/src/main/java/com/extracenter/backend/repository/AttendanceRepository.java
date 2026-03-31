@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.extracenter.backend.entity.Attendance;
@@ -29,4 +31,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     @Modifying
     @Transactional
     void deleteByClassSessionId(Long classSessionId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Attendance a WHERE a.classSession.id IN (SELECT cs.id FROM ClassSession cs WHERE cs.course.id = :courseId) OR a.classSlot.id IN (SELECT slot.id FROM ClassSlot slot WHERE slot.course.id = :courseId) OR a.enrollment.id IN (SELECT e.id FROM Enrollment e WHERE e.course.id = :courseId)")
+    void deleteByCourseId(@Param("courseId") Long courseId);
 }

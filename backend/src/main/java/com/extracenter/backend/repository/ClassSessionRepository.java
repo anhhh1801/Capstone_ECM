@@ -51,6 +51,8 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Long
                         LocalTime endTime,
                         Long id);
 
+        boolean existsByCourseIdAndDateGreaterThanEqual(Long courseId, LocalDate date);
+
         @Modifying
         @Transactional
         void deleteByCourseId(Long courseId);

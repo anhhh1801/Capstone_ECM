@@ -82,6 +82,13 @@ public class CenterController {
         return ResponseEntity.ok(centerService.getCentersByManager(teacherId));
     }
 
+    // API: Get archived centers managed by a specific user (Manager)
+    // GET: http://localhost:8080/api/centers/teacher/1/archived
+    @GetMapping("/teacher/{teacherId}/archived")
+    public ResponseEntity<List<Center>> getArchivedCentersByManager(@PathVariable Long teacherId) {
+        return ResponseEntity.ok(centerService.getArchivedCentersByManager(teacherId));
+    }
+
     // API: Get centers where a specific teacher is actively teaching
     // GET: http://localhost:8080/api/centers/teaching/1
     @GetMapping("/teaching/{teacherId}")
@@ -108,14 +115,29 @@ public class CenterController {
         }
     }
 
-    // API: Delete a center
-    // DELETE: http://localhost:8080/api/centers/1
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCenter(@PathVariable Long id) {
+    // API: Archive a center
+    // PUT: http://localhost:8080/api/centers/1/archive?managerId=10
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<?> archiveCenter(@PathVariable Long id, @RequestParam Long managerId) {
         try {
-            centerService.deleteCenter(id);
-            // BEST PRACTICE: Return JSON so React handles it cleanly
-            return ResponseEntity.ok(Map.of("message", "Center deleted successfully!"));
+            Center archivedCenter = centerService.archiveCenter(id, managerId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Center archived successfully!",
+                    "center", archivedCenter));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // API: Restore an archived center
+    // PUT: http://localhost:8080/api/centers/1/restore?managerId=10
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restoreCenter(@PathVariable Long id, @RequestParam Long managerId) {
+        try {
+            Center restoredCenter = centerService.restoreCenter(id, managerId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Center restored successfully!",
+                    "center", restoredCenter));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

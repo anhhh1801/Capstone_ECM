@@ -4,6 +4,7 @@ import { Course } from "@/services/courseService";
 import InviteTeacherModal from "./InviteTeacherModal";
 import { useMemo, useState } from "react";
 import DeleteCourseOtpModal from "./DeleteCourseOtpModal";
+import { CourseStatus, getCourseStatusLabel, isCourseEnded } from "@/utils/courseStatus";
 interface Props {
     courses: Course[];
     centerId: number;
@@ -18,6 +19,9 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
     const [searchText, setSearchText] = useState("");
     const [selectedSubject, setSelectedSubject] = useState("ALL");
     const [selectedGrade, setSelectedGrade] = useState("ALL");
+    const [statusFilter, setStatusFilter] = useState<CourseStatus>("IN_PROGRESS");
+
+    const statusOptions: CourseStatus[] = ["UPCOMING", "IN_PROGRESS", "ENDED"];
 
     const subjectOptions = useMemo(() => {
         const unique = new Map<string, string>();
@@ -43,6 +47,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
         const q = searchText.trim().toLowerCase();
 
         return courses.filter((course) => {
+            const matchesStatus = course.status === statusFilter;
             const teacherFullName = `${course.teacher?.lastName || ""} ${course.teacher?.firstName || ""}`.trim().toLowerCase();
             const courseName = (course.name || "").toLowerCase();
             const matchesSearch =
@@ -58,9 +63,9 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 selectedGrade === "ALL" ||
                 String(course.grade?.id || "") === selectedGrade;
 
-            return matchesSearch && matchesSubject && matchesGrade;
+            return matchesStatus && matchesSearch && matchesSubject && matchesGrade;
         });
-    }, [courses, searchText, selectedSubject, selectedGrade]);
+    }, [courses, searchText, selectedSubject, selectedGrade, statusFilter]);
 
     const deletingCourse = courses.find((course) => course.id === deletingCourseId);
 
@@ -125,6 +130,34 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 </select>
             </div>
 
+            <div className="flex flex-wrap gap-2">
+                {statusOptions.map((status) => {
+                    const isActive = statusFilter === status;
+
+                    return (
+                        <button
+                            key={status}
+                            type="button"
+                            onClick={() => setStatusFilter(status)}
+                            className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
+                                isActive
+                                    ? "border-[var(--color-main)] bg-[var(--color-main)] text-white"
+                                    : "border-[var(--color-main)] bg-[var(--color-soft-white)] text-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-white"
+                            }`}
+                        >
+                            {getCourseStatusLabel(status)}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div className="flex items-center gap-2 text-[var(--color-text)]">
+                <BookOpen size={18} className="text-[var(--color-main)]" />
+                <h4 className="text-lg font-semibold">
+                    {getCourseStatusLabel(statusFilter)} {isManager ? "Center Courses" : "Courses You Teach"}
+                </h4>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                 {filteredCourses.length === 0 ? (
@@ -133,7 +166,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                             ? (isManager
                                 ? "No courses created yet."
                                 : "You haven't been assigned any courses.")
-                            : "No courses match your search/filter."}
+                            : `No ${getCourseStatusLabel(statusFilter).toLowerCase()} courses match your search/filter.`}
                     </div>
                 ) : (
                     filteredCourses.map(course => (
@@ -163,8 +196,15 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                                         </Link>
 
                                         <button
-                                            onClick={() => setDeletingCourseId(course.id)}
-                                            className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
+                                            onClick={() => {
+                                                if (!isCourseEnded(course.status)) {
+                                                    return;
+                                                }
+                                                setDeletingCourseId(course.id);
+                                            }}
+                                            disabled={!isCourseEnded(course.status)}
+                                            title={isCourseEnded(course.status) ? "Delete course" : "Only ended courses can be deleted"}
+                                            className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:hover:text-gray-500"
                                         >
                                             <Trash2 size={18} />
                                         </button>

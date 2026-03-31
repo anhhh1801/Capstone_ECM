@@ -2,6 +2,7 @@ package com.extracenter.backend.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -10,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +22,7 @@ import com.extracenter.backend.entity.Center;
 import com.extracenter.backend.entity.ClassSlot;
 import com.extracenter.backend.entity.Classroom;
 import com.extracenter.backend.entity.Course;
+import com.extracenter.backend.entity.CourseStatus;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
@@ -86,12 +87,16 @@ public class CenterService {
 
     // 2. Get list of all Centers
     public List<Center> getAllCenters() {
-        return centerRepository.findAll();
+        return centerRepository.findByArchivedAtIsNull();
     }
 
     // 3. Get Centers managed by a specific user
     public List<Center> getCentersByManager(Long managerId) {
-        return centerRepository.findByManagerId(managerId);
+        return centerRepository.findByManagerIdAndArchivedAtIsNull(managerId);
+    }
+
+    public List<Center> getArchivedCentersByManager(Long managerId) {
+        return centerRepository.findByManagerIdAndArchivedAtIsNotNullOrderByArchivedAtDesc(managerId);
     }
 
     // 4. Get Center by ID
@@ -126,8 +131,7 @@ public class CenterService {
     }
 
     public Subject createSubject(Long centerId, String name, String description) {
-        Center center = centerRepository.findById(centerId)
-                .orElseThrow(() -> new RuntimeException("Trung tâm không tồn tại!"));
+        Center center = getEditableCenter(centerId);
 
         Subject subject = new Subject();
         subject.setName(name);
@@ -138,11 +142,13 @@ public class CenterService {
     }
 
     public Subject updateSubject(Long centerId, Long subjectId, String name, String description) {
+        getEditableCenter(centerId);
+
         Subject subject = subjectRepository.findById(subjectId)
-                .orElseThrow(() -> new RuntimeException("Môn học không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("Subject does not exist!"));
 
         if (!subject.getCenter().getId().equals(centerId)) {
-            throw new RuntimeException("Môn học không thuộc trung tâm này.");
+            throw new RuntimeException("Course does not belong to this center.");
         }
 
         subject.setName(name);
@@ -152,11 +158,17 @@ public class CenterService {
     }
 
     public void deleteSubject(Long centerId, Long subjectId) {
+        getEditableCenter(centerId);
+
         Subject subject = subjectRepository.findById(subjectId)
-                .orElseThrow(() -> new RuntimeException("Môn học không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("Subject does not exist!"));
 
         if (!subject.getCenter().getId().equals(centerId)) {
-            throw new RuntimeException("Môn học không thuộc trung tâm này.");
+            throw new RuntimeException("Subject does not belong to this center.");
+        }
+
+        if (courseRepository.existsBySubjectId(subjectId)) {
+            throw new RuntimeException("Cannot delete this subject because it is already used by one or more courses.");
         }
 
         subjectRepository.delete(subject);
@@ -175,8 +187,7 @@ public class CenterService {
     }
 
     public Grade createGrade(Long centerId, String name, Integer fromAge, Integer toAge, String description) {
-        Center center = centerRepository.findById(centerId)
-                .orElseThrow(() -> new RuntimeException("Center does not exist!"));
+        Center center = getEditableCenter(centerId);
 
         validateAge(fromAge, "From age");
         validateAge(toAge, "To age");
@@ -196,6 +207,8 @@ public class CenterService {
 
     public Grade updateGrade(Long centerId, Long gradeId, String name, Integer fromAge, Integer toAge,
             String description) {
+        getEditableCenter(centerId);
+
         Grade grade = gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new RuntimeException("Grade does not exist!"));
 
@@ -218,11 +231,17 @@ public class CenterService {
     }
 
     public void deleteGrade(Long centerId, Long gradeId) {
+        getEditableCenter(centerId);
+
         Grade grade = gradeRepository.findById(gradeId)
-                .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại!"));
+                .orElseThrow(() -> new RuntimeException("Grade does not exist!"));
 
         if (!grade.getCenter().getId().equals(centerId)) {
-            throw new RuntimeException("Khối lớp không thuộc trung tâm này.");
+            throw new RuntimeException("Grade does not belong to this center.");
+        }
+
+        if (courseRepository.existsByGradeId(gradeId)) {
+            throw new RuntimeException("Cannot delete this grade because it is already used by one or more courses.");
         }
 
         gradeRepository.delete(grade);
@@ -232,13 +251,7 @@ public class CenterService {
     // 6. Update Center details
     @Transactional
     public Center updateCenter(Long centerId, CenterRequest request) {
-        Center center = centerRepository.findById(centerId)
-                .orElseThrow(() -> new RuntimeException("Center not found!"));
-
-        // Authorization Check: Only the assigned Manager can edit this center
-        if (!center.getManager().getId().equals(request.getManagerId())) {
-            throw new RuntimeException("You do not have permission to edit this center!");
-        }
+        Center center = getEditableOwnedCenter(centerId, request.getManagerId());
 
         center.setName(request.getName());
         center.setDescription(request.getDescription());
@@ -247,34 +260,80 @@ public class CenterService {
         return centerRepository.save(center);
     }
 
-    // 7. Delete Center
-    // @Transactional added: We run a custom query and a delete command. Both must
-    // succeed together.
     @Transactional
-    public void deleteCenter(Long centerId) {
-        try {
-            // First, remove all connections in the student_centers join table
-            centerRepository.removeAllStudentLinks(centerId);
-            // Then delete the center itself
-            centerRepository.deleteById(centerId);
-        } catch (DataIntegrityViolationException e) {
-            // Catching specific database constraint errors instead of a generic Exception
-            throw new RuntimeException(
-                    "Cannot delete this center because it contains linked data (Courses, Enrollments, etc.)");
-        } catch (Exception e) {
-            throw new RuntimeException("An error occurred while deleting the center: " + e.getMessage());
+    public Center archiveCenter(Long centerId, Long managerId) {
+        Center center = getCenterOwnedByManager(centerId, managerId);
+
+        if (center.getArchivedAt() != null) {
+            throw new RuntimeException("Center is already archived.");
         }
+
+        if (hasActiveCourses(centerId)) {
+            throw new RuntimeException("Cannot archive this center while it still has active courses.");
+        }
+
+        center.setArchivedAt(LocalDateTime.now());
+        return centerRepository.save(center);
     }
 
-    private Center getOwnedCenter(Long centerId, Long managerId) {
+    @Transactional
+    public Center restoreCenter(Long centerId, Long managerId) {
+        Center center = getCenterOwnedByManager(centerId, managerId);
+
+        if (center.getArchivedAt() == null) {
+            throw new RuntimeException("Center is not archived.");
+        }
+
+        center.setArchivedAt(null);
+        return centerRepository.save(center);
+    }
+
+    private Center getCenterOwnedByManager(Long centerId, Long managerId) {
         Center center = centerRepository.findById(centerId)
                 .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
 
         if (!center.getManager().getId().equals(managerId)) {
-            throw new RuntimeException("Only the center owner can manage classrooms.");
+            throw new RuntimeException("Only the center owner can manage this center.");
         }
 
         return center;
+    }
+
+    private Center getEditableOwnedCenter(Long centerId, Long managerId) {
+        Center center = getCenterOwnedByManager(centerId, managerId);
+        ensureCenterNotArchived(center);
+        return center;
+    }
+
+    private Center getEditableCenter(Long centerId) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+        ensureCenterNotArchived(center);
+        return center;
+    }
+
+    private void ensureCenterNotArchived(Center center) {
+        if (center.getArchivedAt() != null) {
+            throw new RuntimeException("Archived centers cannot be edited. Restore the center first.");
+        }
+    }
+
+    private boolean hasActiveCourses(Long centerId) {
+        LocalDate today = LocalDate.now();
+
+        return courseRepository.findByCenterId(centerId).stream()
+                .anyMatch(course -> isCourseActive(course, today));
+    }
+
+    private boolean isCourseActive(Course course, LocalDate today) {
+        if (course == null) {
+            return false;
+        }
+
+        boolean activeStatus = course.getStatus() != CourseStatus.ENDED;
+        boolean notFinished = course.getEndDate() == null || !course.getEndDate().isBefore(today);
+
+        return activeStatus && notFinished;
     }
 
     public List<Classroom> getClassroomsByCenter(Long centerId) {
@@ -283,7 +342,7 @@ public class CenterService {
 
     @Transactional
     public Classroom createClassroom(Long centerId, ClassroomRequest request) {
-        Center center = getOwnedCenter(centerId, request.getManagerId());
+        Center center = getEditableOwnedCenter(centerId, request.getManagerId());
 
         Classroom classroom = new Classroom();
         classroom.setSeat(request.getSeat());
@@ -296,7 +355,7 @@ public class CenterService {
 
     @Transactional
     public Classroom updateClassroom(Long centerId, Long classroomId, ClassroomRequest request) {
-        getOwnedCenter(centerId, request.getManagerId());
+        getEditableOwnedCenter(centerId, request.getManagerId());
 
         Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
                 .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
@@ -310,10 +369,14 @@ public class CenterService {
 
     @Transactional
     public void deleteClassroom(Long centerId, Long classroomId, Long managerId) {
-        getOwnedCenter(centerId, managerId);
+        getEditableOwnedCenter(centerId, managerId);
 
         Classroom classroom = classroomRepository.findByIdAndCenterId(classroomId, centerId)
                 .orElseThrow(() -> new RuntimeException("Classroom not found in this center."));
+
+        if (classSlotRepository.existsByClassroomId(classroomId)) {
+            throw new RuntimeException("Cannot delete this classroom because it is in-use.");
+        }
 
         classroomRepository.delete(classroom);
     }
@@ -328,7 +391,7 @@ public class CenterService {
 
     @Transactional
     public User inviteTeacherToCenter(Long centerId, Long managerId, String email) {
-        Center center = getOwnedCenter(centerId, managerId);
+        Center center = getEditableOwnedCenter(centerId, managerId);
 
         User teacher = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Teacher not found."));
@@ -350,7 +413,7 @@ public class CenterService {
 
     @Transactional
     public void unlinkTeacherFromCenter(Long centerId, Long teacherId, Long managerId) {
-        Center center = getOwnedCenter(centerId, managerId);
+        Center center = getEditableOwnedCenter(centerId, managerId);
 
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found."));
@@ -382,7 +445,7 @@ public class CenterService {
 
     @Transactional
     public ClassSlot createClassSlot(Long centerId, ClassSlotRequest request) {
-        Center center = getOwnedCenter(centerId, request.getManagerId());
+        Center center = getEditableOwnedCenter(centerId, request.getManagerId());
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found."));
@@ -422,7 +485,7 @@ public class CenterService {
 
     @Transactional
     public ClassSlot updateClassSlot(Long centerId, Long slotId, ClassSlotRequest request) {
-        getOwnedCenter(centerId, request.getManagerId());
+        getEditableOwnedCenter(centerId, request.getManagerId());
 
         ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
                 .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
@@ -463,7 +526,7 @@ public class CenterService {
 
     @Transactional
     public void deleteClassSlot(Long centerId, Long slotId, Long managerId) {
-        getOwnedCenter(centerId, managerId);
+        getEditableOwnedCenter(centerId, managerId);
 
         ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
                 .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
@@ -474,7 +537,7 @@ public class CenterService {
 
     @Transactional
     public void deleteClassSlotOccurrence(Long centerId, Long slotId, LocalDate date, Long managerId) {
-        getOwnedCenter(centerId, managerId);
+        getEditableOwnedCenter(centerId, managerId);
 
         ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
                 .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));
@@ -502,7 +565,7 @@ public class CenterService {
             LocalDate date,
             ClassSlotOccurrenceOverrideRequest request) {
 
-        getOwnedCenter(centerId, request.getManagerId());
+        getEditableOwnedCenter(centerId, request.getManagerId());
 
         ClassSlot slot = classSlotRepository.findByIdAndCenterId(slotId, centerId)
                 .orElseThrow(() -> new RuntimeException("ClassSlot not found in this center."));

@@ -23,11 +23,14 @@ import com.extracenter.backend.entity.Center;
 import com.extracenter.backend.entity.ClassSession;
 import com.extracenter.backend.entity.ClassSlot;
 import com.extracenter.backend.entity.Course;
+import com.extracenter.backend.entity.CourseStatus;
 import com.extracenter.backend.entity.Enrollment;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.entity.VerificationToken;
+import com.extracenter.backend.repository.AssignmentRepository;
+import com.extracenter.backend.repository.AssignmentSubmissionRepository;
 import com.extracenter.backend.repository.AttendanceRepository;
 import com.extracenter.backend.repository.CenterRepository;
 import com.extracenter.backend.repository.ClassSessionRepository;
@@ -35,6 +38,7 @@ import com.extracenter.backend.repository.ClassSlotRepository;
 import com.extracenter.backend.repository.CourseRepository;
 import com.extracenter.backend.repository.EnrollmentRepository;
 import com.extracenter.backend.repository.GradeRepository;
+import com.extracenter.backend.repository.MaterialRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.repository.VerificationTokenRepository;
@@ -51,6 +55,10 @@ public class CourseService {
     @Autowired
     private AttendanceRepository attendanceRepository;
     @Autowired
+    private AssignmentRepository assignmentRepository;
+    @Autowired
+    private AssignmentSubmissionRepository assignmentSubmissionRepository;
+    @Autowired
     private CenterRepository centerRepository;
     @Autowired
     private UserRepository userRepository;
@@ -58,6 +66,8 @@ public class CourseService {
     private SubjectRepository subjectRepository;
     @Autowired
     private GradeRepository gradeRepository;
+    @Autowired
+    private MaterialRepository materialRepository;
 
     // THÊM REPOSITORY NÀY ĐỂ QUẢN LÝ VIỆC ĐĂNG KÝ HỌC
     @Autowired
@@ -83,7 +93,7 @@ public class CourseService {
 
         if (request.getSubjectId() != null) {
             Subject subject = subjectRepository.findById(request.getSubjectId())
-                    .orElseThrow(() -> new RuntimeException("Môn học không tồn tại"));
+                    .orElseThrow(() -> new RuntimeException("Subject does not exist"));
             course.setSubject(subject);
         } else {
             course.setSubject(null);
@@ -91,18 +101,13 @@ public class CourseService {
 
         if (request.getGradeId() != null) {
             Grade grade = gradeRepository.findById(request.getGradeId())
-                    .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại"));
+                    .orElseThrow(() -> new RuntimeException("Grade does not exist"));
             course.setGrade(grade);
         } else {
             course.setGrade(null);
         }
 
-        course.setDescription(request.getDescription());
-        course.setStartDate(request.getStartDate());
-        course.setEndDate(request.getEndDate());
-        course.setStatus("ACTIVE");
-        course.setCenter(center);
-        course.setTeacher(teacher);
+        applyCourseRequest(course, request, center, teacher, true);
 
         Course savedCourse = courseRepository.save(course);
 
@@ -161,24 +166,33 @@ public class CourseService {
     }
 
     public List<Course> getAllCourses() {
-        return courseRepository.findAll();
+        return courseRepository.findAll().stream()
+            .map(this::syncCourseStatus)
+            .collect(Collectors.toList());
     }
 
     public List<Course> getCoursesByTeacher(Long teacherId) {
-        return courseRepository.findByTeacherId(teacherId);
+        return courseRepository.findByTeacherId(teacherId).stream()
+            .map(this::syncCourseStatus)
+            .collect(Collectors.toList());
     }
 
     public List<Course> getCoursesByStudentId(Long studentId) {
-        return courseRepository.findByStudentId(studentId);
+        return courseRepository.findByStudentId(studentId).stream()
+            .map(this::syncCourseStatus)
+            .collect(Collectors.toList());
     }
 
     public List<Course> getCoursesByCenter(Long centerId) {
-        return courseRepository.findByCenterId(centerId);
+        return courseRepository.findByCenterId(centerId).stream()
+            .map(this::syncCourseStatus)
+            .collect(Collectors.toList());
     }
 
     public Course getCourseById(Long id) {
-        return courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course not found!"));
+        Course course = courseRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Course not found!"));
+        return syncCourseStatus(course);
     }
 
     @Transactional
@@ -304,11 +318,57 @@ public class CourseService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
+        Center center = centerRepository.findById(request.getCenterId())
+            .orElseThrow(() -> new RuntimeException("Center not found!"));
+        User teacher = userRepository.findById(request.getTeacherId())
+            .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        applyCourseRequest(course, request, center, teacher, course.getStatus() != CourseStatus.ENDED);
+
+        return courseRepository.save(course);
+        }
+
+        @Transactional
+        public Course endCourseEarly(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        if (course.getStatus() == CourseStatus.ENDED) {
+            throw new RuntimeException("Course is already ended.");
+        }
+
+        course.setStatus(CourseStatus.ENDED);
+        return courseRepository.save(course);
+        }
+
+        @Transactional
+        public Course reopenCourse(Long courseId, CourseRequest request) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        Center center = centerRepository.findById(request.getCenterId())
+            .orElseThrow(() -> new RuntimeException("Center not found!"));
+        User teacher = userRepository.findById(request.getTeacherId())
+            .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        applyCourseRequest(course, request, center, teacher, true);
+
+        if (course.getStatus() == CourseStatus.ENDED) {
+            throw new RuntimeException("Updated dates still result in an ended course. Please choose a current or future range.");
+        }
+
+        return courseRepository.save(course);
+        }
+
+        private void applyCourseRequest(Course course, CourseRequest request, Center center, User teacher,
+            boolean deriveStatusFromDates) {
+        validateCourseDates(request.getStartDate(), request.getEndDate());
+
         course.setName(request.getName());
 
         if (request.getSubjectId() != null) {
             Subject subject = subjectRepository.findById(request.getSubjectId())
-                    .orElseThrow(() -> new RuntimeException("Môn học không tồn tại"));
+                    .orElseThrow(() -> new RuntimeException("Subject does not exist"));
             course.setSubject(subject);
         } else {
             course.setSubject(null);
@@ -316,7 +376,7 @@ public class CourseService {
 
         if (request.getGradeId() != null) {
             Grade grade = gradeRepository.findById(request.getGradeId())
-                    .orElseThrow(() -> new RuntimeException("Khối lớp không tồn tại"));
+                    .orElseThrow(() -> new RuntimeException("Grade does not exist"));
             course.setGrade(grade);
         } else {
             course.setGrade(null);
@@ -325,19 +385,27 @@ public class CourseService {
         course.setDescription(request.getDescription());
         course.setStartDate(request.getStartDate());
         course.setEndDate(request.getEndDate());
+        course.setCenter(center);
+        course.setTeacher(teacher);
 
-        return courseRepository.save(course);
+        if (deriveStatusFromDates) {
+            course.setStatus(deriveStatusFromDates(course.getStartDate(), course.getEndDate()));
+        }
+    }
+
+    private void validateCourseDates(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new RuntimeException("Start date and end date are required.");
+        }
+
+        if (endDate.isBefore(startDate)) {
+            throw new RuntimeException("End date must be on or after start date.");
+        }
     }
 
     @Transactional
     public void deleteCourse(Long courseId) {
-        try {
-            classSessionRepository.deleteByCourseId(courseId);
-            classSlotRepository.deleteByCourseId(courseId);
-            courseRepository.deleteById(courseId);
-        } catch (Exception e) {
-            throw new RuntimeException("Error deleting course: " + e.getMessage());
-        }
+        throw new RuntimeException("Course deletion requires OTP verification.");
     }
 
     @Transactional
@@ -349,6 +417,8 @@ public class CourseService {
         if (!owner.getId().equals(managerId)) {
             throw new RuntimeException("You do not have permission to delete this course.");
         }
+
+        validateCourseDeletionEligibility(course);
 
         String otp = generateOtp();
         VerificationToken token = verificationTokenRepository.findByUser(owner)
@@ -378,10 +448,41 @@ public class CourseService {
             throw new RuntimeException("Invalid or expired OTP.");
         }
 
-        classSessionRepository.deleteByCourseId(courseId);
-        classSlotRepository.deleteByCourseId(courseId);
-        courseRepository.deleteById(courseId);
+        validateCourseDeletionEligibility(course);
+
+        deleteCourseAndRelatedData(courseId);
         verificationTokenRepository.delete(token);
+    }
+
+    private void validateCourseDeletionEligibility(Course course) {
+        if (course.getStatus() != CourseStatus.ENDED) {
+            throw new RuntimeException("Only ended courses can be deleted.");
+        }
+
+        Long courseId = course.getId();
+        LocalDate today = LocalDate.now();
+
+        boolean hasActiveSessions = classSessionRepository.existsByCourseIdAndDateGreaterThanEqual(courseId, today);
+        boolean hasActiveSlots = classSlotRepository.existsByCourseIdAndEndDateGreaterThanEqual(courseId, today);
+
+        if (hasActiveSessions || hasActiveSlots) {
+            throw new RuntimeException("Cannot delete this course while it still has active classes.");
+        }
+    }
+
+    private void deleteCourseAndRelatedData(Long courseId) {
+        try {
+            attendanceRepository.deleteByCourseId(courseId);
+            assignmentSubmissionRepository.deleteByCourseId(courseId);
+            assignmentRepository.deleteByCourseId(courseId);
+            materialRepository.deleteByCourseId(courseId);
+            enrollmentRepository.deleteByCourseId(courseId);
+            classSessionRepository.deleteByCourseId(courseId);
+            classSlotRepository.deleteByCourseId(courseId);
+            courseRepository.deleteById(courseId);
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting course: " + e.getMessage());
+        }
     }
 
     private String generateOtp() {
@@ -518,6 +619,42 @@ public class CourseService {
         if (!isTeacher && !isManager) {
             throw new RuntimeException("Only assigned teacher or center manager can " + action + " sessions.");
         }
+    }
+
+    private Course syncCourseStatus(Course course) {
+        if (course == null) {
+            return null;
+        }
+
+        if (course.getStatus() == CourseStatus.ENDED) {
+            return course;
+        }
+
+        CourseStatus derivedStatus = deriveStatusFromDates(course.getStartDate(), course.getEndDate());
+        if (course.getStatus() != derivedStatus) {
+            course.setStatus(derivedStatus);
+            return courseRepository.save(course);
+        }
+
+        return course;
+    }
+
+    private CourseStatus deriveStatusFromDates(LocalDate startDate, LocalDate endDate) {
+        LocalDate today = LocalDate.now();
+
+        if (startDate == null || endDate == null) {
+            return CourseStatus.UPCOMING;
+        }
+
+        if (today.isBefore(startDate)) {
+            return CourseStatus.UPCOMING;
+        }
+
+        if (today.isAfter(endDate)) {
+            return CourseStatus.ENDED;
+        }
+
+        return CourseStatus.IN_PROGRESS;
     }
 
     private void validateSlotBelongsToCourse(Long courseId, ClassSlot slot) {

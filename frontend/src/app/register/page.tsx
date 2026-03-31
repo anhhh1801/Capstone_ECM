@@ -90,10 +90,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
+    <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
       <Toaster position="top-center" />
 
-      <div className="w-full max-w-md rounded-2xl bg-[var(--color-secondary)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
 
         {/* Header */}
         <div className="text-center mb-8">

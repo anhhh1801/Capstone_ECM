@@ -22,12 +22,14 @@ export default function Home() {
             dashboard.
           </p>
 
-          <Link
-            href="/register"
-            className="self-start main-btn font-bold"
-          >
-            I'm ready to get started
-          </Link>
+          <div className="flex justify-center">
+            <Link
+              href="/register"
+              className="self-start main-btn font-bold"
+            >
+              I'm ready to get started
+            </Link>
+          </div>
         </div>
 
         <div className="lg:w-3/5 h-64 md:h-96 overflow-hidden rounded-lg shadow-lg">
