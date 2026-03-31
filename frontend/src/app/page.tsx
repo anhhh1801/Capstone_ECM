@@ -38,7 +38,7 @@ export default function Home() {
         <h2 className="header-2 text-[var(--color-soft-white)] mb-8">
           Our Main Features
         </h2>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-8 max-w-7xl mx-auto px-6">
+        <div className="container grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-8 mx-auto">
           <FeatureCard
             title="Student Management"
             image={cardImg}
@@ -94,7 +94,7 @@ export default function Home() {
       </div>
       <div className="mx-auto text-center container py-12" >
         <h2 className="header-2 text-[var(--color-text)] text-center mb-8">How it works ?</h2>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-8 max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-8 mx-auto">
           <FeatureCard
             title="Create an account and Log in to your dashboard"
             image={cardImg}
