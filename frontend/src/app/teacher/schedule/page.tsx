@@ -109,21 +109,47 @@ export default function SchedulePage() {
         const courseName = event?.courseName || fallbackCourse;
         const teacherName = event?.teacherName || "Not assigned";
         const roomName = event?.roomName || fallbackRoom;
-        const timeText =
-            event?.timeText ||
-            (event?.start && event?.end
-                ? `${format(event.start, "HH:mm")} - ${format(event.end, "HH:mm")}`
-                : "N/A");
+        const timeText = event?.timeText || (event?.start && event?.end
+            ? `${format(event.start, "HH:mm")} - ${format(event.end, "HH:mm")}`
+            : "N/A");
         const studentsText = event?.studentsText || "0";
 
         return (
-            <div className="h-full w-full overflow-y-auto border-4 border-[var(--color-main)] bg-[var(--color-main)]/80 leading-tight text-[var(--color-soft-white)] shadow-sm transition-all group-hover:border-[var(--color-secondary)] group-hover:shadow-md opacity-100">
-                <div className="break-words whitespace-normal font-semibold text-[var(--color-soft-white)] bg-[var(--color-secondary)]/80 p-2">{courseName}</div>
-                <div className="p-2 space-y-1 text-[11px]">
-                    <div className="break-words whitespace-normal">Teacher: {teacherName}</div>
-                    <div className="break-words whitespace-normal">Students: {studentsText}</div>
-                    <div className="break-words whitespace-normal">{timeText}</div>
-                    <div className="break-words whitespace-normal">Classroom: {roomName}</div>
+            <div className="group relative h-full w-full bg-[var(--color-main)]/90 border border-white/20 p-1 rounded-sm cursor-pointer transition-colors hover:bg-[var(--color-main)]">
+
+                {/* 1. VISIBLE CONTENT (Short & truncated to fit small blocks) */}
+                <div className="font-bold text-white text-[11px] leading-tight truncate">
+                    {courseName}
+                </div>
+                <div className="text-white/80 text-[10px] truncate mt-0.5">
+                    {timeText}
+                </div>
+
+                {/* 2. HOVER POP-UP (Tooltip) */}
+                <div className="pointer-events-none absolute left-full top-0 ml-2 w-56 opacity-0 transition-opacity group-hover:opacity-100 z-[9999] bg-white text-gray-800 shadow-xl border border-gray-200 rounded-lg p-3 text-xs hidden sm:block">
+                    <div className="font-bold text-[var(--color-main)] text-sm mb-2 border-b border-gray-100 pb-1">
+                        {courseName}
+                    </div>
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between">
+                            <span className="text-gray-500 font-semibold">Teacher:</span>
+                            <span className="font-medium text-right">{teacherName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500 font-semibold">Students:</span>
+                            <span className="font-medium">{studentsText}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500 font-semibold">Time:</span>
+                            <span className="font-medium">{timeText}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500 font-semibold">Room:</span>
+                            <span className="font-medium">{roomName}</span>
+                        </div>
+                    </div>
+                    {/* Arrow pointing left */}
+                    <div className="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-b border-gray-200 transform rotate-45"></div>
                 </div>
             </div>
         );
@@ -299,8 +325,8 @@ export default function SchedulePage() {
                         eventPropGetter={() => ({
                             style: {
                                 padding: 0,
-                                minHeight: view === Views.MONTH ? 88 : 120,
                                 border: "none",
+                                minHeight: view === Views.MONTH ? 88 : undefined,
                                 background: "transparent",
                             },
                         })}
@@ -319,28 +345,26 @@ export default function SchedulePage() {
             </div>
 
             <style jsx global>{`
-                .schedule-calendar .rbc-event-label {
-                    display: none;
-                }
+    /* Hide the default time label inside the event */
+    .schedule-calendar .rbc-event-label {
+        display: none;
+    }
 
-                .schedule-calendar .rbc-event-content {
-                    height: 100%;
-                    overflow: visible;
-                    white-space: normal;
-                }
 
-                .schedule-calendar .rbc-event {
-                    box-shadow: none;
-                }
+    /* IMPORTANT: Allow the hover pop-up to escape the calendar block */
+    .schedule-calendar .rbc-event {
+        box-shadow: none;
+        padding: 0;
+        overflow: visible !important;
+        background: transparent !important;
+        border: none !important;
+    }
 
-                .schedule-calendar .rbc-day-slot .rbc-event {
-                    min-height: 120px;
-                }
-
-                .schedule-calendar .rbc-time-view .rbc-event-content {
-                    overflow-y: auto;
-                }
-            `}</style>
+    .schedule-calendar .rbc-event-content {
+        height: 100%;
+        overflow: visible !important;
+    }
+`}</style>
         </div>
     );
 }

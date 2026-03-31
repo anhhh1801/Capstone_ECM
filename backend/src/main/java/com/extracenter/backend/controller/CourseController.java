@@ -144,7 +144,8 @@ public class CourseController {
     }
 
     // API: Confirm secure course deletion with OTP
-    // DELETE: http://localhost:8080/api/courses/1/confirm-delete?managerId=2&otp=123456
+    // DELETE:
+    // http://localhost:8080/api/courses/1/confirm-delete?managerId=2&otp=123456
     @DeleteMapping("/{id}/confirm-delete")
     public ResponseEntity<?> confirmDeleteCourse(
             @PathVariable Long id,
@@ -251,5 +252,10 @@ public class CourseController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<List<Course>> getCoursesForStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(courseService.getCoursesByStudentId(studentId));
     }
 }

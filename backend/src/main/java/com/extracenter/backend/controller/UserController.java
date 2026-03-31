@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -159,6 +160,7 @@ public class UserController {
     // API: Admin khóa/mở khóa User
     // PUT: /api/users/admin/lock?adminId=1&targetUserId=5
     @PutMapping("/admin/lock")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<?> toggleLock(@RequestParam Long adminId, @RequestParam Long targetUserId) {
         try {
             String result = userService.toggleUserLock(adminId, targetUserId);
@@ -183,6 +185,7 @@ public class UserController {
     // API: Get All Users (For Admin Dashboard)
     // GET: /api/users/admin/all
     @GetMapping("/admin/all")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<?> getAllUsers() {
         // In a real app, use Pagination (Pageable) here!
         return ResponseEntity.ok(userRepository.findAll());

@@ -141,3 +141,21 @@ export const searchStudents = async (keyword: string) => {
     const response = await api.get(`/users/search?keyword=${keyword}`);
     return response.data;
 };
+
+// 1. Lấy danh sách khóa học mà học sinh đang học
+export const getStudentCourses = async (studentId: number) => {
+    const response = await api.get<Course[]>(`/courses/student/${studentId}`);
+    return response.data;
+};
+
+// 2. Lấy danh sách bài tập chưa nộp (Pending Assignments)
+export const getStudentPendingAssignments = async (studentId: number) => {
+    const response = await api.get(`/assignments/student/${studentId}/pending`);
+    return response.data;
+};
+
+// 3. Lấy danh sách lịch học sắp tới (Upcoming Classes)
+export const getStudentUpcomingClasses = async (studentId: number) => {
+    const response = await api.get(`/class-sessions/student/${studentId}/upcoming`);
+    return response.data;
+};

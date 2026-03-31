@@ -16,9 +16,7 @@ import {
 import { getCourseById } from "@/services/courseService";
 import toast from "react-hot-toast";
 import TabsInCourse from "./components/TabsInCourse";
-import CourseEnrollment from "./components/CourseEnrollment";
 import CourseAttendance from "./components/CourseAttendance";
-import StudentList from "./components/StudentList";
 import NotFound from "@/app/not-found";
 import CourseMaterials from "./components/CourseMaterial";
 import CourseAssignments from "./components/CourseAssignment";
@@ -31,7 +29,7 @@ export default function CourseDetailPage() {
 
     const [course, setCourse] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<
-        "General Info" | "Students" | "Attendance" | "Enrollment" | "Materials" | "Assignments"
+        "General Info" | "Attendance" | "Materials" | "Assignments"
     >("General Info");
 
     const [loading, setLoading] = useState(true);
@@ -183,74 +181,7 @@ export default function CourseDetailPage() {
 
                             <div className="space-y-4">
 
-                                {/* SUBJECT */}
-                                <div className="flex items-center gap-3">
 
-                                    <div className="p-2 bg-[var(--color-main)]/10 text-[var(--color-main)] rounded-lg">
-                                        <Book size={20} />
-                                    </div>
-
-                                    <div>
-
-                                        <p className="text-xs text-gray-500">
-                                            Subject
-                                        </p>
-
-                                        <p className="font-medium text-[var(--color-text)]">
-                                            {course.subject?.name || "-"}
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                                {/* GRADE */}
-                                <div className="flex items-center gap-3">
-
-                                    <div className="p-2 bg-[var(--color-main)]/10 text-[var(--color-main)] rounded-lg">
-                                        <GraduationCap size={20} />
-                                    </div>
-
-                                    <div>
-
-                                        <p className="text-xs text-gray-500">
-                                            Grade
-                                        </p>
-
-                                        <p className="px-2 py-1 font-bold rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
-
-                                            {course.grade ? (
-                                                <>
-                                                    {course.grade.name}
-
-                                                    {course.grade.fromAge != null &&
-                                                        course.grade.toAge !=
-                                                        null && (
-                                                            <span className="ml-1">
-                                                                {" "}
-                                                                (age{" "}
-                                                                {
-                                                                    course.grade
-                                                                        .fromAge
-                                                                }
-                                                                -
-                                                                {
-                                                                    course.grade
-                                                                        .toAge
-                                                                }
-                                                                )
-                                                            </span>
-                                                        )}
-                                                </>
-                                            ) : (
-                                                "-"
-                                            )}
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
 
                                 {/* TEACHER */}
                                 <div className="flex items-center gap-3">
@@ -312,12 +243,6 @@ export default function CourseDetailPage() {
                 </div>
             )}
 
-            {/* STUDENTS */}
-            {activeTab === "Students" && (
-                <div>
-                    <StudentList courseId={courseId} />
-                </div>
-            )}
 
             {/* MATERIALS */}
             {activeTab === "Materials" && (
@@ -333,28 +258,11 @@ export default function CourseDetailPage() {
                 </div>
             )}
 
+            {/* ATTENDANCE */}
             {activeTab === "Attendance" && (
                 <div>
                     <CourseAttendance courseId={courseId} />
                 </div>
-            )}
-
-            {activeTab === "Attendance" && (
-                <div>
-                    <CourseAttendance courseId={courseId} />
-                </div>
-            )}
-
-            {/* ENROLLMENT (MANAGER ONLY) */}
-            {activeTab === "Enrollment" && isManager && (
-                <div>
-                    <div className="bg-[var(--color-main)]/10 border border-[var(--color-main)]/30 text-[var(--color-text)] p-4 rounded-lg mb-4 text-sm">
-                        👋 Hello manager! You can add or remove students from
-                        this class.
-                    </div>
-                    <CourseEnrollment courseId={courseId} />
-                </div>
-
             )}
 
         </div>

@@ -145,4 +145,8 @@ public class AssignmentService {
     public List<AssignmentSubmission> getSubmissionsByAssignment(Long assignmentId) {
         return submissionRepository.findByAssignmentId(assignmentId);
     }
+
+    public List<Assignment> getPendingAssignments(Long studentId) {
+        return assignmentRepository.findPendingAssignmentsByStudentId(studentId);
+    }
 }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -52,5 +53,10 @@ public class ClassSessionService {
     @Transactional
     public void cancelSession(Long sessionId) {
         classSessionRepository.deleteById(sessionId);
+    }
+
+    public List<ClassSession> getUpcomingByStudent(Long studentId) {
+        // Lấy thời gian hiện tại để so sánh
+        return classSessionRepository.findUpcomingSessionsByStudentId(studentId, LocalDateTime.now());
     }
 }
