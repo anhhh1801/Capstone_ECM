@@ -50,8 +50,8 @@ const FILTER_DAY_OPTIONS = [
     "SUNDAY",
 ] as const;
 
-const FILTER_TIME_OPTIONS = Array.from({ length: (22 - 7) * 2 + 1 }, (_, i) => {
-    const halfHourIndex = 14 + i;
+const FILTER_TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+    const halfHourIndex = i;
     const hour24 = Math.floor(halfHourIndex / 2);
     const minute = halfHourIndex % 2 === 0 ? "00" : "30";
     const value = `${String(hour24).padStart(2, "0")}:${minute}`;
@@ -100,8 +100,8 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     const [focusDate, setFocusDate] = useState(() => dayjs().startOf("day"));
     const [searchTerm, setSearchTerm] = useState("");
     const [dayFilter, setDayFilter] = useState<(typeof FILTER_DAY_OPTIONS)[number]>("ALL");
-    const [timeFrom, setTimeFrom] = useState("07:00");
-    const [timeTo, setTimeTo] = useState("22:00");
+    const [timeFrom, setTimeFrom] = useState("00:00");
+    const [timeTo, setTimeTo] = useState("23:30");
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedOccurrence, setSelectedOccurrence] = useState<{
         slotId: number;
@@ -170,7 +170,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
 
     useEffect(() => {
         if (timeFrom >= timeTo) {
-            setTimeTo("22:00");
+            setTimeTo("23:30");
         }
     }, [timeFrom, timeTo]);
 
@@ -334,14 +334,14 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     // Controlled visible time window: day/week with fixed 7am-10pm daily bounds
     const visibleStart = useMemo(() => {
         if (viewMode === "day") {
-            return focusDate.hour(7).minute(0).second(0).millisecond(0).valueOf();
+            return focusDate.startOf("day").valueOf();
         }
         return weekStart.startOf("day").valueOf();
     }, [viewMode, focusDate, weekStart]);
 
     const visibleEnd = useMemo(() => {
         if (viewMode === "day") {
-            return focusDate.hour(22).minute(0).second(0).millisecond(0).valueOf();
+            return focusDate.endOf("day").valueOf();
         }
         return weekStart.add(6, "day").endOf("day").valueOf();
     }, [viewMode, focusDate, weekStart]);
@@ -594,7 +594,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 </div>
             )}
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] px-5 py-4 shadow-sm">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                     <CalendarDays size={18} /> Active Classes
                 </h3>
@@ -612,18 +612,18 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-lg border border-[var(--color-main)] bg-white p-3">
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[var(--color-main)]/15 bg-white p-4 md:grid-cols-4 shadow-sm">
                 <input
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search by course or room"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] px-3 py-3 text-sm outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 />
 
                 <select
                     value={dayFilter}
                     onChange={(e) => setDayFilter(e.target.value as (typeof FILTER_DAY_OPTIONS)[number])}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] px-3 py-3 text-sm outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 >
                     {FILTER_DAY_OPTIONS.map((day) => (
                         <option key={day} value={day}>
@@ -635,9 +635,9 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 <select
                     value={timeFrom}
                     onChange={(e) => setTimeFrom(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] px-3 py-3 text-sm outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 >
-                    {FILTER_TIME_OPTIONS.filter((opt) => opt.value < "22:00").map((opt) => (
+                    {FILTER_TIME_OPTIONS.filter((opt) => opt.value < "23:30").map((opt) => (
                         <option key={opt.value} value={opt.value}>
                             From {opt.label}
                         </option>
@@ -647,7 +647,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 <select
                     value={timeTo}
                     onChange={(e) => setTimeTo(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--color-main)]"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] px-3 py-3 text-sm outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 >
                     {FILTER_TIME_OPTIONS.filter((opt) => opt.value > timeFrom).map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -667,14 +667,14 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {paginatedSlots.map((slot) => (
                             <div
                                 key={slot.id}
-                                className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition rounded-lg"
+                                className="overflow-hidden rounded-2xl border border-[var(--color-main)]/20 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                             >
                                 {isManager && (
-                                    <div className="flex justify-end items-center gap-2 bg-[var(--color-main)] p-2 border-b border-[var(--color-main)] rounded-t-lg">
+                                    <div className="flex justify-end items-center gap-2 bg-gradient-to-r from-[var(--color-main)] to-[var(--color-secondary)] p-3">
                                         <button
                                             onClick={() => {
                                                 setEditingSlot(slot);
@@ -694,27 +694,27 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                                     </div>
                                 )}
 
-                                <div className="p-4 space-y-2 text-sm text-[var(--color-text)]">
-                                    <div className="font-bold text-base">{slot.course?.name || "Unknown course"}</div>
+                                <div className="space-y-3 p-5 text-sm text-[var(--color-text)]">
+                                    <div className="text-base font-bold">{slot.course?.name || "Unknown course"}</div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
                                         <Clock3 size={14} className="text-[var(--color-main)]" />
                                         {slot.startTime?.slice(0, 5)} - {slot.endTime?.slice(0, 5)}
                                     </div>
 
-                                    <div>
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
                                         Days: {(slot.daysOfWeek || []).join(", ") || "-"}
                                     </div>
 
-                                    <div>
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
                                         Date Range: {formatDateValue(slot.startDate)} {"→"} {formatDateValue(slot.endDate)}
                                     </div>
 
-                                    <div>
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
                                         Classroom: {slot.classroom?.location || "Not assigned"}
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
                                         <Repeat2 size={14} className="text-[var(--color-main)]" />
                                         {slot.isRecurring ? "Recurring" : "One-time"}
                                     </div>
@@ -724,7 +724,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                     </div>
 
                     {filteredSlots.length > slotsPerPage && (
-                        <div className="flex flex-col gap-3 rounded-lg border border-[var(--color-main)] bg-white p-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-main)]/15 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
                             <p className="text-sm text-[var(--color-text)]">
                                 Showing {(currentPage - 1) * slotsPerPage + 1}
                                 {" - "}

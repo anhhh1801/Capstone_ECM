@@ -40,8 +40,8 @@ const WEEK_DAYS = [
 	"SUNDAY",
 ] as const;
 
-const TIME_OPTIONS = Array.from({ length: (22 - 7) * 2 + 1 }, (_, i) => {
-	const totalHalfHoursFromMidnight = 14 + i; // 07:00 -> 22:00
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+	const totalHalfHoursFromMidnight = i;
 	const hour24 = Math.floor(totalHalfHoursFromMidnight / 2);
 	const minute = totalHalfHoursFromMidnight % 2 === 0 ? "00" : "30";
 	const value = `${String(hour24).padStart(2, "0")}:${minute}`;
@@ -81,7 +81,7 @@ export default function ClassSlotModal({
 	const isOccurrenceMode = mode === "occurrence";
 	const occurrenceDayLabel = occurrenceDate ? dayjs(occurrenceDate).format("dddd") : "";
 
-	const startTimeOptions = TIME_OPTIONS.filter((time) => time.value < "22:00");
+	const startTimeOptions = TIME_OPTIONS.filter((time) => time.value < "23:30");
 	const endTimeOptions = TIME_OPTIONS.filter((time) => (startTime ? time.value > startTime : true));
 
 	const getErrorMessage = (error: any, fallback: string) => {
@@ -181,11 +181,6 @@ export default function ClassSlotModal({
 
 		if (endTime <= startTime) {
 			toast.error("End time must be after start time.");
-			return;
-		}
-
-		if (startTime < "07:00" || endTime > "22:00") {
-			toast.error("Time must be between 7:00 AM and 10:00 PM.");
 			return;
 		}
 

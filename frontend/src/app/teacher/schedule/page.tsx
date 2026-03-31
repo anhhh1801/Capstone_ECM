@@ -102,6 +102,7 @@ export default function SchedulePage() {
     const [view, setView] = useState<View>(Views.WEEK);
     const [events, setEvents] = useState<ScheduleEvent[]>([]);
     const [loading, setLoading] = useState(true);
+    const calendarHeightClass = view === Views.MONTH ? "min-h-[900px]" : "h-[1800px]";
 
     const EventCard = ({ event }: { event?: ScheduleEvent }) => {
         const titleParts = (event?.title || "").split(" • ");
@@ -300,15 +301,15 @@ export default function SchedulePage() {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold text-[var(--color-text)] mb-4">
+            <h1 className="mb-4 text-2xl font-bold text-[var(--color-text)]">
                 Schedule
             </h1>
 
-            <div className="rounded-xl border border-[var(--color-main)] bg-[var(--color-soft-white)] shadow-sm p-4">
+            <div className="rounded-xl border border-[var(--color-main)] bg-[var(--color-soft-white)] p-4 shadow-sm">
                 {loading && (
                     <div className="mb-3 text-sm text-[var(--color-text)]">Loading active classes...</div>
                 )}
-                <div className="schedule-calendar h-[calc(100vh-200px)]">
+                <div className={`schedule-calendar ${calendarHeightClass}`}>
                     <Calendar
                         localizer={localizer}
                         events={events}
@@ -338,8 +339,8 @@ export default function SchedulePage() {
                         startAccessor="start"
                         endAccessor="end"
                         views={[Views.MONTH, Views.WEEK, Views.DAY]}
-                        min={new Date(0, 0, 0, 7, 0, 0)}
-                        max={new Date(0, 0, 0, 22, 0, 0)}
+                        min={new Date(0, 0, 0, 0, 0, 0)}
+                        max={new Date(0, 0, 0, 23, 59, 59)}
                         popup
                     />
                 </div>
@@ -347,6 +348,23 @@ export default function SchedulePage() {
 
             <style jsx global>{`
     /* Hide the default time label inside the event */
+    .schedule-calendar,
+    .schedule-calendar .rbc-calendar {
+        height: 100%;
+    }
+
+    .schedule-calendar .rbc-time-view,
+    .schedule-calendar .rbc-month-view,
+    .schedule-calendar .rbc-agenda-view {
+        height: 100%;
+    }
+
+    .schedule-calendar .rbc-time-content,
+    .schedule-calendar .rbc-time-view,
+    .schedule-calendar .rbc-month-view {
+        overflow: visible !important;
+    }
+
     .schedule-calendar .rbc-event-label {
         display: none;
     }

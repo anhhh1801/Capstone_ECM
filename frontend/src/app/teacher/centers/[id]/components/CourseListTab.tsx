@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Plus, Trash2, Mail, BookOpen, Settings, Info } from "lucide-react";
+import { Plus, Trash2, Mail, BookOpen, Settings, Info, Search } from "lucide-react";
 import { Course } from "@/services/courseService";
 import InviteTeacherModal from "./InviteTeacherModal";
 import { useMemo, useState } from "react";
 import DeleteCourseOtpModal from "./DeleteCourseOtpModal";
-import { CourseStatus, getCourseStatusLabel, isCourseEnded } from "@/utils/courseStatus";
+import { CourseStatus, getCourseStatusClasses, getCourseStatusLabel, isCourseEnded } from "@/utils/courseStatus";
 interface Props {
     courses: Course[];
     centerId: number;
@@ -81,7 +81,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
             />
 
             {/* HEADER */}
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] px-5 py-4 shadow-sm">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                     <BookOpen size={18} className="text-[var(--color-main)]" />
                     {isManager ? "Center Courses" : "Courses You Teach"}
@@ -99,18 +99,21 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
             </div>
 
             {/* CARD LIST */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <input
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    placeholder="Search course or teacher"
-                    className="md:col-span-2 w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
-                />
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[var(--color-main)]/15 bg-white p-4 md:grid-cols-4">
+                <div className="relative md:col-span-2">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        placeholder="Search course or teacher"
+                        className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] py-3 pl-10 pr-3 outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+                    />
+                </div>
 
                 <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] p-3 outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 >
                     <option value="ALL">All Subjects</option>
                     {subjectOptions.map((subject) => (
@@ -121,7 +124,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 <select
                     value={selectedGrade}
                     onChange={(e) => setSelectedGrade(e.target.value)}
-                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-[var(--color-soft-white)] p-3 outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 >
                     <option value="ALL">All Grades</option>
                     {gradeOptions.map((grade) => (
@@ -130,7 +133,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 </select>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] p-3">
                 {statusOptions.map((status) => {
                     const isActive = statusFilter === status;
 
@@ -151,7 +154,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                 })}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 
                 {filteredCourses.length === 0 ? (
                     <div className="col-span-full p-10 text-center text-gray-500 bg-white rounded-xl border">
@@ -166,11 +169,16 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
 
                         <div
                             key={course.id}
-                            className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                            className="flex min-h-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--color-main)]/20 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                         >
 
                             {/* ACTIONS */}
-                            <div className="flex justify-end items-center gap-2 bg-[var(--color-main)] p-2 border-b border-[var(--color-main)]">
+                            <div className="flex justify-between items-center gap-2 bg-gradient-to-r from-[var(--color-main)] to-[var(--color-secondary)] p-3">
+                                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getCourseStatusClasses(course.status)}`}>
+                                    {getCourseStatusLabel(course.status)}
+                                </span>
+
+                                <div className="flex items-center gap-2">
 
                                 <Link
                                     href={`/teacher/courses/${course.id}`}
@@ -204,21 +212,23 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
                                     </>
                                 )}
 
+                                </div>
+
                             </div>
                             {/* COURSE TITLE */}
-                            <div className="p-2 flex flex-col flex-1">
-                                <h4 className="font-bold text-[var(--color-text)]">
+                            <div className="flex flex-1 flex-col gap-3 p-5">
+                                <h4 className="text-lg font-bold text-[var(--color-text)]">
                                     {course.name}
                                 </h4>
 
                                 {/* SUBJECT */}
-                                <div className="text-sm text-[var(--color-text)] mb-2">
+                                <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3 text-sm text-[var(--color-text)]">
                                     <span className="font-medium">Subject:</span>{" "}
                                     {course.subject?.name || "-"}
                                 </div>
 
                                 {/* GRADE */}
-                                <div className="mb-3">
+                                <div>
                                     {course.grade ? (
                                         <span className="px-2 py-1 rounded text-xs bg-[var(--color-secondary)]/10 text-[var(--color-main)] border border-[var(--color-secondary)]/30">
                                             {course.grade.name}
@@ -236,7 +246,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
 
                                 {/* TEACHER */}
                                 {isManager && (
-                                    <div className="text-sm mb-2">
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3 text-sm">
 
                                         {course.teacher ? (
                                             <div className="text-[var(--color-text)]">
@@ -256,7 +266,7 @@ export default function CourseListTab({ courses, centerId, isManager, onUpdate }
 
                                         <button
                                             onClick={() => setInviteCourseId(course.id)}
-                                            className="text-xs text-[var(--color-main)] hover:underline flex items-center gap-1 mt-1"
+                                            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-main)] transition hover:underline"
                                         >
                                             <Mail size={12} />
                                             Change Teacher

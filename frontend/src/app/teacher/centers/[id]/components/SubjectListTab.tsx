@@ -100,7 +100,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                 onConfirm={() => (deletingSubject ? handleDelete(deletingSubject) : undefined)}
             />
 
-            <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] px-5 py-4 shadow-sm">
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                         <BookA size={18} /> Subjects
                 </h3>
@@ -121,7 +121,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                     value={searchName}
                     onChange={(e) => setSearchName(e.target.value)}
                     placeholder="Search subject by name"
-                    className="w-full pl-9 pr-3 py-2 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-white py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 />
             </div>
 
@@ -132,17 +132,17 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                     No subjects match your search.
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     {filteredSubjects.map(subject => (
 
                             <div
                                 key={subject.id}
-                                className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                                className="flex min-h-[210px] flex-col overflow-hidden rounded-2xl border border-[var(--color-main)]/20 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                             >
 
                                 {/* ACTION BAR */}
                                 {isManager && (
-                                    <div className="flex justify-end items-center gap-2 bg-[var(--color-main)] p-2 border-b border-[var(--color-main)]">
+                                    <div className="flex justify-end items-center gap-2 bg-gradient-to-r from-[var(--color-main)] to-[var(--color-secondary)] p-3">
 
                                         <button
                                             onClick={() => handleEdit(subject)}
@@ -162,13 +162,13 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                                 )}
 
                                 {/* SUBJECT CONTENT */}
-                                <div className="p-4 flex flex-col flex-1">
+                                <div className="flex flex-1 flex-col gap-3 p-5">
 
-                                    <h4 className="font-bold text-[var(--color-text)]">
+                                    <div className="inline-flex w-fit rounded-full border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/10 px-3 py-1 text-sm font-semibold text-[var(--color-main)]">
                                         {subject.name}
-                                    </h4>
+                                    </div>
 
-                                    <div className="text-sm text-[var(--color-text)] mt-2">
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3 text-sm text-[var(--color-text)]">
                                         <span className="font-medium">Description:</span>{" "}
                                         {subject.description || "-"}
                                     </div>

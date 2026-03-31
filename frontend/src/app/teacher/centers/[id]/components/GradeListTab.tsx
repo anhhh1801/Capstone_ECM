@@ -89,7 +89,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
             />
 
             {/* HEADER */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] px-5 py-4 shadow-sm">
 
                 <h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
                     <BookPlus size={18} /> Grades
@@ -117,7 +117,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                     value={searchName}
                     onChange={(e) => setSearchName(e.target.value)}
                     placeholder="Search grade by name"
-                    className="w-full pl-9 pr-3 py-2 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                    className="w-full rounded-xl border border-[var(--color-main)]/20 bg-white py-3 pl-10 pr-3 text-sm outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-secondary)]/30"
                 />
             </div>
 
@@ -132,7 +132,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                 </div>
             ) : (
 
-                <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm overflow-hidden">
+                <div className="overflow-hidden rounded-2xl border border-[var(--color-main)]/20 bg-white shadow-sm">
 
                     <table className="w-full text-left text-sm">
 
@@ -147,14 +147,16 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                         </thead>
 
                         {/* TABLE BODY */}
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-[var(--color-main)]/10">
 
                             {filteredGrades.map((grade) => (
 
-                                <tr key={grade.id} className="hover:bg-blue-50 transition">
+                                <tr key={grade.id} className="transition hover:bg-[var(--color-main)]/5">
 
                                     <td className="px-6 py-4 font-semibold text-[var(--color-text)]">
-                                        {grade.name}
+                                        <span className="inline-flex rounded-full bg-[var(--color-secondary)]/10 px-3 py-1 text-sm font-semibold text-[var(--color-main)] border border-[var(--color-secondary)]/20">
+                                            {grade.name}
+                                        </span>
                                     </td>
 
                                     <td className="px-6 py-4 text-[var(--color-text)]">
@@ -178,7 +180,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                                                         setEditingGrade(grade);
                                                         setModalOpen(true);
                                                     }}
-                                                    className="p-2 bg-[var(--color-secondary)] text-white rounded-lg hover:bg-[var(--color-main)] transition"
+                                                    className="rounded-lg border-2 border-[var(--color-secondary)] bg-[var(--color-secondary)] p-2 text-white transition hover:bg-white hover:text-[var(--color-secondary)]"
                                                 >
                                                     <Edit2Icon size={18} />
                                                 </button>
@@ -186,7 +188,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                                                 {/* DELETE */}
                                                 <button
                                                     onClick={() => setDeletingGrade(grade)}
-                                                    className="p-2 bg-[var(--color-alert)] text-white rounded-lg hover:bg-red-700 transition"
+                                                    className="rounded-lg border-2 border-[var(--color-alert)] bg-[var(--color-alert)] p-2 text-white transition hover:bg-white hover:text-[var(--color-alert)]"
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>

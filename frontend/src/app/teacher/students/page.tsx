@@ -19,6 +19,7 @@ import StudentModal from "./components/StudentModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
 export default function GlobalStudentsPage() {
+    const studentsPerPage = 10;
     const [studentStatus, setStudentStatus] = useState<"active" | "rolled-out">("active");
     // 1. STATE QUẢN LÝ DỮ LIỆU
     const [allStudents, setAllStudents] = useState<TeacherManagedStudent[]>([]); // original data
@@ -29,6 +30,7 @@ export default function GlobalStudentsPage() {
     // 2. STATE UI & FILTER
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCenterId, setSelectedCenterId] = useState<string>("ALL");
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<TeacherManagedStudent | null>(null); // Lưu học sinh đang sửa
@@ -92,7 +94,21 @@ export default function GlobalStudentsPage() {
         }
 
         setFilteredStudents(result);
+        setCurrentPage(1);
     }, [searchTerm, selectedCenterId, allStudents, studentStatus]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredStudents.length / studentsPerPage));
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    const paginatedStudents = filteredStudents.slice(
+        (currentPage - 1) * studentsPerPage,
+        currentPage * studentsPerPage
+    );
 
     const handleDeleteStudent = async (studentId: number) => {
         try {
@@ -341,7 +357,7 @@ export default function GlobalStudentsPage() {
             {/* TABLE */}
 
             <StudentTable
-                students={filteredStudents}
+                students={paginatedStudents}
                 loading={loading}
                 onDelete={studentStatus === "active" ? (studentId) => setDeletingStudentId(studentId) : undefined}
                 onResetPassword={studentStatus === "active" ? (student) => setResettingStudent(student) : undefined}
@@ -349,6 +365,38 @@ export default function GlobalStudentsPage() {
                 onEdit={studentStatus === "active" ? openEditModal : undefined}
                 deleteLabel="Roll Out"
             />
+
+            {!loading && filteredStudents.length > 0 && (
+                <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-main)]/15 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+                    <p className="text-sm text-[var(--color-text)]">
+                        Showing {(currentPage - 1) * studentsPerPage + 1}
+                        {" - "}
+                        {Math.min(currentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} students
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                            disabled={currentPage === 1}
+                            className="rounded-lg border border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[var(--color-main)]"
+                        >
+                            Previous
+                        </button>
+
+                        <span className="min-w-[90px] text-center text-sm font-semibold text-[var(--color-text)]">
+                            Page {currentPage} / {totalPages}
+                        </span>
+
+                        <button
+                            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                            disabled={currentPage === totalPages}
+                            className="rounded-lg border border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[var(--color-main)]"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
 
 
             {/* MODAL */}
