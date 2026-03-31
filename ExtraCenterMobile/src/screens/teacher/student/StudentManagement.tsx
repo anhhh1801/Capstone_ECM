@@ -118,20 +118,27 @@ const StudentManagement = () => {
 
     const handleDelete = (studentId: number) => {
         Alert.alert(
-            "Delete Student",
-            "This action will permanently delete the student account. Are you sure?",
+            "Roll Out Student",
+            "This will roll out the student, disable the account, and remove the student from active lists. Continue?",
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Delete Permanently",
+                    text: "Roll Out",
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            await axiosClient.delete(`/users/${studentId}`);
-                            Alert.alert("Deleted", "Student has been removed from the system.");
+                            const userStr = await AsyncStorage.getItem("user");
+                            if (!userStr) {
+                                Alert.alert("Error", "Could not find the current teacher.");
+                                return;
+                            }
+
+                            const user = JSON.parse(userStr);
+                            await axiosClient.delete(`/users/teacher/${user.id}/students/${studentId}`);
+                            Alert.alert("Rolled Out", "Student has been rolled out successfully.");
                             fetchData();
                         } catch (e) {
-                            Alert.alert("Error", "Could not delete this student.");
+                            Alert.alert("Error", "Could not roll out this student.");
                         }
                     }
                 }

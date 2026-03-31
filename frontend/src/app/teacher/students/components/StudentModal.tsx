@@ -98,11 +98,16 @@ export default function StudentModal({
         e.preventDefault();
         setLoading(true);
 
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+
         try {
 
             if (studentToEdit) {
 
-                await updateStudent(studentToEdit.id, form);
+                await updateStudent(studentToEdit.id, {
+                    ...form,
+                    teacherId: user.id,
+                });
                 toast.success("Student updated successfully.");
 
                 // Apply pending center changes only when the user clicks Save
@@ -126,7 +131,10 @@ export default function StudentModal({
                     return;
                 }
 
-                await createStudentAuto(form);
+                await createStudentAuto({
+                    ...form,
+                    createdByTeacherId: user.id,
+                });
                 toast.success("Student created successfully.");
             }
 

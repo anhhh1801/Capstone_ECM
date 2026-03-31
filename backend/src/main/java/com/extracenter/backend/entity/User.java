@@ -75,6 +75,13 @@ public class User {
     // Used for OTP verification status
     private boolean isEnabled = false;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_teacher_id")
+    @JsonIgnore
+    private User createdByTeacher;
+
     // RELATIONSHIP: What role does this user have? (ADMIN, TEACHER, STUDENT)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -116,6 +123,7 @@ public class User {
     // Safely remove ManyToMany relationships before deleting the User
     // to prevent Foreign Key constraint errors.
     @PreRemove
+    @SuppressWarnings("unused")
     private void preRemove() {
         this.connectedCenters.clear();
     }

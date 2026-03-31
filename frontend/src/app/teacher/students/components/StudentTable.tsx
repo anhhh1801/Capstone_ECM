@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Phone, Building2, Unlink, Trash2, Edit2Icon } from "lucide-react";
+import { Mail, Phone, Building2, Unlink, Trash2, Edit2Icon, KeyRound, RotateCcw } from "lucide-react";
 
 interface Student {
     id: number;
@@ -9,6 +9,7 @@ interface Student {
     email: string;
     phoneNumber: string;
     dateOfBirth: string;
+    canManage: boolean;
     connectedCenters?: { id: number; name: string }[];
 }
 
@@ -16,9 +17,11 @@ interface Props {
     students: Student[];
     loading: boolean;
     onAssign?: (studentId: number) => void;
-    onDelete: (studentId: number) => void;
+    onDelete?: (studentId: number) => void;
+    onResetPassword?: (student: Student) => void;
+    onRollback?: (student: Student) => void;
     deleteLabel?: string;
-    onEdit: (student: any) => void;
+    onEdit?: (student: any) => void;
     showAffiliatedCenters?: boolean;
 }
 
@@ -27,6 +30,8 @@ export default function StudentTable({
     loading,
     onAssign,
     onDelete,
+    onResetPassword,
+    onRollback,
     deleteLabel = "Delete",
     onEdit,
     showAffiliatedCenters = true,
@@ -159,22 +164,50 @@ export default function StudentTable({
                                         </button>
                                     )}
 
-                                    <button
-                                        onClick={() => onEdit(student)}
-                                        className="p-2 border-2 bg-[var(--color-secondary)] text-white border-[var(--color-secondary)] rounded hover:bg-white hover:text-[var(--color-secondary)] transition"
-                                    >
-                                        <Edit2Icon size={18} />
-                                    </button>
+                                    {student.canManage !== false && (
+                                        <>
+                                            {onRollback && (
+                                                <button
+                                                    onClick={() => onRollback(student)}
+                                                    className="p-2 border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] text-[var(--color-main)] rounded hover:bg-[var(--color-main)] hover:text-white transition"
+                                                    title="Rollback student"
+                                                >
+                                                    <RotateCcw size={18} />
+                                                </button>
+                                            )}
 
-                                    <button
-                                        onClick={() => onDelete(student.id)}
-                                        className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
-                                        title={deleteLabel}
-                                    >
-                                        {deleteLabel === "Remove"
-                                            ? <Unlink size={18} />
-                                            : <Trash2 size={18} />}
-                                    </button>
+                                            {onResetPassword && (
+                                                <button
+                                                    onClick={() => onResetPassword(student)}
+                                                    className="p-2 border-2 border-[var(--color-main)] bg-[var(--color-main)] text-white rounded hover:bg-white hover:text-[var(--color-main)] transition"
+                                                    title="Reset password"
+                                                >
+                                                    <KeyRound size={18} />
+                                                </button>
+                                            )}
+
+                                            {onEdit && (
+                                                <button
+                                                    onClick={() => onEdit(student)}
+                                                    className="p-2 border-2 bg-[var(--color-secondary)] text-white border-[var(--color-secondary)] rounded hover:bg-white hover:text-[var(--color-secondary)] transition"
+                                                >
+                                                    <Edit2Icon size={18} />
+                                                </button>
+                                            )}
+
+                                            {onDelete && (
+                                                <button
+                                                    onClick={() => onDelete(student.id)}
+                                                    className="p-2 border-2 border-[var(--color-alert)] bg-[var(--color-alert)] text-white rounded hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] transition"
+                                                    title={deleteLabel}
+                                                >
+                                                    {deleteLabel === "Remove" || deleteLabel === "Roll Out"
+                                                        ? <Unlink size={18} />
+                                                        : <Trash2 size={18} />}
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
 
                                 </div>
 

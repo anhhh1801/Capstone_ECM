@@ -1,23 +1,32 @@
 package com.extracenter.backend.controller;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.extracenter.backend.dto.ChangePasswordRequest;
 import com.extracenter.backend.dto.CreateStudentRequest;
 import com.extracenter.backend.dto.LoginRequest;
 import com.extracenter.backend.dto.LoginResponse;
 import com.extracenter.backend.dto.RegisterRequest;
+import com.extracenter.backend.dto.TeacherStudentResponse;
 import com.extracenter.backend.dto.UpdateProfileRequest;
 import com.extracenter.backend.dto.UserStatsResponse;
 import com.extracenter.backend.dto.VerifyOtpRequest;
 import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.UserService;
-
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -114,6 +123,18 @@ public class UserController {
         return ResponseEntity.ok(userRepository.searchStudents(keyword));
     }
 
+    @GetMapping("/teacher/{teacherId}/students")
+    public ResponseEntity<?> getTeacherStudents(
+            @PathVariable Long teacherId,
+            @RequestParam(defaultValue = "true") boolean active) {
+        try {
+            List<TeacherStudentResponse> students = userService.getTeacherVisibleStudents(teacherId, active);
+            return ResponseEntity.ok(students);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // API Tạo nhanh học sinh (Auto Email)
     // POST: /api/users/create-student
     @PostMapping("/create-student")
@@ -122,15 +143,15 @@ public class UserController {
         return ResponseEntity.ok(newUser);
     }
 
-    // API: Xóa vĩnh viễn User
+    // API: Users cannot be deleted
     // DELETE: /api/users/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
-            userService.deleteStudentPermanently(id);
-            return ResponseEntity.ok("Đã xóa tài khoản vĩnh viễn.");
+            String result = userService.deleteStudentPermanently(id);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Không thể xóa: " + e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -140,6 +161,67 @@ public class UserController {
         try {
             User updated = userService.updateStudent(id, request);
             return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/teacher/{teacherId}/students/{studentId}")
+    public ResponseEntity<?> updateTeacherStudent(
+            @PathVariable Long teacherId,
+            @PathVariable Long studentId,
+            @RequestBody CreateStudentRequest request) {
+        try {
+            User updated = userService.updateTeacherManagedStudent(teacherId, studentId, request);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/teacher/{teacherId}/students/{studentId}")
+    public ResponseEntity<?> removeTeacherStudent(
+            @PathVariable Long teacherId,
+            @PathVariable Long studentId) {
+        try {
+            String result = userService.removeTeacherManagedStudent(teacherId, studentId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/teacher/{teacherId}/students/{studentId}/rollback")
+    public ResponseEntity<?> rollbackTeacherStudent(
+            @PathVariable Long teacherId,
+            @PathVariable Long studentId) {
+        try {
+            String result = userService.rollbackTeacherManagedStudent(teacherId, studentId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/teacher/{teacherId}/students/{studentId}/permanent")
+    public ResponseEntity<?> permanentlyDeleteTeacherStudent(
+            @PathVariable Long teacherId,
+            @PathVariable Long studentId) {
+        try {
+            String result = userService.permanentlyDeleteTeacherManagedStudent(teacherId, studentId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/teacher/{teacherId}/students/{studentId}/reset-password")
+    public ResponseEntity<?> resetTeacherStudentPassword(
+            @PathVariable Long teacherId,
+            @PathVariable Long studentId) {
+        try {
+            String result = userService.resetStudentPasswordByTeacher(teacherId, studentId);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

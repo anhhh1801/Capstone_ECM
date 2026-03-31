@@ -337,12 +337,6 @@ export default function CourseDetailPage() {
                 </div>
             )}
 
-            {activeTab === "Attendance" && (
-                <div>
-                    <CourseAttendance courseId={courseId} />
-                </div>
-            )}
-
             {/* ENROLLMENT (MANAGER ONLY) */}
             {activeTab === "Enrollment" && isManager && (
                 <div>

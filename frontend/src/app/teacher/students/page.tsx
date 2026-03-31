@@ -1,21 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { Users, Search, Filter, Plus } from "lucide-react";
-import api from "@/utils/axiosConfig";
 import { getMyCenters, Center } from "@/services/centerService";
 import toast from "react-hot-toast";
 
 // Import child components
 import StudentTable from "./components/StudentTable";
-import { deleteStudent } from "@/services/userService";
+import {
+    deleteOrRolloutStudent,
+    getTeacherStudents,
+    rollbackStudent,
+    resetStudentPassword,
+    TeacherManagedStudent,
+} from "@/services/userService";
 import StudentModal from "./components/StudentModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
 export default function GlobalStudentsPage() {
+    const [studentStatus, setStudentStatus] = useState<"active" | "rolled-out">("active");
     // 1. STATE QUẢN LÝ DỮ LIỆU
-    const [allStudents, setAllStudents] = useState<any[]>([]); // original data
-    const [filteredStudents, setFilteredStudents] = useState<any[]>([]); // filtered data
+    const [allStudents, setAllStudents] = useState<TeacherManagedStudent[]>([]); // original data
+    const [filteredStudents, setFilteredStudents] = useState<TeacherManagedStudent[]>([]); // filtered data
     const [centers, setCenters] = useState<Center[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -24,8 +31,10 @@ export default function GlobalStudentsPage() {
     const [selectedCenterId, setSelectedCenterId] = useState<string>("ALL");
 
     const [isModalOpen, setModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<any>(null); // Lưu học sinh đang sửa
+    const [editingStudent, setEditingStudent] = useState<TeacherManagedStudent | null>(null); // Lưu học sinh đang sửa
     const [deletingStudentId, setDeletingStudentId] = useState<number | null>(null);
+    const [resettingStudent, setResettingStudent] = useState<TeacherManagedStudent | null>(null);
+    const [rollingBackStudent, setRollingBackStudent] = useState<TeacherManagedStudent | null>(null);
 
     // 3. FETCH DATA
     const fetchData = async () => {
@@ -39,61 +48,10 @@ export default function GlobalStudentsPage() {
             const resCenters = await getMyCenters(user.id);
             setCenters(resCenters);
 
-            // B. Lấy danh sách TẤT CẢ học sinh (Cần Backend API hỗ trợ)
-            // Tạm thời: Loop qua các centers để lấy và gộp lại (Cách tạm bợ)
-            // Hoặc lý tưởng nhất: api.get(`/users/my-students?managerId=${user.id}`)
-            // Giả sử ta có API mock hoặc dùng cách gộp:
+            const teacherStudents = await getTeacherStudents(user.id, studentStatus);
 
-            let aggregatedStudents: any[] = [];
-
-            // --- CÁCH 1: Lấy từ từng center gộp lại (Hơi chậm nhưng chắc chắn có data lúc này) ---
-            // Build a map by student ID so we can merge connectedCenters across centers
-            const studentMap = new Map<number, any>();
-
-            for (const center of resCenters) {
-                try {
-                    const res = await api.get(`/centers/${center.id}/students`);
-                    for (const s of res.data) {
-                        const existing = studentMap.get(s.id);
-                        const baseStudent = {
-                            ...s,
-                            connectedCenters: s.connectedCenters ?? []
-                        };
-
-                        const centerInfo = { id: center.id, name: center.name };
-                        const hasCenterAlready = baseStudent.connectedCenters.some((c: any) => c.id === center.id);
-
-                        const mergedCenters = hasCenterAlready
-                            ? baseStudent.connectedCenters
-                            : [...baseStudent.connectedCenters, centerInfo];
-
-                        if (existing) {
-                            // Merge with existing record (avoid duplicates)
-                            const existingCenters = existing.connectedCenters ?? [];
-                            const combinedCenters = [...existingCenters];
-                            if (!combinedCenters.some((c: any) => c.id === center.id)) {
-                                combinedCenters.push(centerInfo);
-                            }
-
-                            studentMap.set(s.id, {
-                                ...existing,
-                                ...baseStudent,
-                                connectedCenters: combinedCenters,
-                            });
-                        } else {
-                            studentMap.set(s.id, {
-                                ...baseStudent,
-                                connectedCenters: mergedCenters,
-                            });
-                        }
-                    }
-                } catch (e) { }
-            }
-
-            const uniqueStudents = Array.from(studentMap.values());
-
-            setAllStudents(uniqueStudents);
-            setFilteredStudents(uniqueStudents);
+            setAllStudents(teacherStudents);
+            setFilteredStudents(teacherStudents);
 
         } catch (e) {
             console.error(e);
@@ -105,7 +63,7 @@ export default function GlobalStudentsPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [studentStatus]);
 
     // 4. XỬ LÝ FILTER (Tìm kiếm & Lọc theo Center)
     useEffect(() => {
@@ -123,26 +81,67 @@ export default function GlobalStudentsPage() {
         }
 
         // Lọc theo Center
-        if (selectedCenterId !== "ALL") {
-            result = result.filter(s =>
-                s.connectedCenters && s.connectedCenters.some((c: any) => c.id === Number(selectedCenterId))
-            );
+        if (studentStatus === "active" && selectedCenterId !== "ALL") {
+            if (selectedCenterId === "NONE") {
+                result = result.filter(s => !s.connectedCenters || s.connectedCenters.length === 0);
+            } else {
+                result = result.filter(s =>
+                    s.connectedCenters && s.connectedCenters.some((c) => c.id === Number(selectedCenterId))
+                );
+            }
         }
 
         setFilteredStudents(result);
-    }, [searchTerm, selectedCenterId, allStudents]);
+    }, [searchTerm, selectedCenterId, allStudents, studentStatus]);
 
-    const handleDeletePermanently = async (studentId: number) => {
+    const handleDeleteStudent = async (studentId: number) => {
         try {
-            await deleteStudent(studentId);
-            toast.success("Permanently deleted!");
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const message = await deleteOrRolloutStudent(user.id, studentId);
+            toast.success(message);
             setDeletingStudentId(null);
 
             // Refresh list
             setAllStudents(prev => prev.filter(s => s.id !== studentId));
             setFilteredStudents(prev => prev.filter(s => s.id !== studentId));
         } catch (e) {
-            toast.error("Unable to delete (may be due to data constraints)");
+            if (axios.isAxiosError(e)) {
+                toast.error(String(e.response?.data || "Unable to update student."));
+            } else {
+                toast.error("Unable to update student.");
+            }
+        }
+    };
+
+    const handleResetPassword = async (student: TeacherManagedStudent) => {
+        try {
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const message = await resetStudentPassword(user.id, student.id);
+            toast.success(`${message} Login: ${student.email}`);
+            setResettingStudent(null);
+        } catch (e) {
+            if (axios.isAxiosError(e)) {
+                toast.error(String(e.response?.data || "Unable to reset password."));
+            } else {
+                toast.error("Unable to reset password.");
+            }
+        }
+    };
+
+    const handleRollbackStudent = async (student: TeacherManagedStudent) => {
+        try {
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const message = await rollbackStudent(user.id, student.id);
+            toast.success(message);
+            setRollingBackStudent(null);
+            setAllStudents(prev => prev.filter(s => s.id !== student.id));
+            setFilteredStudents(prev => prev.filter(s => s.id !== student.id));
+        } catch (e) {
+            if (axios.isAxiosError(e)) {
+                toast.error(String(e.response?.data || "Unable to rollback student."));
+            } else {
+                toast.error("Unable to rollback student.");
+            }
         }
     };
 
@@ -170,11 +169,29 @@ export default function GlobalStudentsPage() {
 
             <ConfirmModal
                 isOpen={deletingStudentId !== null}
-                title="Permanently Delete Student"
-                message={`This will permanently delete "${deletingStudent?.lastName || ""} ${deletingStudent?.firstName || ""}" and related study data. Continue?`}
-                confirmText="Delete Permanently"
+                title="Roll Out Student"
+                message={`Roll out "${deletingStudent?.lastName || ""} ${deletingStudent?.firstName || ""}"? This disables the account, removes current center links, clears enrollments, and hides the student from active lists.`}
+                confirmText="Roll Out"
                 onClose={() => setDeletingStudentId(null)}
-                onConfirm={() => (deletingStudentId !== null ? handleDeletePermanently(deletingStudentId) : undefined)}
+                onConfirm={() => (deletingStudentId !== null ? handleDeleteStudent(deletingStudentId) : undefined)}
+            />
+
+            <ConfirmModal
+                isOpen={!!resettingStudent}
+                title="Reset Student Password"
+                message={`Reset the password for "${resettingStudent?.lastName || ""} ${resettingStudent?.firstName || ""}" to the default password \"ecm123\"?`}
+                confirmText="Reset Password"
+                onClose={() => setResettingStudent(null)}
+                onConfirm={() => (resettingStudent ? handleResetPassword(resettingStudent) : undefined)}
+            />
+
+            <ConfirmModal
+                isOpen={!!rollingBackStudent}
+                title="Rollback Student"
+                message={`Restore "${rollingBackStudent?.lastName || ""} ${rollingBackStudent?.firstName || ""}" back to the active student list?`}
+                confirmText="Rollback"
+                onClose={() => setRollingBackStudent(null)}
+                onConfirm={() => (rollingBackStudent ? handleRollbackStudent(rollingBackStudent) : undefined)}
             />
 
             {/* HEADER */}
@@ -189,25 +206,59 @@ export default function GlobalStudentsPage() {
                     </h1>
 
                     <p className="text-sm text-[var(--color-text)]">
-                        Aggregates students from all your centers
+                        {studentStatus === "active"
+                            ? "Aggregates active students from all your centers"
+                            : "Shows rolled out students created by you. Students can only be restored from here."}
                     </p>
 
                 </div>
 
+                {studentStatus === "active" && (
+                    <button
+                        onClick={openCreateModal}
+                        className="
+                    flex items-center gap-2
+                    px-4 py-2 rounded-lg font-semibold
+                    border-2 border-[var(--color-main)]
+                    bg-[var(--color-main)] text-white
+                    hover:bg-white hover:text-[var(--color-main)]
+                    transition"
+                    >
+                        <Plus size={18} />
+                        Add New Student
+                    </button>
+                )}
+
+            </div>
+
+            <div className="flex gap-2">
                 <button
-                    onClick={openCreateModal}
-                    className="
-                flex items-center gap-2
-                px-4 py-2 rounded-lg font-semibold
-                border-2 border-[var(--color-main)]
-                bg-[var(--color-main)] text-white
-                hover:bg-white hover:text-[var(--color-main)]
-                transition"
+                    onClick={() => {
+                        setStudentStatus("active");
+                        setSelectedCenterId("ALL");
+                    }}
+                    className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
+                        studentStatus === "active"
+                            ? "border-[var(--color-main)] bg-[var(--color-main)] text-white"
+                            : "border-[var(--color-main)] text-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-white"
+                    }`}
                 >
-                    <Plus size={18} />
-                    Add New Student
+                    Active Students
                 </button>
 
+                <button
+                    onClick={() => {
+                        setStudentStatus("rolled-out");
+                        setSelectedCenterId("ALL");
+                    }}
+                    className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
+                        studentStatus === "rolled-out"
+                            ? "border-[var(--color-alert)] bg-[var(--color-alert)] text-white"
+                            : "border-[var(--color-alert)] text-[var(--color-alert)] hover:bg-[var(--color-alert)] hover:text-white"
+                    }`}
+                >
+                    Rolled Out Students
+                </button>
             </div>
 
 
@@ -247,6 +298,7 @@ export default function GlobalStudentsPage() {
 
                 {/* FILTER */}
 
+                {studentStatus === "active" && (
                 <div className="relative min-w-[220px]">
 
                     <Filter
@@ -281,6 +333,7 @@ export default function GlobalStudentsPage() {
                     </select>
 
                 </div>
+                )}
 
             </div>
 
@@ -290,8 +343,11 @@ export default function GlobalStudentsPage() {
             <StudentTable
                 students={filteredStudents}
                 loading={loading}
-                onDelete={(studentId) => setDeletingStudentId(studentId)}
-                onEdit={openEditModal}
+                onDelete={studentStatus === "active" ? (studentId) => setDeletingStudentId(studentId) : undefined}
+                onResetPassword={studentStatus === "active" ? (student) => setResettingStudent(student) : undefined}
+                onRollback={studentStatus === "rolled-out" ? (student) => setRollingBackStudent(student) : undefined}
+                onEdit={studentStatus === "active" ? openEditModal : undefined}
+                deleteLabel="Roll Out"
             />
 
 

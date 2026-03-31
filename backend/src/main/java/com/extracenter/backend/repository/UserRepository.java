@@ -24,6 +24,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Search for students by Name, Phone Number, OR Email (Fuzzy/Partial search)
     // Uses LOWER() and CONCAT() for case-insensitive, full-name matching
     @Query("SELECT u FROM User u WHERE u.role.name = 'STUDENT' AND " +
+            "u.isEnabled = true AND " +
             "(LOWER(CONCAT(u.lastName, ' ', u.firstName)) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR u.phoneNumber LIKE CONCAT('%', :keyword, '%') " +
             "OR u.email LIKE CONCAT('%', :keyword, '%'))")
@@ -31,8 +32,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Find users (specifically students) whose connectedCenters list contains this
     // centerId
-    @Query("SELECT u FROM User u JOIN u.connectedCenters c WHERE c.id = :centerId AND u.role.name = 'STUDENT'")
+    @Query("SELECT u FROM User u JOIN u.connectedCenters c WHERE c.id = :centerId AND u.role.name = 'STUDENT' AND u.isEnabled = true")
     List<User> findStudentsByCenterId(@Param("centerId") Long centerId);
+
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.connectedCenters c WHERE u.role.name = 'STUDENT' AND u.isEnabled = true AND c.id IN :centerIds")
+    List<User> findActiveStudentsByCenterIds(@Param("centerIds") List<Long> centerIds);
+
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.connectedCenters c WHERE u.role.name = 'STUDENT' AND u.isEnabled = true AND u.createdByTeacher.id = :teacherId AND c IS NULL")
+    List<User> findActiveUnassignedStudentsByCreatorTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.connectedCenters WHERE u.role.name = 'STUDENT' AND u.isEnabled = false AND u.createdByTeacher.id = :teacherId")
+    List<User> findRolledOutStudentsByCreatorTeacherId(@Param("teacherId") Long teacherId);
 
     // Find teachers who are linked to a specific center.
     @Query("SELECT u FROM User u JOIN u.connectedCenters c WHERE c.id = :centerId AND u.role.name = 'TEACHER'")

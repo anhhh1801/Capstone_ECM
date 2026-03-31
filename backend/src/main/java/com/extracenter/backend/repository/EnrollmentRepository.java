@@ -39,6 +39,10 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     @Transactional
     void deleteByCourseId(Long courseId);
 
+    @Modifying
+    @Transactional
+    void deleteByStudentId(Long studentId);
+
     // 5. Advanced Query: Find all unique Users (Students) registered in courses
     // belonging to a specific Center.
     // Logic: Traverses Enrollment -> Course -> Center -> ID.

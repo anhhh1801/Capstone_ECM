@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Mail, Phone, Edit, Trash2, MapPin } from 'lucide-react-native';
+import { Mail, Phone, Edit, Unlink } from 'lucide-react-native';
 import colors from '@/theme';
 
 interface Props {
@@ -42,7 +42,7 @@ export default function StudentCard({ student, onEdit, onDelete }: Props) {
                         <Edit size={20} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={onDelete} className="p-1">
-                        <Trash2 size={20} color="#ef4444" />
+                        <Unlink size={20} color="#ef4444" />
                     </TouchableOpacity>
                 </View>
             </View>

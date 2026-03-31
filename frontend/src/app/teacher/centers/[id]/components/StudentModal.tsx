@@ -37,9 +37,11 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 		e.preventDefault();
 		try {
 			setLoading(true);
+			const user = JSON.parse(localStorage.getItem("user") || "{}");
 			await createStudentAuto({
 				...form,
 				centerId,
+				createdByTeacherId: user.id,
 			});
 			toast.success("Student created successfully.");
 			onSuccess();

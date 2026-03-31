@@ -1,19 +1,37 @@
 package com.extracenter.backend.service;
 
-import com.extracenter.backend.dto.*;
-import com.extracenter.backend.entity.*;
-import com.extracenter.backend.repository.*;
-import com.extracenter.backend.utils.EmailUtils;
-import com.extracenter.backend.utils.JwtUtils;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.extracenter.backend.dto.ChangePasswordRequest;
+import com.extracenter.backend.dto.CreateStudentRequest;
+import com.extracenter.backend.dto.LoginRequest;
+import com.extracenter.backend.dto.LoginResponse;
+import com.extracenter.backend.dto.RegisterRequest;
+import com.extracenter.backend.dto.TeacherStudentResponse;
+import com.extracenter.backend.dto.UpdateProfileRequest;
+import com.extracenter.backend.dto.UserStatsResponse;
+import com.extracenter.backend.entity.Center;
+import com.extracenter.backend.entity.Role;
+import com.extracenter.backend.entity.User;
+import com.extracenter.backend.entity.VerificationToken;
+import com.extracenter.backend.repository.CenterRepository;
+import com.extracenter.backend.repository.CourseRepository;
+import com.extracenter.backend.repository.EnrollmentRepository;
+import com.extracenter.backend.repository.RoleRepository;
+import com.extracenter.backend.repository.UserRepository;
+import com.extracenter.backend.repository.VerificationTokenRepository;
+import com.extracenter.backend.utils.EmailUtils;
+import com.extracenter.backend.utils.JwtUtils;
 
 @Service
 public class UserService {
@@ -30,6 +48,8 @@ public class UserService {
     private CenterRepository centerRepository;
     @Autowired
     private CourseRepository courseRepository;
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
     @Autowired
     private JwtUtils jwtUtils;
 
@@ -179,6 +199,93 @@ public class UserService {
         return userRepository.save(student);
     }
 
+    @Transactional(readOnly = true)
+    public List<TeacherStudentResponse> getTeacherVisibleStudents(Long teacherId, boolean activeOnly) {
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        if (!"TEACHER".equals(teacher.getRole().getName())) {
+            throw new RuntimeException("Only teachers can manage students.");
+        }
+
+        if (!activeOnly) {
+            return userRepository.findRolledOutStudentsByCreatorTeacherId(teacherId).stream()
+                    .sorted(Comparator.comparing(User::getLastName, String.CASE_INSENSITIVE_ORDER)
+                            .thenComparing(User::getFirstName, String.CASE_INSENSITIVE_ORDER))
+                    .map(student -> toTeacherStudentResponse(student, teacherId))
+                    .collect(Collectors.toList());
+        }
+
+        List<Long> centerIds = teacher.getConnectedCenters().stream()
+                .map(Center::getId)
+                .collect(Collectors.toList());
+
+        Map<Long, User> visibleStudents = new LinkedHashMap<>();
+
+        if (!centerIds.isEmpty()) {
+            userRepository.findActiveStudentsByCenterIds(centerIds)
+                    .forEach(student -> visibleStudents.put(student.getId(), student));
+        }
+
+        userRepository.findActiveUnassignedStudentsByCreatorTeacherId(teacherId)
+                .forEach(student -> visibleStudents.put(student.getId(), student));
+
+        return visibleStudents.values().stream()
+                .sorted(Comparator.comparing(User::getLastName, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(User::getFirstName, String.CASE_INSENSITIVE_ORDER))
+                .map(student -> toTeacherStudentResponse(student, teacherId))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public User updateTeacherManagedStudent(Long teacherId, Long studentId, CreateStudentRequest request) {
+        User student = getActiveOwnedStudent(teacherId, studentId);
+
+        student.setFirstName(request.getFirstName());
+        student.setLastName(request.getLastName());
+        student.setPhoneNumber(request.getPhoneNumber());
+        student.setDateOfBirth(request.getDateOfBirth());
+
+        return userRepository.save(student);
+    }
+
+    @Transactional
+    public String removeTeacherManagedStudent(Long teacherId, Long studentId) {
+        User student = getOwnedStudent(teacherId, studentId);
+
+        if (!student.isEnabled()) {
+            return "Student is already rolled out.";
+        }
+
+        return rollOutStudent(student);
+    }
+
+    @Transactional
+    public String rollbackTeacherManagedStudent(Long teacherId, Long studentId) {
+        User student = getOwnedStudent(teacherId, studentId);
+
+        if (student.isEnabled()) {
+            throw new RuntimeException("Only rolled out students can be restored.");
+        }
+
+        student.setEnabled(true);
+        userRepository.save(student);
+        return "Student restored successfully.";
+    }
+
+    @Transactional
+    public String permanentlyDeleteTeacherManagedStudent(Long teacherId, Long studentId) {
+        return removeTeacherManagedStudent(teacherId, studentId);
+    }
+
+    @Transactional
+    public String resetStudentPasswordByTeacher(Long teacherId, Long studentId) {
+        User student = getActiveOwnedStudent(teacherId, studentId);
+        student.setPassword("ecm123");
+        userRepository.save(student);
+        return "Student password has been reset to ecm123.";
+    }
+
     // 2. Deactivate an Account (e.g., Soft delete or suspending a user)
     @Transactional
     public User deactivateAccount(Long id) {
@@ -220,6 +327,17 @@ public class UserService {
     public User createStudentAutoEmail(CreateStudentRequest request) {
         String finalEmail = generateUniqueEcmEmail(request.getFirstName(), request.getLastName());
 
+        if (request.getCreatedByTeacherId() == null) {
+            throw new RuntimeException("Creating teacher is required.");
+        }
+
+        User teacher = userRepository.findById(request.getCreatedByTeacherId())
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        if (!"TEACHER".equals(teacher.getRole().getName())) {
+            throw new RuntimeException("Only teachers can create students.");
+        }
+
         Center center = centerRepository.findById(request.getCenterId())
                 .orElseThrow(() -> new RuntimeException("Center not found!"));
 
@@ -232,6 +350,7 @@ public class UserService {
         newUser.setDateOfBirth(request.getDateOfBirth());
         newUser.setPassword("ecm123");
         newUser.setEnabled(true);
+        newUser.setCreatedByTeacher(teacher);
         newUser.getConnectedCenters().add(center);
 
         Role studentRole = roleRepository.findByName("STUDENT")
@@ -245,6 +364,11 @@ public class UserService {
     public void connectStudentToCenter(Long studentId, Long centerId) {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found!"));
+
+        if (!student.isEnabled()) {
+            throw new RuntimeException("Rolled out students cannot be linked to any center.");
+        }
+
         Center center = centerRepository.findById(centerId)
                 .orElseThrow(() -> new RuntimeException("Center not found!"));
 
@@ -361,7 +485,70 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteStudentPermanently(Long studentId) {
-        userRepository.deleteById(studentId);
+    public String deleteStudentPermanently(Long studentId) {
+        userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+        throw new RuntimeException("Users cannot be deleted.");
+    }
+
+    private String rollOutStudent(User student) {
+        enrollmentRepository.deleteByStudentId(student.getId());
+        student.getConnectedCenters().clear();
+        student.setEnabled(false);
+        userRepository.save(student);
+        return "Student rolled out successfully.";
+    }
+
+    private User getOwnedStudent(Long teacherId, Long studentId) {
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+
+        if (!"TEACHER".equals(teacher.getRole().getName())) {
+            throw new RuntimeException("Only teachers can manage students.");
+        }
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found!"));
+
+        if (!"STUDENT".equals(student.getRole().getName())) {
+            throw new RuntimeException("Target user is not a student.");
+        }
+
+        if (student.getCreatedByTeacher() == null || !teacherId.equals(student.getCreatedByTeacher().getId())) {
+            throw new RuntimeException("Only the teacher who created this student can manage this account.");
+        }
+
+        return student;
+    }
+
+    private User getActiveOwnedStudent(Long teacherId, Long studentId) {
+        User student = getOwnedStudent(teacherId, studentId);
+
+        if (!student.isEnabled()) {
+            throw new RuntimeException("Rolled out students cannot be changed.");
+        }
+
+        return student;
+    }
+
+    private TeacherStudentResponse toTeacherStudentResponse(User student, Long teacherId) {
+        List<TeacherStudentResponse.ConnectedCenterResponse> centers = student.getConnectedCenters().stream()
+                .map(center -> new TeacherStudentResponse.ConnectedCenterResponse(center.getId(), center.getName()))
+                .sorted(Comparator.comparing(TeacherStudentResponse.ConnectedCenterResponse::getName,
+                        String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+
+        boolean canManage = student.getCreatedByTeacher() != null
+                && teacherId.equals(student.getCreatedByTeacher().getId());
+
+        return new TeacherStudentResponse(
+                student.getId(),
+                student.getFirstName(),
+                student.getLastName(),
+                student.getEmail(),
+                student.getPhoneNumber(),
+                student.getDateOfBirth(),
+                canManage,
+                centers);
     }
 }

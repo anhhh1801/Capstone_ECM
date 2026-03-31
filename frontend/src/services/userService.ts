@@ -6,6 +6,18 @@ export interface CreateStudentData {
     phoneNumber: string;
     dateOfBirth: string;
     centerId?: number;
+    createdByTeacherId?: number;
+}
+
+export interface TeacherManagedStudent {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    dateOfBirth: string;
+    canManage: boolean;
+    connectedCenters?: { id: number; name: string }[];
 }
 
 // API Tạo học sinh nhanh (Auto email)
@@ -20,14 +32,31 @@ export const removeStudentFromCenter = async (centerId: number, studentId: numbe
     await api.delete(`/centers/${centerId}/students/${studentId}`);
 };
 
-// Xóa vĩnh viễn
-export const deleteStudent = async (studentId: number) => {
-    await api.delete(`/users/${studentId}`);
+export const getTeacherStudents = async (teacherId: number, status: "active" | "rolled-out" = "active") => {
+    const active = status === "active";
+    const response = await api.get<TeacherManagedStudent[]>(`/users/teacher/${teacherId}/students?active=${active}`);
+    return response.data;
+};
+
+export const deleteOrRolloutStudent = async (teacherId: number, studentId: number) => {
+    const response = await api.delete<string>(`/users/teacher/${teacherId}/students/${studentId}`);
+    return response.data;
+};
+
+export const rollbackStudent = async (teacherId: number, studentId: number) => {
+    const response = await api.post<string>(`/users/teacher/${teacherId}/students/${studentId}/rollback`);
+    return response.data;
+};
+
+export const resetStudentPassword = async (teacherId: number, studentId: number) => {
+    const response = await api.post<string>(`/users/teacher/${teacherId}/students/${studentId}/reset-password`);
+    return response.data;
 };
 
 // API Cập nhật
 export const updateStudent = async (id: number, data: any) => {
-    const response = await api.put(`/users/${id}`, data);
+    const { teacherId, ...payload } = data;
+    const response = await api.put(`/users/teacher/${teacherId}/students/${id}`, payload);
     return response.data;
 };
 

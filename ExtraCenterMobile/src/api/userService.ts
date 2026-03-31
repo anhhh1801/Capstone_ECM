@@ -19,11 +19,6 @@ export const removeStudentFromCenter = async (centerId: number, studentId: numbe
     await axiosClient.delete(`/centers/${centerId}/students/${studentId}`);
 };
 
-// Xóa vĩnh viễn
-export const deleteStudent = async (studentId: number) => {
-    await axiosClient.delete(`/users/${studentId}`);
-};
-
 // API Cập nhật
 export const updateStudent = async (id: number, data: any) => {
     const response = await axiosClient.put(`/users/${id}`, data);
