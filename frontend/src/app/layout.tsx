@@ -33,7 +33,13 @@ export default function RootLayout({
       >
         <Header />
         <SessionManager />
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          containerStyle={{ zIndex: 4000 }}
+          toastOptions={{
+            style: { zIndex: 4000 },
+          }}
+        />
 
         {/* QUAN TRỌNG */}
         <main className="flex-1 flex flex-col min-h-0">

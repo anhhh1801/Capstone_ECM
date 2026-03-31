@@ -88,6 +88,7 @@ interface Props {
 
 export default function ClassSlotTab({ centerId, isManager }: Props) {
     const router = useRouter();
+    const slotsPerPage = 8;
     const [slots, setSlots] = useState<CenterClassSlot[]>([]);
     const [classrooms, setClassrooms] = useState<CenterClassroom[]>([]);
     const [courseStudentCounts, setCourseStudentCounts] = useState<Record<number, number>>({});
@@ -101,6 +102,7 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
     const [dayFilter, setDayFilter] = useState<(typeof FILTER_DAY_OPTIONS)[number]>("ALL");
     const [timeFrom, setTimeFrom] = useState("07:00");
     const [timeTo, setTimeTo] = useState("22:00");
+    const [currentPage, setCurrentPage] = useState(1);
     const [selectedOccurrence, setSelectedOccurrence] = useState<{
         slotId: number;
         occurrenceDate: string;
@@ -209,6 +211,23 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
             return searchMatch && dayMatch && timeMatch;
         });
     }, [slots, searchTerm, dayFilter, timeFrom, timeTo]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, dayFilter, timeFrom, timeTo, slots]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredSlots.length / slotsPerPage));
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    const paginatedSlots = useMemo(() => {
+        const startIndex = (currentPage - 1) * slotsPerPage;
+        return filteredSlots.slice(startIndex, startIndex + slotsPerPage);
+    }, [filteredSlots, currentPage]);
 
     const hasUnassignedClassroomSlots = useMemo(
         () => filteredSlots.some((slot) => !slot.classroom?.id),
@@ -648,8 +667,8 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-                        {filteredSlots.map((slot) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                        {paginatedSlots.map((slot) => (
                             <div
                                 key={slot.id}
                                 className="bg-[var(--color-soft-white)] border border-[var(--color-main)] shadow-sm hover:shadow-md transition rounded-lg"
@@ -703,6 +722,38 @@ export default function ClassSlotTab({ centerId, isManager }: Props) {
                             </div>
                         ))}
                     </div>
+
+                    {filteredSlots.length > slotsPerPage && (
+                        <div className="flex flex-col gap-3 rounded-lg border border-[var(--color-main)] bg-white p-4 md:flex-row md:items-center md:justify-between">
+                            <p className="text-sm text-[var(--color-text)]">
+                                Showing {(currentPage - 1) * slotsPerPage + 1}
+                                {" - "}
+                                {Math.min(currentPage * slotsPerPage, filteredSlots.length)} of {filteredSlots.length} class slots
+                            </p>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                    disabled={currentPage === 1}
+                                    className="rounded-lg border border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[var(--color-main)]"
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="min-w-[90px] text-center text-sm font-semibold text-[var(--color-text)]">
+                                    Page {currentPage} / {totalPages}
+                                </span>
+
+                                <button
+                                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="rounded-lg border border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[var(--color-main)]"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Schedule Timeline */}
                     <div className={`schedule-timeline rounded-lg overflow-hidden border border-[var(--color-main)] relative z-0 ${isAnyOverlayOpen ? "pointer-events-none select-none" : ""}`}>

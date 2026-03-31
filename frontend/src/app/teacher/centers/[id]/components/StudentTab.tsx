@@ -45,8 +45,16 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 		const q = searchName.trim().toLowerCase();
 
 		return students.filter((student) => {
-			const fullName = `${student.lastName || ""} ${student.firstName || ""}`.trim().toLowerCase();
-			const matchName = q.length === 0 || fullName.includes(q);
+			const firstName = (student.firstName || "").trim().toLowerCase();
+			const lastName = (student.lastName || "").trim().toLowerCase();
+			const fullName = `${lastName} ${firstName}`.trim();
+			const reverseFullName = `${firstName} ${lastName}`.trim();
+			const matchName =
+				q.length === 0 ||
+				fullName.includes(q) ||
+				reverseFullName.includes(q) ||
+				firstName.includes(q) ||
+				lastName.includes(q);
 			const matchCourse =
 				selectedCourseId === "ALL" ||
 				student.courses.some((course) => String(course.id) === selectedCourseId);

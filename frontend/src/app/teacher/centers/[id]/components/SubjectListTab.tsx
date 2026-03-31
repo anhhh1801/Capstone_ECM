@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2Icon, Trash2, PlusIcon, BookA } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, Edit2Icon, Trash2, PlusIcon, BookA, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterSubject,
@@ -19,10 +19,16 @@ interface Props {
 export default function SubjectListTab({ centerId, isManager }: Props) {
     const [subjects, setSubjects] = useState<CenterSubject[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchName, setSearchName] = useState("");
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<CenterSubject | null>(null);
     const [deletingSubject, setDeletingSubject] = useState<CenterSubject | null>(null);
+
+    const filteredSubjects = useMemo(() => {
+        const query = searchName.trim().toLowerCase();
+        return subjects.filter((subject) => !query || subject.name.toLowerCase().includes(query));
+    }, [subjects, searchName]);
 
     const fetch = useCallback(async () => {
         try {
@@ -109,16 +115,25 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
                 )}
             </div>
 
+            <div className="relative max-w-md">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    placeholder="Search subject by name"
+                    className="w-full pl-9 pr-3 py-2 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                />
+            </div>
+
             {subjects.length === 0 ? (
                 <div className="p-10 text-center text-gray-500">No subjects created yet.</div>
+            ) : filteredSubjects.length === 0 ? (
+                <div className="p-10 text-center text-gray-500 bg-white rounded-xl border">
+                    No subjects match your search.
+                </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                    {subjects.length === 0 ? (
-                        <div className="col-span-full p-10 text-center text-gray-500 bg-white rounded-xl border">
-                            No subjects created yet.
-                        </div>
-                    ) : (
-                        subjects.map(subject => (
+                    {filteredSubjects.map(subject => (
 
                             <div
                                 key={subject.id}
@@ -162,8 +177,7 @@ export default function SubjectListTab({ centerId, isManager }: Props) {
 
                             </div>
 
-                        ))
-                    )}
+                        ))}
                 </div>
             )}
         </div>

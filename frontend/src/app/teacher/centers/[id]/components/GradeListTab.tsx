@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2Icon, Trash2, BookPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, Edit2Icon, Trash2, BookPlus, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import {
     CenterGrade,
@@ -19,6 +19,7 @@ interface Props {
 export default function GradeListTab({ centerId, isManager }: Props) {
     const [grades, setGrades] = useState<CenterGrade[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchName, setSearchName] = useState("");
 
     const fetch = useCallback(async () => {
         try {
@@ -40,6 +41,11 @@ export default function GradeListTab({ centerId, isManager }: Props) {
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingGrade, setEditingGrade] = useState<CenterGrade | null>(null);
     const [deletingGrade, setDeletingGrade] = useState<CenterGrade | null>(null);
+
+    const filteredGrades = useMemo(() => {
+        const query = searchName.trim().toLowerCase();
+        return grades.filter((grade) => !query || grade.name.toLowerCase().includes(query));
+    }, [grades, searchName]);
 
     const handleDelete = async (grade: CenterGrade) => {
         try {
@@ -105,10 +111,24 @@ export default function GradeListTab({ centerId, isManager }: Props) {
 
             </div>
 
+            <div className="relative max-w-md">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    placeholder="Search grade by name"
+                    className="w-full pl-9 pr-3 py-2 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+                />
+            </div>
+
             {/* EMPTY STATE */}
             {grades.length === 0 ? (
                 <div className="p-10 text-center text-gray-500 border rounded-lg">
                     No grades created yet.
+                </div>
+            ) : filteredGrades.length === 0 ? (
+                <div className="p-10 text-center text-gray-500 border rounded-lg bg-white">
+                    No grades match your search.
                 </div>
             ) : (
 
@@ -129,7 +149,7 @@ export default function GradeListTab({ centerId, isManager }: Props) {
                         {/* TABLE BODY */}
                         <tbody className="divide-y divide-gray-100">
 
-                            {grades.map((grade) => (
+                            {filteredGrades.map((grade) => (
 
                                 <tr key={grade.id} className="hover:bg-blue-50 transition">
 

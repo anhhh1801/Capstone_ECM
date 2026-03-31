@@ -193,6 +193,16 @@ export default function CenterManagementPage() {
         safeCurrentPage * CENTERS_PER_PAGE
     );
 
+    const tabButtonClass = (tab: "managed" | "teaching" | "archived") => {
+        const isActive = activeTab === tab;
+
+        return `flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+            isActive
+                ? "border-[var(--color-main)] bg-[var(--color-main)] text-white shadow-sm"
+                : "border-[var(--color-main)]/20 bg-white text-[var(--color-text)] hover:border-[var(--color-main)] hover:text-[var(--color-main)]"
+        }`;
+    };
+
     return (
         <div className="space-y-6">
 
@@ -351,37 +361,25 @@ export default function CenterManagementPage() {
             )}
 
             {/* Tabs */}
-            <div className="bg-[var(--color-soft-white)] p-4 rounded-xl">
-                <div className="flex border-b border-[var(--color-text)] gap-6">
+            <div className="rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] p-4 shadow-sm">
+                <div className="flex flex-wrap gap-3">
                     <button
                         onClick={() => setActiveTab("managed")}
-                        className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
-                        ${activeTab === "managed"
-                                ? "border-[var(--color-main)] text-[var(--color-main)]"
-                                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
-                            }`}
+                        className={tabButtonClass("managed")}
                     >
                         <Building2 size={18} /> Managed by Me ({managedCenters.length})
                     </button>
 
                     <button
                         onClick={() => setActiveTab("teaching")}
-                        className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
-                            ${activeTab === "teaching"
-                                ? "border-[var(--color-main)] text-[var(--color-main)]"
-                                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
-                            }`}
+                        className={tabButtonClass("teaching")}
                     >
                         <Briefcase size={18} /> Teaching At ({teachingCenters.length})
                     </button>
 
                     <button
                         onClick={() => setActiveTab("archived")}
-                        className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition
-                            ${activeTab === "archived"
-                                ? "border-[var(--color-main)] text-[var(--color-main)]"
-                                : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
-                            }`}
+                        className={tabButtonClass("archived")}
                     >
                         <Archive size={18} /> Archived ({archivedCenters.length})
                     </button>
@@ -415,36 +413,84 @@ export default function CenterManagementPage() {
             />
 
             {/* Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
                 {loading ? (
-                    <p>Loading...</p>
+                    <div className="rounded-2xl border border-[var(--color-main)]/15 bg-white p-10 text-center text-[var(--color-text)] shadow-sm lg:col-span-2 2xl:col-span-3">
+                        Loading centers...
+                    </div>
+                ) : paginatedCenters.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[var(--color-main)]/30 bg-white p-12 text-center text-[var(--color-text)] shadow-sm lg:col-span-2 2xl:col-span-3">
+                        {activeTab === "managed"
+                            ? "No managed centers available yet."
+                            : activeTab === "teaching"
+                                ? "No teaching centers available yet."
+                                : "No archived centers available yet."}
+                    </div>
                 ) : (
                     paginatedCenters.map(center => (
                         <div
                             key={center.id}
-                            className="bg-[var(--color-soft-white)] p-4 rounded-xl shadow-sm border-2 border-[var(--color-main)] flex flex-col gap-3"
+                            className="group flex min-h-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--color-main)]/20 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                         >
-                            {/* TITLE */}
-                            <div className="flex justify-between items-start gap-2">
-                                <h3 className="text-2xl font-semibold text-[var(--color-text)] leading-snug min-w-0 flex-1 break-words">
-                                    {center.name}
-                                </h3>
+                            <div className="bg-gradient-to-r from-[var(--color-main)] via-[var(--color-main)] to-[var(--color-secondary)] px-5 py-4 text-white">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                                            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white/90">
+                                                {activeTab === "managed"
+                                                    ? "Managed"
+                                                    : activeTab === "teaching"
+                                                        ? "Teaching"
+                                                        : "Archived"}
+                                            </span>
 
-                                {activeTab !== "archived" && (
-                                    <Link
-                                        href={`/teacher/centers/${center.id}`}
-                                        className="text-[var(--color-main)] hover:text-[var(--color-secondary)] shrink-0"
-                                    >
-                                        <ExternalLink size={36} />
-                                    </Link>
-                                )}
+                                            {center.phoneNumber && (
+                                                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
+                                                    {center.phoneNumber}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h3 className="text-2xl font-semibold leading-snug break-words">
+                                            {center.name}
+                                        </h3>
+                                    </div>
+
+                                    {activeTab !== "archived" && (
+                                        <Link
+                                            href={`/teacher/centers/${center.id}`}
+                                            className="shrink-0 rounded-xl border border-white/25 bg-white/10 p-2 text-white transition hover:bg-white hover:text-[var(--color-main)]"
+                                        >
+                                            <ExternalLink size={24} />
+                                        </Link>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* DESCRIPTION */}
-                            <div>
+                            <div className="flex flex-1 flex-col gap-4 p-5">
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text)]/55">
+                                            Manager
+                                        </p>
+                                        <p className="mt-1 font-semibold text-[var(--color-text)]">
+                                            {center.manager?.lastName} {center.manager?.firstName}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-[var(--color-soft-white)] px-4 py-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text)]/55">
+                                            Status
+                                        </p>
+                                        <p className="mt-1 font-semibold text-[var(--color-text)]">
+                                            {activeTab === "archived" ? "Archived Center" : "Active Center"}
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div
-                                    className={`text-sm text-[var(--color-text)] leading-relaxed break-words ${expandedCard === center.id
-                                        ? "max-h-28 overflow-y-auto"
+                                    className={`rounded-xl border border-[var(--color-main)]/10 bg-[var(--color-soft-white)] px-4 py-3 text-sm text-[var(--color-text)] leading-relaxed break-words ${expandedCard === center.id
+                                        ? "max-h-32 overflow-y-auto"
                                         : "line-clamp-3"
                                         }`}
                                 >
@@ -458,49 +504,49 @@ export default function CenterManagementPage() {
                                                 expandedCard === center.id ? null : center.id
                                             )
                                         }
-                                        className="text-blue-600 text-xs mt-1 hover:underline"
+                                        className="w-fit text-xs font-semibold text-[var(--color-main)] transition hover:underline"
                                     >
                                         {expandedCard === center.id ? "Show less" : "Show more"}
                                     </button>
                                 )}
-                            </div>
 
-                            {/* ACTIONS */}
-                            <div className="mt-auto pt-3 border-t border-gray-100 flex justify-between items-center">
-                                {activeTab === "managed" ? (
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => openEditForm(center)}
-                                            className="bg-[var(--color-secondary)] text-white font-medium hover:bg-[var(--color-soft-white)] hover:text-[var(--color-secondary)] border-2 p-2 rounded-lg"
-                                        >
-                                            <Edit2Icon size={22} />
-                                        </button>
-                                        <button
-                                            onClick={() => setArchiveTarget(center)}
-                                            className="bg-[var(--color-alert)] text-white font-medium hover:bg-[var(--color-soft-white)] hover:text-[var(--color-alert)] border-2 p-2 rounded-lg">
-                                            <Archive size={22} />
-                                        </button>
-                                    </div>
-                                ) : activeTab === "teaching" ? (
-                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                        Manager: {center.manager.lastName}
-                                    </span>
-                                ) : (
-                                    <div className="flex w-full items-center justify-between gap-2">
-                                        <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded font-medium">
-                                            Archived: {formatArchivedAt(center.archivedAt)}
+                                <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--color-main)]/10 pt-4">
+                                    {activeTab === "managed" ? (
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => openEditForm(center)}
+                                                className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--color-secondary)] bg-[var(--color-secondary)] px-3 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-[var(--color-secondary)]"
+                                            >
+                                                <Edit2Icon size={18} /> Edit
+                                            </button>
+                                            <button
+                                                onClick={() => setArchiveTarget(center)}
+                                                className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--color-alert)] bg-[var(--color-alert)] px-3 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-[var(--color-alert)]"
+                                            >
+                                                <Archive size={18} /> Archive
+                                            </button>
+                                        </div>
+                                    ) : activeTab === "teaching" ? (
+                                        <span className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
+                                            Assigned by center manager
                                         </span>
+                                    ) : (
+                                        <div className="flex w-full items-center justify-between gap-3">
+                                            <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-700">
+                                                Archived: {formatArchivedAt(center.archivedAt)}
+                                            </span>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setRestoreTarget(center)}
-                                            className="flex items-center gap-1 rounded-lg border-2 border-[var(--color-main)] px-3 py-1.5 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white"
-                                        >
-                                            <RotateCcw size={16} /> Restore
-                                        </button>
-                                    </div>
-                                )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setRestoreTarget(center)}
+                                                className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white"
+                                            >
+                                                <RotateCcw size={16} /> Restore
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))
@@ -508,7 +554,7 @@ export default function CenterManagementPage() {
             </div>
 
             {!loading && visibleCenters.length > 0 && (
-                <div className="flex items-center justify-between rounded-xl bg-[var(--color-soft-white)] px-4 py-3 border border-[var(--color-main)]/20">
+                <div className="flex items-center justify-between rounded-2xl border border-[var(--color-main)]/15 bg-[var(--color-soft-white)] px-4 py-3 shadow-sm">
                     <p className="text-sm text-[var(--color-text)]">
                         Showing {(safeCurrentPage - 1) * CENTERS_PER_PAGE + 1}-{Math.min(safeCurrentPage * CENTERS_PER_PAGE, visibleCenters.length)} of {visibleCenters.length} centers
                     </p>
