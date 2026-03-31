@@ -2,19 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { getStudentCourses, Course } from "@/services/courseService";
-import { Search, BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink, Filter } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { CourseStatus, getCourseStatusClasses, getCourseStatusLabel } from "@/utils/courseStatus";
+import { getCourseStatusClasses, getCourseStatusLabel } from "@/utils/courseStatus";
 
 export default function CourseListPage() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState<CourseStatus>("IN_PROGRESS");
+    const [selectedCenterId, setSelectedCenterId] = useState<string>("ALL");
 
-    const statusOptions: CourseStatus[] = ["UPCOMING", "IN_PROGRESS", "ENDED"];
+    const currentCourses = courses.filter(
+        (course) => course.status === "UPCOMING" || course.status === "IN_PROGRESS"
+    );
 
-    const visibleCourses = courses.filter((course) => course.status === statusFilter);
+    const centerOptions = Array.from(
+        new Map(
+            currentCourses
+                .filter((course) => typeof course.center?.id === "number")
+                .map((course) => [course.center.id as number, course.center])
+        ).values()
+    ).sort((left, right) => left.name.localeCompare(right.name));
+
+    const visibleCourses = selectedCenterId === "ALL"
+        ? currentCourses
+        : currentCourses.filter((course) => course.center?.id === Number(selectedCenterId));
 
     const fetchCourses = async () => {
         try {
@@ -43,124 +55,99 @@ export default function CourseListPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold text-[var(--color-text)] flex items-center gap-2">
                     <BookOpen className="text-[var(--color-main)]" />
-                    Manage Courses
+                    Current Courses
                 </h1>
 
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative">
-                <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]"
-                    size={20}
-                />
-                <input
-                    type="text"
-                    placeholder="Search courses..."
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)] transition"
-                />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-                {statusOptions.map((status) => {
-                    const isActive = statusFilter === status;
-
-                    return (
-                        <button
-                            key={status}
-                            type="button"
-                            onClick={() => setStatusFilter(status)}
-                            className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
-                                isActive
-                                    ? "border-[var(--color-main)] bg-[var(--color-main)] text-white"
-                                    : "border-[var(--color-main)] bg-[var(--color-soft-white)] text-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-white"
-                            }`}
-                        >
-                            {getCourseStatusLabel(status)}
-                        </button>
-                    );
-                })}
             </div>
 
             <div className="flex items-center gap-2 text-[var(--color-text)]">
                 <BookOpen size={18} className="text-[var(--color-main)]" />
                 <h2 className="text-lg font-semibold">
-                    {getCourseStatusLabel(statusFilter)} Courses
+                    Upcoming And In-Progress Courses
                 </h2>
             </div>
 
-            {/* Table Container */}
-            <div className="bg-[var(--color-soft-white)] rounded-xl shadow-sm border-2 border-[var(--color-main)] overflow-hidden">
-
-                {loading ? (
-                    <div className="p-8 text-center text-[var(--color-text)]">
-                        Loading data...
-                    </div>
-                ) : visibleCourses.length === 0 ? (
-                    <div className="p-12 text-center text-[var(--color-text)] flex flex-col items-center">
-                        <BookOpen size={48} className="text-[var(--color-main)] mb-4" />
-                        <p>{courses.length === 0 ? "You don't have any courses yet." : `No ${getCourseStatusLabel(statusFilter).toLowerCase()} courses to show.`}</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-[var(--color-text)]">
-                            <thead className="bg-[var(--color-main)] text-white uppercase text-xs">
-                                <tr>
-                                    <th className="px-6 py-4">Course name</th>
-                                    <th className="px-6 py-4">Subject</th>
-                                    <th className="px-6 py-4">Center</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-
-                            <tbody className="divide-y divide-[var(--color-main)]/20">
-                                {visibleCourses.map((course) => (
-                                    <tr
-                                        key={course.id}
-                                        className="hover:bg-[var(--color-main)]/5 transition"
-                                    >
-                                        <td className="px-6 py-4 font-semibold">
-                                            <div className="break-words">
-                                                {course.name}
-                                            </div>
-                                            <span className="block text-xs text-[var(--color-text)]/70 mt-1">
-                                                Grade {course.grade?.name || "-"}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            {course.subject?.name || "-"}
-                                        </td>
-
-                                        <td className="px-6 py-4 break-words">
-                                            {course.center?.name}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border-2 ${getCourseStatusClasses(course.status)}`}
-                                            >
-                                                {getCourseStatusLabel(course.status)}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-6 py-4 text-right">
-                                            <Link
-                                                href={`/student/courses/${course.id}`}
-                                                className="inline-flex items-center gap-1 bg-[var(--color-secondary)] text-white p-2 rounded-lg hover:bg-[var(--color-soft-white)] hover:text-[var(--color-secondary)] border-2 transition"
-                                            >
-                                                <ExternalLink size={22} />
-                                            </Link>
-
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+            <div className="relative max-w-xs">
+                <Filter
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-main)]"
+                    size={18}
+                />
+                <select
+                    value={selectedCenterId}
+                    onChange={(event) => setSelectedCenterId(event.target.value)}
+                    className="w-full appearance-none rounded-xl border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] py-3 pl-10 pr-8 text-sm text-[var(--color-text)] outline-none transition focus:ring-2 focus:ring-[var(--color-secondary)]"
+                >
+                    <option value="ALL">All Centers</option>
+                    {centerOptions.map((center) => (
+                        <option key={center.id} value={center.id}>
+                            {center.name}
+                        </option>
+                    ))}
+                </select>
             </div>
+
+            {loading ? (
+                <div className="rounded-xl border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-8 text-center text-[var(--color-text)] shadow-sm">
+                    Loading data...
+                </div>
+            ) : visibleCourses.length === 0 ? (
+                <div className="rounded-xl border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-12 text-center text-[var(--color-text)] shadow-sm flex flex-col items-center">
+                    <BookOpen size={48} className="text-[var(--color-main)] mb-4" />
+                    <p>
+                        {selectedCenterId === "ALL"
+                            ? "You do not have any upcoming or in-progress courses."
+                            : "No upcoming or in-progress courses found for this center."}
+                    </p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                    {visibleCourses.map((course) => (
+                        <div
+                            key={course.id}
+                            className="rounded-2xl border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                        >
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <h3 className="text-lg font-bold text-[var(--color-text)] break-words">
+                                        {course.name}
+                                    </h3>
+                                    <p className="mt-1 text-sm text-[var(--color-text)]/70">
+                                        Grade {course.grade?.name || "-"}
+                                    </p>
+                                </div>
+
+                                <span
+                                    className={`inline-flex shrink-0 items-center rounded-full border-2 px-3 py-1 text-xs font-medium ${getCourseStatusClasses(course.status)}`}
+                                >
+                                    {getCourseStatusLabel(course.status)}
+                                </span>
+                            </div>
+
+                            <div className="mt-5 space-y-3 text-sm text-[var(--color-text)]">
+                                <div className="flex items-start justify-between gap-4 rounded-xl bg-white/70 px-4 py-3">
+                                    <span className="font-semibold text-[var(--color-text)]/70">Subject</span>
+                                    <span className="text-right font-medium">{course.subject?.name || "-"}</span>
+                                </div>
+
+                                <div className="flex items-start justify-between gap-4 rounded-xl bg-white/70 px-4 py-3">
+                                    <span className="font-semibold text-[var(--color-text)]/70">Center</span>
+                                    <span className="text-right font-medium">{course.center?.name || "-"}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end">
+                                <Link
+                                    href={`/student/courses/${course.id}`}
+                                    className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--color-secondary)] bg-[var(--color-secondary)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-secondary)]"
+                                >
+                                    <ExternalLink size={18} />
+                                    Open Course
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -7,8 +7,7 @@ import {
     BookOpen,
     CalendarDays,
     ChevronLeft,
-    ChevronRight,
-    LogOut
+    ChevronRight
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -100,19 +99,6 @@ export default function StudentLayout({
                         );
                     })}
                 </nav>
-
-                {/* Footer / Logout */}
-                <div className="p-4 border-t border-white/10 shrink-0">
-                    <button
-                        onClick={handleLogout}
-                        className={`w-full flex items-center ${collapsed ? "justify-center" : "gap-3 px-4"
-                            } py-3 text-red-200 hover:text-white hover:bg-red-500/20 rounded-xl transition-all font-bold`}
-                        title={collapsed ? "Logout" : ""}
-                    >
-                        <LogOut size={22} className="shrink-0" />
-                        {!collapsed && <span>Logout</span>}
-                    </button>
-                </div>
             </aside>
 
             {/* MAIN CONTENT AREA */}

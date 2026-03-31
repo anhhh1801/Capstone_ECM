@@ -101,12 +101,12 @@ export default function StudentDashboard() {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-[var(--color-main)]/30">
-                <h2 className="text-lg font-bold text-[var(--color-text)] mb-4">Upcoming Classes</h2>
+                <h2 className="text-lg font-bold text-[var(--color-text)] mb-4">Next Classes</h2>
 
                 {loading ? (
-                    <p className="text-sm text-gray-500">Loading upcoming classes...</p>
+                    <p className="text-sm text-gray-500">Loading next classes...</p>
                 ) : studentUpcomingClasses.length === 0 ? (
-                    <p className="text-sm text-gray-500">No upcoming classes in the next 14 days.</p>
+                    <p className="text-sm text-gray-500">No classes in the next 14 days.</p>
                 ) : (
                     <div className="space-y-3">
                         {studentUpcomingClasses.map((session, index) => (
