@@ -19,12 +19,11 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
-                                .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                                .cors(cors -> cors.configure(http)) // Kích hoạt CORS
+                                .csrf(csrf -> csrf.disable())
+                                .cors(cors -> cors.configure(http))
                                 .authorizeHttpRequests(auth -> auth
                                                 .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD)
                                                 .permitAll()
-                                                // Cho phép các API này truy cập tự do (không cần token)
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers(
                                                                 "/api/users/login",
@@ -35,8 +34,6 @@ public class SecurityConfig {
                                                                 "/error")
                                                 .permitAll()
 
-                                                // Thêm dòng này vào SecurityConfig
-                                                // Sửa lại 3 dòng này trong SecurityConfig.java
                                                 .requestMatchers(HttpMethod.POST, "/api/courses", "/api/courses/**")
                                                 .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
                                                                 "ADMIN", "ROLE_ADMIN")
@@ -48,7 +45,7 @@ public class SecurityConfig {
                                                                 "ADMIN", "ROLE_ADMIN")
                                                 .requestMatchers("/api/materials", "/api/materials/**")
                                                 .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
-                                                                "ADMIN", "ROLE_ADMIN")
+                                                                "ADMIN", "ROLE_ADMIN", "STUDENT", "ROLE_STUDENT")
                                                 .requestMatchers("/api/assignments", "/api/assignments/**")
                                                 .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
                                                                 "ADMIN", "ROLE_ADMIN", "STUDENT", "ROLE_STUDENT")

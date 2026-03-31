@@ -60,6 +60,6 @@ public class JwtUtils {
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
-                .get("role", String.class); // Lấy field "role" ra
+                .get("role", String.class);
     }
 }

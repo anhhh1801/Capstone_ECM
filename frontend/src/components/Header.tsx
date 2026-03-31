@@ -34,7 +34,7 @@ export default function Header() {
 
     const roleName =
         typeof user?.role === "string"
-            ? user.role
+            ? user.role.toString()
             : user?.role?.name;
 
     const dashboardHref =

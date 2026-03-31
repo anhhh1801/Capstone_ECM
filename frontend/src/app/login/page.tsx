@@ -22,7 +22,7 @@ export default function LoginPage() {
         if (stored) {
             try {
                 const { user } = JSON.parse(stored);
-                const roleName = typeof user?.role === "string" ? user.role : user?.role?.name;
+                const roleName = typeof user?.role === "string" ? user.role.toString() : user?.role?.name;
                 if (roleName) {
                     if (roleName === "TEACHER") {
                         router.replace("/teacher/dashboard");
@@ -47,7 +47,7 @@ export default function LoginPage() {
             localStorage.setItem("loginResponse", JSON.stringify({ ...loginResponse, loginTime: Date.now() }));
 
             const user = loginResponse.user;
-            const roleName = typeof user?.role === "string" ? user.role : user?.role?.name;
+            const roleName = typeof user?.role === "string" ? user.role.toString() : user?.role?.name;
 
             toast.success(`Hello ${user.firstName} ${user.lastName}!`);
 

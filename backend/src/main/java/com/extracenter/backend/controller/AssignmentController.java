@@ -106,4 +106,9 @@ public class AssignmentController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/student/{studentId}/pending")
+    public ResponseEntity<List<Assignment>> getPendingAssignments(@PathVariable Long studentId) {
+        return ResponseEntity.ok(assignmentService.getPendingAssignments(studentId));
+    }
 }

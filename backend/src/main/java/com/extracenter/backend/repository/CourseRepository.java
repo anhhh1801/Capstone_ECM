@@ -20,6 +20,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // Find all courses taught by a specific teacher
     List<Course> findByTeacherId(Long teacherId);
 
+    @Query("SELECT c FROM Course c JOIN c.enrollments e WHERE e.student.id = :studentId")
+    List<Course> findByStudentId(@Param("studentId") Long studentId);
+
     // Find all courses in a center taught by a specific teacher.
     List<Course> findByCenterIdAndTeacherId(Long centerId, Long teacherId);
 

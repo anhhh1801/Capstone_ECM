@@ -168,6 +168,10 @@ public class CourseService {
         return courseRepository.findByTeacherId(teacherId);
     }
 
+    public List<Course> getCoursesByStudentId(Long studentId) {
+        return courseRepository.findByStudentId(studentId);
+    }
+
     public List<Course> getCoursesByCenter(Long centerId) {
         return courseRepository.findByCenterId(centerId);
     }
@@ -177,10 +181,10 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
     }
 
-        @Transactional
-        public List<CourseSessionResponse> getClassSessionsByCourse(Long courseId) {
+    @Transactional
+    public List<CourseSessionResponse> getClassSessionsByCourse(Long courseId) {
         Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new RuntimeException("Course not found!"));
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
 
         synchronizeSessionsFromActiveClassSlots(course);
 
@@ -656,7 +660,8 @@ public class CourseService {
                 .note(session.getNote())
                 .classSlotId(slot != null ? slot.getId() : null)
                 .classroomId(slot != null && slot.getClassroom() != null ? slot.getClassroom().getId() : null)
-                .classroomLocation(slot != null && slot.getClassroom() != null ? slot.getClassroom().getLocation() : null)
+                .classroomLocation(
+                        slot != null && slot.getClassroom() != null ? slot.getClassroom().getLocation() : null)
                 .build();
     }
 }
