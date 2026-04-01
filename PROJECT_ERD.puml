@@ -1,0 +1,241 @@
+@startuml
+hide methods
+hide stereotypes
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+entity "Role" as Role {
+  *id : BIGINT
+  --
+  name : VARCHAR
+}
+
+entity "User" as User {
+  *id : BIGINT
+  --
+  firstName : VARCHAR
+  lastName : VARCHAR
+  email : VARCHAR
+  personalEmail : VARCHAR
+  password : VARCHAR
+  phoneNumber : VARCHAR
+  dateOfBirth : DATE
+  avatarImg : VARCHAR
+  createdDate : DATETIME
+  isLocked : BOOLEAN
+  isEnabled : BOOLEAN
+  FK role_id : BIGINT
+  FK created_by_teacher_id : BIGINT
+}
+
+entity "Center" as Center {
+  *id : BIGINT
+  --
+  name : VARCHAR
+  phoneNumber : VARCHAR
+  description : TEXT
+  createdDate : DATETIME
+  archivedAt : DATETIME
+  avatarImg : VARCHAR
+  FK manager_id : BIGINT
+}
+
+entity "Subject" as Subject {
+  *id : BIGINT
+  --
+  name : VARCHAR
+  description : TEXT
+  FK center_id : BIGINT
+}
+
+entity "Grade" as Grade {
+  *id : BIGINT
+  --
+  name : VARCHAR
+  description : TEXT
+  fromAge : INT
+  toAge : INT
+  FK center_id : BIGINT
+}
+
+entity "Scholarship" as Scholarship {
+  *id : BIGINT
+  --
+  name : VARCHAR
+  discountPercentage : FLOAT
+}
+
+entity "Course" as Course {
+  *id : BIGINT
+  --
+  name : VARCHAR
+  description : TEXT
+  startDate : DATE
+  endDate : DATE
+  status : VARCHAR
+  invitationStatus : VARCHAR
+  FK subject_id : BIGINT
+  FK grade_id : BIGINT
+  FK center_id : BIGINT
+  FK teacher_id : BIGINT
+  FK pending_teacher_id : BIGINT
+}
+
+entity "Enrollment" as Enrollment {
+  *id : BIGINT
+  --
+  FK student_id : BIGINT
+  FK course_id : BIGINT
+  FK scholarship_id : BIGINT
+  enrollmentDate : DATE
+  progressScore : FLOAT
+  testScore : FLOAT
+  finalScore : FLOAT
+  performance : CHAR
+}
+
+entity "Classroom" as Classroom {
+  *id : BIGINT
+  --
+  seat : INT
+  location : VARCHAR
+  lastMaintainDate : DATE
+  FK center_id : BIGINT
+}
+
+entity "ClassSlot" as ClassSlot {
+  *id : BIGINT
+  --
+  dayOfWeek : VARCHAR
+  startDate : DATE
+  endDate : DATE
+  startTime : TIME
+  endTime : TIME
+  isRecurring : BOOLEAN
+  FK center_id : BIGINT
+  FK course_id : BIGINT
+  FK classroom_id : BIGINT
+}
+
+entity "ClassSession" as ClassSession {
+  *id : BIGINT
+  --
+  FK course_id : BIGINT
+  date : DATE
+  startTime : TIME
+  endTime : TIME
+  status : VARCHAR
+  note : VARCHAR
+}
+
+entity "Attendance" as Attendance {
+  *id : BIGINT
+  --
+  FK enrollment_id : BIGINT
+  FK session_id : BIGINT
+  FK class_slot_id : BIGINT
+  date : DATE
+  status : VARCHAR
+  isPresent : BOOLEAN
+  note : VARCHAR
+}
+
+entity "Assignment" as Assignment {
+  *id : BIGINT
+  --
+  title : VARCHAR
+  description : TEXT
+  dueDate : DATETIME
+  fileUrl : VARCHAR
+  fileName : VARCHAR
+  createdDate : DATETIME
+  FK course_id : BIGINT
+  FK class_session_id : BIGINT
+}
+
+entity "AssignmentSubmission" as AssignmentSubmission {
+  *id : BIGINT
+  --
+  FK assignment_id : BIGINT
+  FK student_id : BIGINT
+  fileUrl : VARCHAR
+  fileName : VARCHAR
+  submittedAt : DATETIME
+  score : FLOAT
+  feedback : TEXT
+  status : VARCHAR
+}
+
+entity "Material" as Material {
+  *id : BIGINT
+  --
+  fileName : VARCHAR
+  fileUrl : VARCHAR
+  fileType : VARCHAR
+  uploadedDate : DATETIME
+  FK course_id : BIGINT
+  FK class_session_id : BIGINT
+}
+
+entity "VerificationToken" as VerificationToken {
+  *id : BIGINT
+  --
+  token : VARCHAR
+  expiryDate : DATETIME
+  FK user_id : BIGINT
+}
+
+entity "student_centers" as StudentCenters {
+  *FK student_id : BIGINT
+  *FK center_id : BIGINT
+}
+
+Role ||--o{ User : role_id
+User ||--o{ User : created_by_teacher_id
+User ||--o{ Center : manager_id
+Center ||--o{ Subject : center_id
+Center ||--o{ Grade : center_id
+Center ||--o{ Course : center_id
+Center ||--o{ Classroom : center_id
+Center ||--o{ ClassSlot : center_id
+Subject ||--o{ Course : subject_id
+Grade ||--o{ Course : grade_id
+User ||--o{ Course : teacher_id
+User ||--o{ Course : pending_teacher_id
+User ||--o{ Enrollment : student_id
+Course ||--o{ Enrollment : course_id
+Scholarship ||--o{ Enrollment : scholarship_id
+Course ||--o{ ClassSession : course_id
+Course ||--o{ ClassSlot : course_id
+Classroom ||--o{ ClassSlot : classroom_id
+Enrollment ||--o{ Attendance : enrollment_id
+ClassSession ||--o{ Attendance : session_id
+ClassSlot ||--o{ Attendance : class_slot_id
+Course ||--o{ Assignment : course_id
+ClassSession ||--o{ Assignment : class_session_id
+Assignment ||--o{ AssignmentSubmission : assignment_id
+User ||--o{ AssignmentSubmission : student_id
+Course ||--o{ Material : course_id
+ClassSession ||--o{ Material : class_session_id
+User ||--|| VerificationToken : user_id
+User ||--o{ StudentCenters : student_id
+Center ||--o{ StudentCenters : center_id
+
+note bottom of Enrollment
+Enrollment is the bridge table between
+students (User) and Course.
+It also stores scores and scholarship usage.
+end note
+
+note bottom of ClassSlot
+Recurring schedule rule.
+Related collection tables from JPA:
+- class_slot_days
+- class_slot_excluded_dates
+end note
+
+note bottom of ClassSession
+Concrete class occurrence on a specific date.
+end note
+
+@enduml

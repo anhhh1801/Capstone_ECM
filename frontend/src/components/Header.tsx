@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Logo from "./Logo";
 import type { User } from "@/services/authService";
@@ -9,6 +9,7 @@ import { Settings, LogOut, LayoutDashboard } from "lucide-react";
 
 export default function Header() {
     const [user, setUser] = useState<User | null>(null);
+    const headerRef = useRef<HTMLElement | null>(null);
     const router = useRouter();
     const pathname = usePathname();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -31,6 +32,20 @@ export default function Header() {
             setUser(null);
         }
     }, [pathname]);
+
+    useEffect(() => {
+        const updateHeaderHeight = () => {
+            const height = headerRef.current?.offsetHeight ?? 0;
+            document.documentElement.style.setProperty("--app-header-height", `${height}px`);
+        };
+
+        updateHeaderHeight();
+        window.addEventListener("resize", updateHeaderHeight);
+
+        return () => {
+            window.removeEventListener("resize", updateHeaderHeight);
+        };
+    }, [pathname, user, showLogoutConfirm]);
 
     const roleName =
         typeof user?.role === "string"
@@ -56,26 +71,27 @@ export default function Header() {
                     : "/";
 
     return (
-
-        <header className="text-white shadow-md">
-            <div className="flex justify-between items-center container mx-auto bg-[var(--color-soft-white)] text-[var(--color-text)] font-bold py-2">
-                <Link href="/" className="text-3xl">
+        <header ref={headerRef} className="sticky top-0 z-40 text-white shadow-md">
+            <div className="bg-[var(--color-soft-white)]">
+                <div className="shell-frame flex flex-col gap-1 py-2 text-[var(--color-text)] sm:flex-row sm:items-center sm:justify-between">
+                    <Link href="/" className="text-xl leading-tight font-bold sm:text-2xl lg:text-3xl">
                     Tutoring Center Management Application
-                </Link>
+                    </Link>
 
-                <p className="text-sm font-normal opacity-70">
-                    A project by EIU Students
-                </p>
+                    <p className="text-xs font-normal opacity-70 sm:text-sm">
+                        A project by EIU Students
+                    </p>
+                </div>
             </div>
             <div className="bg-[var(--color-main)]">
-                <div className="container mx-auto flex justify-between items-center py-2">
+                <div className="shell-frame flex flex-wrap items-center justify-between gap-3 py-2">
                     <Link href="/" className="flex items-center">
                         <Logo className="text-white" />
                     </Link>
-                    <nav className="flex items-center gap-2">
+                    <nav className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                         {user ? (
                             <>
-                                <span className="opacity-80">
+                                <span className="max-w-full break-all text-sm opacity-80 sm:text-base">
                                     {user.email}
                                 </span>
                                 <Link
@@ -84,12 +100,12 @@ export default function Header() {
                                     title="Dashboard"
                                     aria-label="Go to dashboard"
                                 >
-                                    <LayoutDashboard size={28} className="hover:text-[var(--color-secondary)] hover:size-10" />
+                                    <LayoutDashboard size={28} className="transition hover:scale-110 hover:text-[var(--color-secondary)]" />
                                 </Link>
                                 <Link
                                     href={profileHref}
                                     className="inline-flex items-center">
-                                    <Settings size={32} className="hover:text-[var(--color-secondary)] hover:size-10" />
+                                    <Settings size={32} className="transition hover:scale-110 hover:text-[var(--color-secondary)]" />
                                 </Link>
 
                                 <button
@@ -97,7 +113,7 @@ export default function Header() {
                                     className="inline-flex items-center"
                                     title="Logout"
                                 >
-                                    <LogOut size={32} className="hover:text-[var(--color-alert)]  hover:size-10" />
+                                    <LogOut size={32} className="transition hover:scale-110 hover:text-[var(--color-alert)]" />
                                 </button>
                             </>
                         ) : (

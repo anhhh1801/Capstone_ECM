@@ -29,24 +29,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col mx-auto bg-[var(--color-soft-white)] text-[var(--color-text)]`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[var(--color-soft-white)] text-[var(--color-text)]`}
       >
-        <Header />
-        <SessionManager />
-        <Toaster
-          position="top-right"
-          containerStyle={{ zIndex: 4000 }}
-          toastOptions={{
-            style: { zIndex: 4000 },
-          }}
-        />
+        <div className="flex min-h-screen flex-col">
+          <Header />
+          <SessionManager />
+          <Toaster
+            position="top-right"
+            containerStyle={{ zIndex: 4000 }}
+            toastOptions={{
+              style: { zIndex: 4000 },
+            }}
+          />
 
-        {/* QUAN TRỌNG */}
-        <main className="flex-1 flex flex-col min-h-0">
-          {children}
-        </main>
+          <main className="flex min-h-0 flex-1 flex-col">
+            {children}
+          </main>
 
-        <Footer />
+          <Footer />
+        </div>
       </body>
     </html>
   );
