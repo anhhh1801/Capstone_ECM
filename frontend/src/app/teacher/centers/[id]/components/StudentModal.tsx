@@ -5,6 +5,24 @@ import { X } from "lucide-react";
 import toast from "react-hot-toast";
 import { createStudentAuto } from "@/services/userService";
 
+type ApiError = {
+	response?: {
+		data?: string;
+	};
+};
+
+type StudentFormData = {
+	firstName: string;
+	lastName: string;
+	phoneNumber: string;
+	dateOfBirth: string;
+};
+
+type StudentFormErrors = Partial<Record<keyof StudentFormData, string>>;
+
+const namePattern = /^[\p{L}\s'-]+$/u;
+const getTodayDate = () => new Date().toISOString().split("T")[0];
+
 interface Props {
 	isOpen: boolean;
 	onClose: () => void;
@@ -14,12 +32,63 @@ interface Props {
 
 export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: Props) {
 	const [loading, setLoading] = useState(false);
-	const [form, setForm] = useState({
+	const [form, setForm] = useState<StudentFormData>({
 		firstName: "",
 		lastName: "",
 		phoneNumber: "",
 		dateOfBirth: "",
 	});
+	const [errors, setErrors] = useState<StudentFormErrors>({});
+
+	const validateField = (name: keyof StudentFormData, value: string) => {
+		const trimmedValue = value.trim();
+
+		switch (name) {
+			case "firstName":
+				if (!trimmedValue) return "First name is required.";
+				if (!namePattern.test(trimmedValue)) return "First name cannot contain numbers.";
+				return "";
+			case "lastName":
+				if (!trimmedValue) return "Last name is required.";
+				if (!namePattern.test(trimmedValue)) return "Last name cannot contain numbers.";
+				return "";
+			case "phoneNumber":
+				if (!trimmedValue) return "Phone number is required.";
+				if (!/^\d{10}$/.test(trimmedValue)) return "Phone number must be exactly 10 digits.";
+				return "";
+			case "dateOfBirth":
+				if (!trimmedValue) return "Date of birth is required.";
+				if (trimmedValue > getTodayDate()) return "Date of birth cannot be in the future.";
+				return "";
+			default:
+				return "";
+		}
+	};
+
+	const validateForm = () => {
+		const nextErrors: StudentFormErrors = {};
+
+		(Object.keys(form) as Array<keyof StudentFormData>).forEach((fieldName) => {
+			const message = validateField(fieldName, form[fieldName]);
+			if (message) {
+				nextErrors[fieldName] = message;
+			}
+		});
+
+		return nextErrors;
+	};
+
+	const handleFieldChange = (name: keyof StudentFormData, value: string) => {
+		const nextValue = name === "phoneNumber"
+			? value.replace(/\D/g, "").slice(0, 10)
+			: value;
+
+		setForm((prev) => ({ ...prev, [name]: nextValue }));
+		setErrors((prev) => ({
+			...prev,
+			[name]: validateField(name, nextValue),
+		}));
+	};
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -29,12 +98,19 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 			phoneNumber: "",
 			dateOfBirth: "",
 		});
+		setErrors({});
 	}, [isOpen]);
 
 	if (!isOpen) return null;
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		const nextErrors = validateForm();
+		if (Object.keys(nextErrors).length > 0) {
+			setErrors(nextErrors);
+			return;
+		}
+
 		try {
 			setLoading(true);
 			const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -46,8 +122,8 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 			toast.success("Student created successfully.");
 			onSuccess();
 			onClose();
-		} catch (error) {
-			toast.error("Failed to create student.");
+		} catch (error: unknown) {
+			toast.error((error as ApiError).response?.data || "Failed to create student.");
 		} finally {
 			setLoading(false);
 		}
@@ -70,9 +146,10 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 							<input
 								required
 								value={form.lastName}
-								onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-								className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+								onChange={(e) => handleFieldChange("lastName", e.target.value)}
+								className={`w-full rounded-lg border-2 p-3 outline-none ${errors.lastName ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
 							/>
+							{errors.lastName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.lastName}</p>}
 						</div>
 
 						<div>
@@ -80,19 +157,24 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 							<input
 								required
 								value={form.firstName}
-								onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-								className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+								onChange={(e) => handleFieldChange("firstName", e.target.value)}
+								className={`w-full rounded-lg border-2 p-3 outline-none ${errors.firstName ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
 							/>
+							{errors.firstName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.firstName}</p>}
 						</div>
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Phone Number</label>
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">Phone Number <span className="text-[var(--color-negative)]">*</span></label>
 						<input
+							required
+							inputMode="numeric"
+							maxLength={10}
 							value={form.phoneNumber}
-							onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
-							className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+							onChange={(e) => handleFieldChange("phoneNumber", e.target.value)}
+							className={`w-full rounded-lg border-2 p-3 outline-none ${errors.phoneNumber ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
 						/>
+						{errors.phoneNumber && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.phoneNumber}</p>}
 					</div>
 
 					<div>
@@ -100,10 +182,12 @@ export default function StudentModal({ isOpen, onClose, onSuccess, centerId }: P
 						<input
 							type="date"
 							required
+							max={getTodayDate()}
 							value={form.dateOfBirth}
-							onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-							className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+							onChange={(e) => handleFieldChange("dateOfBirth", e.target.value)}
+							className={`w-full rounded-lg border-2 p-3 outline-none ${errors.dateOfBirth ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
 						/>
+						{errors.dateOfBirth && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.dateOfBirth}</p>}
 					</div>
 
 					<div className="flex justify-end gap-3 pt-4 border-t">

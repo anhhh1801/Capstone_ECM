@@ -9,6 +9,10 @@ export interface CreateStudentData {
     createdByTeacherId?: number;
 }
 
+export interface UpdateStudentData extends CreateStudentData {
+    teacherId: number;
+}
+
 export interface TeacherManagedStudent {
     id: number;
     firstName: string;
@@ -54,7 +58,7 @@ export const resetStudentPassword = async (teacherId: number, studentId: number)
 };
 
 // API Cập nhật
-export const updateStudent = async (id: number, data: any) => {
+export const updateStudent = async (id: number, data: UpdateStudentData) => {
     const { teacherId, ...payload } = data;
     const response = await api.put(`/users/teacher/${teacherId}/students/${id}`, payload);
     return response.data;

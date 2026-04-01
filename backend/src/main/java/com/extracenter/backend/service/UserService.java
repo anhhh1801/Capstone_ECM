@@ -404,6 +404,7 @@ public class UserService {
         user.setLastName(request.getLastName());
         user.setPersonalEmail(request.getPersonalEmail());
         user.setEmail(request.getPersonalEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
         user.setPassword(java.util.UUID.randomUUID().toString());
         user.setEnabled(false);
         user.setCreatedDate(LocalDateTime.now());

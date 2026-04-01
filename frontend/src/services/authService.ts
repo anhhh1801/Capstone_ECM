@@ -35,8 +35,8 @@ export interface RegisterData {
 
 // Hàm gọi API Đăng ký Giáo viên
 export const registerTeacher = async (data: RegisterData) => {
-    // Gửi kèm một password dummy (rỗng) vì Backend sẽ tự override bằng UUID
-    const payload = { ...data, password: "", role: "TEACHER" };
+    // Send DTO fields required by backend validation; service still overrides password and role.
+    const payload = { ...data, password: "TempPass123!", role: "TEACHER" };
 
     const response = await api.post('/users/register-teacher', payload);
     return response.data;

@@ -11,11 +11,45 @@ import {
 import { getMyCenters, Center } from "@/services/centerService";
 import toast from "react-hot-toast";
 
+type StudentCenter = {
+    id: number;
+    name: string;
+};
+
+type EditableStudent = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    connectedCenters?: StudentCenter[];
+};
+
+type ApiError = {
+    response?: {
+        data?: string;
+    };
+};
+
+type StudentFormData = {
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    dateOfBirth: string;
+    centerId: number | "";
+};
+
+type StudentFormErrors = Partial<Record<keyof StudentFormData, string>>;
+
+const namePattern = /^[\p{L}\s'-]+$/u;
+
+const getTodayDate = () => new Date().toISOString().split("T")[0];
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    studentToEdit?: any;
+    studentToEdit?: EditableStudent;
     preSelectedCenterId?: number;
 }
 
@@ -29,19 +63,66 @@ export default function StudentModal({
 
     const [centers, setCenters] = useState<Center[]>([]);
     const [loading, setLoading] = useState(false);
-    const [connectedCenters, setConnectedCenters] = useState<any[]>([]);
-    const originalConnectedCentersRef = useRef<any[]>([]);
+    const [connectedCenters, setConnectedCenters] = useState<StudentCenter[]>([]);
+    const originalConnectedCentersRef = useRef<StudentCenter[]>([]);
     const [pendingAddCenterIds, setPendingAddCenterIds] = useState<number[]>([]);
     const [pendingRemoveCenterIds, setPendingRemoveCenterIds] = useState<number[]>([]);
     const [newCenterId, setNewCenterId] = useState<number | "">("");
+    const [errors, setErrors] = useState<StudentFormErrors>({});
 
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<StudentFormData>({
         firstName: "",
         lastName: "",
         phoneNumber: "",
         dateOfBirth: "",
-        centerId: "" as any
+        centerId: ""
     });
+
+    const validateField = (name: keyof StudentFormData, value: string | number | "") => {
+        switch (name) {
+            case "firstName": {
+                const text = String(value).trim();
+                if (!text) return "First name is required.";
+                if (!namePattern.test(text)) return "First name cannot contain numbers.";
+                return "";
+            }
+            case "lastName": {
+                const text = String(value).trim();
+                if (!text) return "Last name is required.";
+                if (!namePattern.test(text)) return "Last name cannot contain numbers.";
+                return "";
+            }
+            case "phoneNumber": {
+                const text = String(value).trim();
+                if (!text) return "Phone number is required.";
+                if (!/^\d{10}$/.test(text)) return "Phone number must be exactly 10 digits.";
+                return "";
+            }
+            case "dateOfBirth": {
+                const text = String(value).trim();
+                if (!text) return "Date of birth is required.";
+                if (text > getTodayDate()) return "Date of birth cannot be in the future.";
+                return "";
+            }
+            case "centerId": {
+                if (!studentToEdit && !value) return "Please select a center.";
+                return "";
+            }
+            default:
+                return "";
+        }
+    };
+
+    const validateForm = () => {
+        const nextErrors: StudentFormErrors = {};
+        (Object.keys(form) as Array<keyof StudentFormData>).forEach((fieldName) => {
+            const message = validateField(fieldName, form[fieldName]);
+            if (message) {
+                nextErrors[fieldName] = message;
+            }
+        });
+        return nextErrors;
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -73,6 +154,7 @@ export default function StudentModal({
             setPendingAddCenterIds([]);
             setPendingRemoveCenterIds([]);
             setNewCenterId("");
+            setErrors({});
         } else {
             setForm({
                 firstName: "",
@@ -87,6 +169,7 @@ export default function StudentModal({
             setPendingAddCenterIds([]);
             setPendingRemoveCenterIds([]);
             setNewCenterId("");
+            setErrors({});
         }
 
     }, [isOpen, studentToEdit, preSelectedCenterId]);
@@ -96,16 +179,29 @@ export default function StudentModal({
     const handleSubmit = async (e: React.FormEvent) => {
 
         e.preventDefault();
+
+        const nextErrors = validateForm();
+        if (Object.keys(nextErrors).length > 0) {
+            setErrors(nextErrors);
+            return;
+        }
+
         setLoading(true);
 
         const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const studentPayload = {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            phoneNumber: form.phoneNumber,
+            dateOfBirth: form.dateOfBirth,
+        };
 
         try {
 
             if (studentToEdit) {
 
                 await updateStudent(studentToEdit.id, {
-                    ...form,
+                    ...studentPayload,
                     teacherId: user.id,
                 });
                 toast.success("Student updated successfully.");
@@ -125,14 +221,9 @@ export default function StudentModal({
 
             } else {
 
-                if (!form.centerId) {
-                    toast.error("Please select a center.");
-                    setLoading(false);
-                    return;
-                }
-
                 await createStudentAuto({
-                    ...form,
+                    ...studentPayload,
+                    centerId: form.centerId as number,
                     createdByTeacherId: user.id,
                 });
                 toast.success("Student created successfully.");
@@ -141,11 +232,23 @@ export default function StudentModal({
             onSuccess();
             onClose();
 
-        } catch (error) {
-            toast.error("Operation failed.");
+        } catch (error: unknown) {
+            toast.error((error as ApiError).response?.data || "Operation failed.");
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleFieldChange = (name: keyof StudentFormData, value: string | number | "") => {
+        const normalizedValue = name === "phoneNumber"
+            ? String(value).replace(/\D/g, "").slice(0, 10)
+            : value;
+
+        setForm((prev) => ({ ...prev, [name]: normalizedValue }));
+        setErrors((prev) => ({
+            ...prev,
+            [name]: validateField(name, normalizedValue),
+        }));
     };
 
     const handleAddCenter = (centerIdToAdd: number) => {
@@ -153,7 +256,7 @@ export default function StudentModal({
         if (!center) return;
 
         const wasOriginallyConnected = originalConnectedCentersRef.current.some(
-            (c: any) => c.id === centerIdToAdd
+            (center) => center.id === centerIdToAdd
         );
 
         setConnectedCenters(prev => [...prev, center]);
@@ -171,7 +274,7 @@ export default function StudentModal({
 
     const handleRemoveCenter = (centerIdToRemove: number) => {
         const wasOriginallyConnected = originalConnectedCentersRef.current.some(
-            (c: any) => c.id === centerIdToRemove
+            (center) => center.id === centerIdToRemove
         );
         setConnectedCenters(prev => prev.filter(c => c.id !== centerIdToRemove));
 
@@ -185,7 +288,7 @@ export default function StudentModal({
     };
 
     const availableCenters = centers.filter(c =>
-        !connectedCenters.some((cc: any) => cc.id === c.id)
+        !connectedCenters.some((connectedCenter) => connectedCenter.id === c.id)
     );
 
     return (
@@ -231,29 +334,27 @@ export default function StudentModal({
 
                             ) : (
 
-                                <select
-                                    required
-                                    value={form.centerId}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            centerId: Number(e.target.value)
-                                        })
-                                    }
-                                    className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
-                                >
+                                <>
+                                    <select
+                                        required
+                                        value={form.centerId}
+                                        onChange={(e) => handleFieldChange("centerId", e.target.value ? Number(e.target.value) : "")}
+                                        className={`w-full rounded-lg border-2 p-3 outline-none bg-white ${errors.centerId ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
+                                    >
 
-                                    <option value="">
-                                        Select center
-                                    </option>
-
-                                    {centers.map(c => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name}
+                                        <option value="">
+                                            Select center
                                         </option>
-                                    ))}
 
-                                </select>
+                                        {centers.map(c => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name}
+                                            </option>
+                                        ))}
+
+                                    </select>
+                                    {errors.centerId && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.centerId}</p>}
+                                </>
                             )}
 
                         </div>
@@ -270,11 +371,10 @@ export default function StudentModal({
                             <input
                                 required
                                 value={form.lastName}
-                                onChange={(e) =>
-                                    setForm({ ...form, lastName: e.target.value })
-                                }
-                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+                                onChange={(e) => handleFieldChange("lastName", e.target.value)}
+                                className={`w-full rounded-lg border-2 p-3 outline-none ${errors.lastName ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
                             />
+                            {errors.lastName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.lastName}</p>}
 
                         </div>
 
@@ -287,11 +387,10 @@ export default function StudentModal({
                             <input
                                 required
                                 value={form.firstName}
-                                onChange={(e) =>
-                                    setForm({ ...form, firstName: e.target.value })
-                                }
-                                className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+                                onChange={(e) => handleFieldChange("firstName", e.target.value)}
+                                className={`w-full rounded-lg border-2 p-3 outline-none ${errors.firstName ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
                             />
+                            {errors.firstName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.firstName}</p>}
 
                         </div>
 
@@ -300,16 +399,18 @@ export default function StudentModal({
                     <div>
 
                         <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-                            Phone Number
+                            Phone Number <span className="text-[var(--color-negative)]">*</span>
                         </label>
 
                         <input
+                            required
+                            inputMode="numeric"
+                            maxLength={10}
                             value={form.phoneNumber}
-                            onChange={(e) =>
-                                setForm({ ...form, phoneNumber: e.target.value })
-                            }
-                            className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+                            onChange={(e) => handleFieldChange("phoneNumber", e.target.value)}
+                            className={`w-full rounded-lg border-2 p-3 outline-none ${errors.phoneNumber ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
                         />
+                        {errors.phoneNumber && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.phoneNumber}</p>}
 
                     </div>
 
@@ -322,12 +423,12 @@ export default function StudentModal({
                         <input
                             type="date"
                             required
+                            max={getTodayDate()}
                             value={form.dateOfBirth}
-                            onChange={(e) =>
-                                setForm({ ...form, dateOfBirth: e.target.value })
-                            }
-                            className="w-full p-3 border-2 border-[var(--color-main)] rounded-lg outline-none"
+                            onChange={(e) => handleFieldChange("dateOfBirth", e.target.value)}
+                            className={`w-full rounded-lg border-2 p-3 outline-none ${errors.dateOfBirth ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
                         />
+                        {errors.dateOfBirth && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.dateOfBirth}</p>}
 
                     </div>
 
@@ -342,7 +443,7 @@ export default function StudentModal({
 
                             <div className="space-y-2">
 
-                                {connectedCenters.map((c: any) => (
+                                {connectedCenters.map((c) => (
 
                                     <div
                                         key={c.id}

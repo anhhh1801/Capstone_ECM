@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +30,8 @@ import com.extracenter.backend.entity.User;
 import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.UserService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -41,13 +45,22 @@ public class UserController {
     // 1. API: Đăng ký Giáo viên (Bước 1 - Gửi mail)
     // POST: http://localhost:8080/api/users/register-teacher
     @PostMapping("/register-teacher")
-    public ResponseEntity<?> registerTeacher(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> registerTeacher(@Valid @RequestBody RegisterRequest request) {
         try {
             String result = userService.registerTeacher(request);
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Invalid request.");
+        return ResponseEntity.badRequest().body(message);
     }
 
     @PostMapping("/verify-otp")
@@ -139,7 +152,7 @@ public class UserController {
     // POST: /api/users/create-student
     @PostMapping("/create-student")
     @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
-    public ResponseEntity<?> createStudentAuto(@RequestBody CreateStudentRequest request) {
+    public ResponseEntity<?> createStudentAuto(@Valid @RequestBody CreateStudentRequest request) {
         User newUser = userService.createStudentAutoEmail(request);
         return ResponseEntity.ok(newUser);
     }
@@ -158,7 +171,7 @@ public class UserController {
 
     // PUT: /api/users/{id}
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody CreateStudentRequest request) {
+    public ResponseEntity<?> updateStudent(@PathVariable Long id, @Valid @RequestBody CreateStudentRequest request) {
         try {
             User updated = userService.updateStudent(id, request);
             return ResponseEntity.ok(updated);
@@ -172,7 +185,7 @@ public class UserController {
     public ResponseEntity<?> updateTeacherStudent(
             @PathVariable Long teacherId,
             @PathVariable Long studentId,
-            @RequestBody CreateStudentRequest request) {
+            @Valid @RequestBody CreateStudentRequest request) {
         try {
             User updated = userService.updateTeacherManagedStudent(teacherId, studentId, request);
             return ResponseEntity.ok(updated);

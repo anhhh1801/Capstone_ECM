@@ -13,6 +13,18 @@ type ApiError = {
   };
 };
 
+type RegisterFormData = {
+  firstName: string;
+  lastName: string;
+  personalEmail: string;
+  phoneNumber: string;
+};
+
+type RegisterFormErrors = Partial<Record<keyof RegisterFormData, string>>;
+
+const namePattern = /^[\p{L}\s'-]+$/u;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -53,19 +65,76 @@ export default function RegisterPage() {
     return () => window.clearTimeout(timeoutId);
   }, [redirectEmail, router]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     firstName: "",
     lastName: "",
     personalEmail: "",
     phoneNumber: ""
   });
+  const [errors, setErrors] = useState<RegisterFormErrors>({});
+
+  const validateField = (name: keyof RegisterFormData, value: string) => {
+    const trimmedValue = value.trim();
+
+    switch (name) {
+      case "firstName":
+        if (!trimmedValue) return "First name is required.";
+        if (!namePattern.test(trimmedValue)) return "First name cannot contain numbers.";
+        return "";
+      case "lastName":
+        if (!trimmedValue) return "Last name is required.";
+        if (!namePattern.test(trimmedValue)) return "Last name cannot contain numbers.";
+        return "";
+      case "personalEmail":
+        if (!trimmedValue) return "Personal email is required.";
+        if (!emailPattern.test(trimmedValue)) return "Personal email must be in email form.";
+        return "";
+      case "phoneNumber":
+        if (!trimmedValue) return "Phone number is required.";
+        if (!/^\d{10}$/.test(trimmedValue)) return "Phone number only accepts 10 digits.";
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const validateForm = () => {
+    const nextErrors: RegisterFormErrors = {};
+
+    (Object.keys(formData) as Array<keyof RegisterFormData>).forEach((fieldName) => {
+      const message = validateField(fieldName, formData[fieldName]);
+      if (message) {
+        nextErrors[fieldName] = message;
+      }
+    });
+
+    return nextErrors;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const fieldName = name as keyof RegisterFormData;
+    const nextValue = fieldName === "phoneNumber"
+      ? value.replace(/\D/g, "").slice(0, 10)
+      : value;
+
+    setFormData((prev) => ({ ...prev, [fieldName]: nextValue }));
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: validateField(fieldName, nextValue),
+    }));
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const nextErrors = validateForm();
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -123,9 +192,10 @@ export default function RegisterPage() {
                   placeholder="First Name"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+                  className={`w-full rounded-lg border-2 bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] ${errors.firstName ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
                 />
               </div>
+              {errors.firstName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.firstName}</p>}
             </div>
 
             <div className="w-1/2">
@@ -136,8 +206,9 @@ export default function RegisterPage() {
                 placeholder="Last Name"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+                className={`w-full rounded-lg border-2 bg-[var(--color-soft-white)] p-3 text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] ${errors.lastName ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
               />
+              {errors.lastName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.lastName}</p>}
             </div>
           </div>
 
@@ -155,9 +226,10 @@ export default function RegisterPage() {
                 placeholder="name@example.com"
                 value={formData.personalEmail}
                 onChange={handleChange}
-                className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+                className={`w-full rounded-lg border-2 bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] ${errors.personalEmail ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
               />
             </div>
+            {errors.personalEmail && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.personalEmail}</p>}
           </div>
 
           {/* Phone */}
@@ -170,12 +242,15 @@ export default function RegisterPage() {
               <input
                 name="phoneNumber"
                 required
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="Phone Number"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+                className={`w-full rounded-lg border-2 bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] ${errors.phoneNumber ? "border-[var(--color-negative)]" : "border-[var(--color-main)]"}`}
               />
             </div>
+            {errors.phoneNumber && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.phoneNumber}</p>}
           </div>
 
           {/* Submit */}
