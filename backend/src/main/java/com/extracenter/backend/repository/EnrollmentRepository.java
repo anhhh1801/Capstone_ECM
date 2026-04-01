@@ -51,10 +51,16 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     @Query("SELECT DISTINCT e.student FROM Enrollment e WHERE e.course.center.id = :centerId")
     List<User> findStudentsByCenterId(@Param("centerId") Long centerId);
 
-        @Query("SELECT DISTINCT e.student FROM Enrollment e " +
+    @Query("SELECT DISTINCT e.student FROM Enrollment e " +
+            "LEFT JOIN FETCH e.student.connectedCenters " +
+            "WHERE e.course.teacher.id = :teacherId " +
+            "AND e.student.isEnabled = true")
+    List<User> findActiveStudentsByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT DISTINCT e.student FROM Enrollment e " +
             "WHERE e.course.center.id = :centerId " +
             "AND e.course.teacher.id = :teacherId " +
             "AND e.student.isEnabled = true")
-        List<User> findStudentsByCenterIdAndTeacherId(@Param("centerId") Long centerId,
+    List<User> findStudentsByCenterIdAndTeacherId(@Param("centerId") Long centerId,
             @Param("teacherId") Long teacherId);
 }

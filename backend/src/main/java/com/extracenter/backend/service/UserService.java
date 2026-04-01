@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -201,12 +203,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<TeacherStudentResponse> getTeacherVisibleStudents(Long teacherId, boolean activeOnly) {
-        User teacher = userRepository.findById(teacherId)
-                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
-
-        if (!"TEACHER".equals(teacher.getRole().getName())) {
-            throw new RuntimeException("Only teachers can manage students.");
-        }
+        User teacher = getAuthorizedTeacherActor(teacherId);
 
         if (!activeOnly) {
             return userRepository.findRolledOutStudentsByCreatorTeacherId(teacherId).stream()
@@ -216,19 +213,13 @@ public class UserService {
                     .collect(Collectors.toList());
         }
 
-        List<Long> centerIds = teacher.getConnectedCenters().stream()
-                .map(Center::getId)
-                .collect(Collectors.toList());
-
         Map<Long, User> visibleStudents = new LinkedHashMap<>();
 
-        if (!centerIds.isEmpty()) {
-            userRepository.findActiveStudentsByCenterIds(centerIds)
-                    .forEach(student -> visibleStudents.put(student.getId(), student));
-        }
+        userRepository.findActiveStudentsByCreatorTeacherId(teacherId)
+            .forEach(student -> visibleStudents.put(student.getId(), student));
 
-        userRepository.findActiveUnassignedStudentsByCreatorTeacherId(teacherId)
-                .forEach(student -> visibleStudents.put(student.getId(), student));
+        enrollmentRepository.findActiveStudentsByTeacherId(teacher.getId())
+            .forEach(student -> visibleStudents.put(student.getId(), student));
 
         return visibleStudents.values().stream()
                 .sorted(Comparator.comparing(User::getLastName, String.CASE_INSENSITIVE_ORDER)
@@ -331,12 +322,7 @@ public class UserService {
             throw new RuntimeException("Creating teacher is required.");
         }
 
-        User teacher = userRepository.findById(request.getCreatedByTeacherId())
-                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
-
-        if (!"TEACHER".equals(teacher.getRole().getName())) {
-            throw new RuntimeException("Only teachers can create students.");
-        }
+        User teacher = getAuthorizedTeacherActor(request.getCreatedByTeacherId());
 
         Center center = centerRepository.findById(request.getCenterId())
                 .orElseThrow(() -> new RuntimeException("Center not found!"));
@@ -500,12 +486,7 @@ public class UserService {
     }
 
     private User getOwnedStudent(Long teacherId, Long studentId) {
-        User teacher = userRepository.findById(teacherId)
-                .orElseThrow(() -> new RuntimeException("Teacher not found!"));
-
-        if (!"TEACHER".equals(teacher.getRole().getName())) {
-            throw new RuntimeException("Only teachers can manage students.");
-        }
+        getAuthorizedTeacherActor(teacherId);
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found!"));
@@ -519,6 +500,48 @@ public class UserService {
         }
 
         return student;
+    }
+
+    private User getAuthorizedTeacherActor(Long teacherId) {
+        User actor = getCurrentUser();
+
+        if (isAdmin(actor)) {
+            return userRepository.findById(teacherId)
+                    .orElseThrow(() -> new RuntimeException("Teacher not found!"));
+        }
+
+        if (!isTeacherOrManager(actor)) {
+            throw new RuntimeException("Only teachers can manage students.");
+        }
+
+        if (!actor.getId().equals(teacherId)) {
+            throw new RuntimeException("You do not have permission to manage another teacher's students.");
+        }
+
+        return actor;
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("Authentication is required.");
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private boolean isTeacherOrManager(User user) {
+        if (user.getRole() == null || user.getRole().getName() == null) {
+            return false;
+        }
+
+        String roleName = user.getRole().getName();
+        return "TEACHER".equalsIgnoreCase(roleName) || "MANAGER".equalsIgnoreCase(roleName);
     }
 
     private User getActiveOwnedStudent(Long teacherId, Long studentId) {

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { ShieldAlert, UserCog, UserPlus, Unlink } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ShieldAlert, UserCog, UserPlus, Unlink, ChevronLeft, ChevronRight } from "lucide-react";
 import { User } from "@/services/authService";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -14,9 +14,11 @@ interface Props {
 }
 
 export default function TeacherListTab({ centerId, teachers, isManager, onUpdate }: Props) {
+    const teachersPerPage = 10;
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
     const [unlinkTeacherId, setUnlinkTeacherId] = useState<number | null>(null);
     const [searchText, setSearchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     const managerId = useMemo(() => {
         const rawUser = localStorage.getItem("user");
@@ -39,6 +41,23 @@ export default function TeacherListTab({ centerId, teachers, isManager, onUpdate
             return fullName.includes(q) || email.includes(q);
         });
     }, [teachers, searchText]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText, teachers.length]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / teachersPerPage));
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    const paginatedTeachers = useMemo(() => {
+        const startIndex = (currentPage - 1) * teachersPerPage;
+        return filteredTeachers.slice(startIndex, startIndex + teachersPerPage);
+    }, [currentPage, filteredTeachers]);
 
     const selectedTeacher = teachers.find((t) => t.id === unlinkTeacherId);
 
@@ -138,7 +157,7 @@ export default function TeacherListTab({ centerId, teachers, isManager, onUpdate
                         {/* BODY */}
                         <tbody className="divide-y divide-gray-100">
 
-                            {filteredTeachers.map((t) => (
+                            {paginatedTeachers.map((t) => (
                                 <tr
                                     key={t.id}
                                     className="hover:bg-blue-50 transition"
@@ -160,13 +179,20 @@ export default function TeacherListTab({ centerId, teachers, isManager, onUpdate
                                     </td>
 
                                     <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => setUnlinkTeacherId(t.id)}
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded border border-[var(--color-alert)] text-[var(--color-alert)] hover:bg-[var(--color-alert)] hover:text-white transition"
-                                        >
-                                            <Unlink size={14} />
-                                            Unlink
-                                        </button>
+                                        {managerId === t.id ? (
+                                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded border border-slate-300 text-slate-400 cursor-not-allowed">
+                                                <Unlink size={14} />
+                                                Owner
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => setUnlinkTeacherId(t.id)}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded border border-[var(--color-alert)] text-[var(--color-alert)] hover:bg-[var(--color-alert)] hover:text-white transition"
+                                            >
+                                                <Unlink size={14} />
+                                                Unlink
+                                            </button>
+                                        )}
                                     </td>
 
                                 </tr>
@@ -179,6 +205,40 @@ export default function TeacherListTab({ centerId, teachers, isManager, onUpdate
                 )}
 
             </div>
+
+            {filteredTeachers.length > 0 && (
+                <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-main)]/15 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+                    <p className="text-sm text-[var(--color-text)]">
+                        Showing {(currentPage - 1) * teachersPerPage + 1}
+                        {" - "}
+                        {Math.min(currentPage * teachersPerPage, filteredTeachers.length)} of {filteredTeachers.length} teachers
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                            disabled={currentPage === 1}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[var(--color-main)]"
+                        >
+                            <ChevronLeft size={16} />
+                            Previous
+                        </button>
+
+                        <span className="min-w-[90px] text-center text-sm font-semibold text-[var(--color-text)]">
+                            Page {currentPage} / {totalPages}
+                        </span>
+
+                        <button
+                            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                            disabled={currentPage === totalPages}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-main)] px-3 py-2 text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[var(--color-main)]"
+                        >
+                            Next
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

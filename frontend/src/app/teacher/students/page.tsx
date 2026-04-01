@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Users, Search, Filter, Plus } from "lucide-react";
+import { Users, Search, Filter, Plus, UserCog } from "lucide-react";
 import { getMyCenters, Center } from "@/services/centerService";
 import toast from "react-hot-toast";
 
@@ -21,6 +21,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 export default function GlobalStudentsPage() {
     const studentsPerPage = 10;
     const [studentStatus, setStudentStatus] = useState<"active" | "rolled-out">("active");
+    const [studentScope, setStudentScope] = useState<"own" | "other">("own");
     // 1. STATE QUẢN LÝ DỮ LIỆU
     const [allStudents, setAllStudents] = useState<TeacherManagedStudent[]>([]); // original data
     const [filteredStudents, setFilteredStudents] = useState<TeacherManagedStudent[]>([]); // filtered data
@@ -71,6 +72,12 @@ export default function GlobalStudentsPage() {
     useEffect(() => {
         let result = allStudents;
 
+        if (studentStatus === "active") {
+            result = result.filter((student) =>
+                studentScope === "own" ? student.canManage : !student.canManage
+            );
+        }
+
         // Lọc theo từ khóa
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
@@ -95,7 +102,7 @@ export default function GlobalStudentsPage() {
 
         setFilteredStudents(result);
         setCurrentPage(1);
-    }, [searchTerm, selectedCenterId, allStudents, studentStatus]);
+    }, [searchTerm, selectedCenterId, allStudents, studentStatus, studentScope]);
 
     const totalPages = Math.max(1, Math.ceil(filteredStudents.length / studentsPerPage));
 
@@ -223,7 +230,9 @@ export default function GlobalStudentsPage() {
 
                     <p className="text-sm text-[var(--color-text)]">
                         {studentStatus === "active"
-                            ? "Aggregates active students from all your centers"
+                            ? studentScope === "own"
+                                ? "Shows students you created or directly manage."
+                                : "Shows students who joined your courses but are managed by another teacher."
                             : "Shows rolled out students created by you. Students can only be restored from here."}
                     </p>
 
@@ -251,6 +260,7 @@ export default function GlobalStudentsPage() {
                 <button
                     onClick={() => {
                         setStudentStatus("active");
+                        setStudentScope("own");
                         setSelectedCenterId("ALL");
                     }}
                     className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
@@ -265,6 +275,7 @@ export default function GlobalStudentsPage() {
                 <button
                     onClick={() => {
                         setStudentStatus("rolled-out");
+                        setStudentScope("own");
                         setSelectedCenterId("ALL");
                     }}
                     className={`rounded-lg border-2 px-4 py-2 text-sm font-medium transition ${
@@ -276,7 +287,6 @@ export default function GlobalStudentsPage() {
                     Rolled Out Students
                 </button>
             </div>
-
 
             {/* TOOLBAR */}
 
@@ -314,7 +324,7 @@ export default function GlobalStudentsPage() {
 
                 {/* FILTER */}
 
-                {studentStatus === "active" && (
+                {studentStatus === "active" && studentScope === "own" && (
                 <div className="relative min-w-[220px]">
 
                     <Filter
@@ -356,13 +366,47 @@ export default function GlobalStudentsPage() {
 
             {/* TABLE */}
 
+            {studentStatus === "active" && (
+                <div className="border-b border-[var(--color-text)]">
+                    <div className="flex flex-wrap gap-6">
+                        <button
+                            onClick={() => {
+                                setStudentScope("own");
+                                setSelectedCenterId("ALL");
+                            }}
+                            className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition ${
+                                studentScope === "own"
+                                    ? "border-[var(--color-main)] text-[var(--color-main)]"
+                                    : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+                            }`}
+                        >
+                            <Users size={18} /> My Students
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setStudentScope("other");
+                                setSelectedCenterId("ALL");
+                            }}
+                            className={`px-4 py-2 font-medium flex items-center gap-2 border-b-4 border-r-2 transition ${
+                                studentScope === "other"
+                                    ? "border-[var(--color-main)] text-[var(--color-main)]"
+                                    : "border-transparent text-[var(--color-text)] hover:text-[var(--color-secondary)]"
+                            }`}
+                        >
+                            <UserCog size={18} /> Other Teachers' Students
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <StudentTable
                 students={paginatedStudents}
                 loading={loading}
-                onDelete={studentStatus === "active" ? (studentId) => setDeletingStudentId(studentId) : undefined}
-                onResetPassword={studentStatus === "active" ? (student) => setResettingStudent(student) : undefined}
+                onDelete={studentStatus === "active" && studentScope === "own" ? (studentId) => setDeletingStudentId(studentId) : undefined}
+                onResetPassword={studentStatus === "active" && studentScope === "own" ? (student) => setResettingStudent(student) : undefined}
                 onRollback={studentStatus === "rolled-out" ? (student) => setRollingBackStudent(student) : undefined}
-                onEdit={studentStatus === "active" ? openEditModal : undefined}
+                onEdit={studentStatus === "active" && studentScope === "own" ? openEditModal : undefined}
                 deleteLabel="Roll Out"
             />
 

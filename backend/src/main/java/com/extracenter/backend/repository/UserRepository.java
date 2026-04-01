@@ -41,6 +41,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.connectedCenters c WHERE u.role.name = 'STUDENT' AND u.isEnabled = true AND u.createdByTeacher.id = :teacherId AND c IS NULL")
     List<User> findActiveUnassignedStudentsByCreatorTeacherId(@Param("teacherId") Long teacherId);
 
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.connectedCenters c WHERE u.role.name = 'STUDENT' AND u.isEnabled = true AND u.createdByTeacher.id = :teacherId")
+    List<User> findActiveStudentsByCreatorTeacherId(@Param("teacherId") Long teacherId);
+
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.connectedCenters WHERE u.role.name = 'STUDENT' AND u.isEnabled = false AND u.createdByTeacher.id = :teacherId")
     List<User> findRolledOutStudentsByCreatorTeacherId(@Param("teacherId") Long teacherId);
 

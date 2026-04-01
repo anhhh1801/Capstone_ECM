@@ -699,15 +699,8 @@ public class CenterService {
     }
 
     private void validateSlotTimes(LocalTime startTime, LocalTime endTime) {
-        LocalTime earliestAllowed = LocalTime.of(7, 0);
-        LocalTime latestAllowed = LocalTime.of(22, 0);
-
         if (startTime == null || endTime == null) {
             throw new RuntimeException("Start time and end time are required.");
-        }
-
-        if (startTime.isBefore(earliestAllowed) || endTime.isAfter(latestAllowed)) {
-            throw new RuntimeException("Class time must be between 7:00 AM and 10:00 PM.");
         }
 
         if (!(startTime.getMinute() == 0 || startTime.getMinute() == 30)
