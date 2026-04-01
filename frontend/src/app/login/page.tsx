@@ -106,7 +106,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-4 sm:p-8 lg:p-12">
             <Toaster position="top-center" />
 
             <LockedAccountModal
@@ -114,7 +114,7 @@ export default function LoginPage() {
                 onClose={() => setShowLockedModal(false)}
             />
 
-            <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
+            <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-6 shadow-xl transition-all hover:shadow-2xl sm:p-8">
                 <div className="mb-8 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-main)] text-white">
                         <Lock size={32} />

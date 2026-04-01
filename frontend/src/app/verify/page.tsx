@@ -172,8 +172,8 @@ function VerifyContent() {
     // Success Screen
     if (status === "success") {
         return (
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
-                <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl text-center transition-all hover:shadow-2xl animate-in zoom-in duration-300">
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-4 sm:p-8 lg:p-12">
+                <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-6 shadow-xl text-center transition-all hover:shadow-2xl animate-in zoom-in duration-300 sm:p-8">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-600 text-white">
                         <CheckCircle className="h-8 w-8" />
                     </div>
@@ -192,8 +192,8 @@ function VerifyContent() {
     }
 
     return (
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
-            <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-4 sm:p-8 lg:p-12">
+            <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-6 shadow-xl transition-all hover:shadow-2xl sm:p-8">
                 <div className="text-center mb-8">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-main)] text-white">
                         <Mail size={32} />
@@ -209,7 +209,7 @@ function VerifyContent() {
                     </p>
                 </div>
 
-                <div className="mb-8 flex justify-between gap-2">
+                <div className="mb-8 grid grid-cols-6 gap-2 sm:flex sm:justify-between">
                     {otp.map((digit, index) => (
                         <input
                             key={index}
@@ -228,7 +228,7 @@ function VerifyContent() {
                             onPaste={handlePaste}
                             placeholder="-"
                             aria-label={`OTP digit ${index + 1}`}
-                            className="h-14 w-12 rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] text-center text-2xl font-bold text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)]"
+                            className="h-12 w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] text-center text-xl font-bold text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] sm:h-14 sm:w-12 sm:text-2xl"
                         />
                     ))}
                 </div>
@@ -293,7 +293,7 @@ export default function VerifyPage() {
     return (
         <Suspense
             fallback={
-                <div className="flex h-screen items-center justify-center">
+                <div className="flex min-h-screen items-center justify-center p-4">
                     Loading...
                 </div>
             }

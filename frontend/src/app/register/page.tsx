@@ -159,10 +159,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
+    <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-4 sm:p-8 lg:p-12">
       <Toaster position="top-center" />
 
-      <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-6 shadow-xl transition-all hover:shadow-2xl sm:p-8">
 
         {/* Header */}
         <div className="text-center mb-8">
@@ -179,8 +179,8 @@ export default function RegisterPage() {
           <p className="text-sm text-[var(--color-text)]/70">Fields marked with <span className="text-[var(--color-negative)]">*</span> are required.</p>
 
           {/* Name row */}
-          <div className="flex gap-4">
-            <div className="w-1/2">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="w-full sm:w-1/2">
               <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">First Name <span className="text-[var(--color-negative)]">*</span></label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
@@ -198,7 +198,7 @@ export default function RegisterPage() {
               {errors.firstName && <p className="mt-1 text-sm text-[var(--color-negative)]">{errors.firstName}</p>}
             </div>
 
-            <div className="w-1/2">
+            <div className="w-full sm:w-1/2">
               <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Last Name <span className="text-[var(--color-negative)]">*</span></label>
               <input
                 name="lastName"

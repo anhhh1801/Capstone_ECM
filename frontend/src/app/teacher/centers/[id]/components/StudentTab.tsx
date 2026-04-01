@@ -99,17 +99,17 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 				onSuccess={onUpdate}
 			/>
 
-			<div className="flex justify-between items-center gap-3 flex-wrap">
+			<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
 				<h3 className="font-bold text-[var(--color-text)] flex items-center gap-2">
 					<Users size={18} className="text-[var(--color-main)]" />
 					Student List ({filteredStudents.length})
 				</h3>
 
 				{isManager && (
-					<div className="flex gap-2 flex-wrap">
+					<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
 						<button
 							onClick={() => setAssignModalOpen(true)}
-							className="flex items-center gap-2 whitespace-nowrap border-2 border-[var(--color-main)] text-[var(--color-main)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-main)] hover:text-white transition"
+							className="flex w-full items-center justify-center gap-2 border-2 border-[var(--color-main)] px-4 py-2 rounded-lg text-sm font-medium text-[var(--color-main)] transition hover:bg-[var(--color-main)] hover:text-white sm:w-auto sm:whitespace-nowrap"
 						>
 							<UserPlus size={16} />
 							Assign Existing Student
@@ -117,7 +117,7 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 
 						<button
 							onClick={() => setCreateModalOpen(true)}
-							className="flex items-center gap-2 whitespace-nowrap bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
+							className="flex w-full items-center justify-center gap-2 border-2 border-[var(--color-main)] bg-[var(--color-main)] px-4 py-2 rounded-lg text-sm font-medium text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] sm:w-auto sm:whitespace-nowrap"
 						>
 							<Plus size={16} />
 							Create New Student
@@ -126,7 +126,7 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 				)}
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+			<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
 				<div className="relative md:col-span-2">
 					<Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 					<input
@@ -142,7 +142,7 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 					<select
 						value={selectedCourseId}
 						onChange={(e) => setSelectedCourseId(e.target.value)}
-						className="w-full pl-9 pr-3 py-2 border-2 border-[var(--color-main)] rounded-lg outline-none bg-white"
+						className="w-full rounded-lg border-2 border-[var(--color-main)] bg-white py-2 pl-9 pr-8 outline-none"
 					>
 						<option value="ALL">All Courses</option>
 						{courseOptions.map((course) => (
@@ -157,7 +157,7 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 					{students.length === 0 ? "No students in this center yet." : "No students match your filters."}
 				</div>
 			) : (
-				<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 					{filteredStudents.map((student) => (
 						<div
 							key={student.id}
@@ -185,7 +185,7 @@ export default function StudentTab({ centerId, students, isManager, onUpdate }: 
 							<div className="mt-3 space-y-2 text-sm text-[var(--color-text)]">
 								<div className="flex items-center gap-2">
 									<Mail size={14} className="text-[var(--color-main)]" />
-									<span>{student.email}</span>
+									<span className="min-w-0 break-all">{student.email}</span>
 								</div>
 
 								<div className="flex items-center gap-2">

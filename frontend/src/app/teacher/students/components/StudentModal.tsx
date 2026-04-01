@@ -292,9 +292,9 @@ export default function StudentModal({
     );
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
 
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-6">
+            <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl space-y-6 sm:p-6">
 
                 {/* Header */}
                 <div className="flex justify-between items-center border-b pb-3">
@@ -360,7 +360,7 @@ export default function StudentModal({
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                         <div>
 
@@ -470,7 +470,7 @@ export default function StudentModal({
 
                             {availableCenters.length > 0 && (
 
-                                <div className="flex gap-2">
+                                <div className="flex flex-col gap-2 sm:flex-row">
 
                                     <select
                                         id="add-center-select"
@@ -497,7 +497,7 @@ export default function StudentModal({
                                             if (!newCenterId) return;
                                             handleAddCenter(Number(newCenterId));
                                         }}
-                                        className="flex items-center gap-1 bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition"
+                                        className="flex items-center justify-center gap-1 rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] sm:self-start"
                                     >
                                         <Plus size={16} />
                                         Add
@@ -509,12 +509,12 @@ export default function StudentModal({
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
 
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                                    className="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm transition hover:bg-gray-50 sm:w-auto"
                                 >
                                     Cancel
                                 </button>
@@ -522,7 +522,7 @@ export default function StudentModal({
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] transition disabled:opacity-50"
+                                    className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-4 py-2 font-bold text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:opacity-50 sm:w-auto"
                                 >
                                     {loading ? "Saving..." : "Save"}
                                 </button>
