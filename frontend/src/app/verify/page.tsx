@@ -3,9 +3,15 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { verifyOtp, resendOtp } from "@/services/authService";
-import { CheckCircle, Loader2, Mail, ArrowRight, RefreshCcw } from "lucide-react";
+import { CheckCircle, Loader2, Mail, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
+
+type ApiError = {
+    response?: {
+        data?: string;
+    };
+};
 
 function VerifyContent() {
     const searchParams = useSearchParams();
@@ -29,7 +35,7 @@ function VerifyContent() {
                         router.replace("/");
                     }
                 }
-            } catch (_) { }
+            } catch { }
         }
     }, [router]);
 
@@ -38,7 +44,9 @@ function VerifyContent() {
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
     const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
     const [timer, setTimer] = useState(30);
+    const [resending, setResending] = useState(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const redirectTimeoutRef = useRef<number | null>(null);
 
     // Countdown
     useEffect(() => {
@@ -54,6 +62,24 @@ function VerifyContent() {
             inputRefs.current[0].focus();
         }
     }, []);
+
+    useEffect(() => {
+        if (status !== "success") {
+            return;
+        }
+
+        toast.success("Verification successful!");
+        redirectTimeoutRef.current = window.setTimeout(() => {
+            router.replace("/login");
+        }, 2000);
+
+        return () => {
+            if (redirectTimeoutRef.current !== null) {
+                window.clearTimeout(redirectTimeoutRef.current);
+                redirectTimeoutRef.current = null;
+            }
+        };
+    }, [status, router]);
 
     const handleChange = (index: number, value: string) => {
         if (isNaN(Number(value))) return;
@@ -94,19 +120,18 @@ function VerifyContent() {
         try {
             await verifyOtp(email, code);
             setStatus("success");
-            toast.success("Verification successful!");
-
-            setTimeout(() => router.push("/login"), 2000);
-        } catch (error: any) {
+        } catch (error: unknown) {
             setStatus("idle");
             const msg =
-                error.response?.data || "Invalid verification code.";
+                (error as ApiError).response?.data || "Invalid verification code.";
             toast.error(msg);
         }
     };
 
     const handleResend = async () => {
-        if (timer > 0 || !email) return;
+        if (timer > 0 || !email || resending) return;
+
+        setResending(true);
 
         try {
             await resendOtp(email);
@@ -114,10 +139,12 @@ function VerifyContent() {
             setTimer(30);
             setOtp(new Array(6).fill(""));
             inputRefs.current[0]?.focus();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(
-                error.response?.data || "Unable to resend OTP."
+                (error as ApiError).response?.data || "Unable to resend OTP."
             );
+        } finally {
+            setResending(false);
         }
     };
     const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -145,16 +172,18 @@ function VerifyContent() {
     // Success Screen
     if (status === "success") {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-                <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center animate-in zoom-in duration-300">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-gray-800">
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
+                <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl text-center transition-all hover:shadow-2xl animate-in zoom-in duration-300">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-600 text-white">
+                        <CheckCircle className="h-8 w-8" />
+                    </div>
+                    <h2 className="header-1">
                         Verification Successful!
                     </h2>
-                    <p className="text-gray-500 mt-2">
+                    <p className="mt-2 text-sm text-[var(--color-text)]">
                         Your account has been activated.
                     </p>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="mt-1 text-sm text-[var(--color-text)]/70">
                         Redirecting to login page...
                     </p>
                 </div>
@@ -163,8 +192,8 @@ function VerifyContent() {
     }
 
     return (
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 px-4">
-            <div className="w-full max-w-md rounded-2xl bg-[var(--color-secondary)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-12">
+            <div className="w-full max-w-md rounded-2xl bg-[var(--color-soft-white)]/40 p-8 shadow-xl transition-all hover:shadow-2xl">
                 <div className="text-center mb-8">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-main)] text-white">
                         <Mail size={32} />
@@ -180,7 +209,7 @@ function VerifyContent() {
                     </p>
                 </div>
 
-                <div className="flex justify-between gap-2 mb-8">
+                <div className="mb-8 flex justify-between gap-2">
                     {otp.map((digit, index) => (
                         <input
                             key={index}
@@ -199,7 +228,7 @@ function VerifyContent() {
                             onPaste={handlePaste}
                             placeholder="-"
                             aria-label={`OTP digit ${index + 1}`}
-                            className="w-12 h-14 text-center text-2xl font-bold text-[var(--color-text)] border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] rounded-lg focus:border-[var(--color-alert)] focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                            className="h-14 w-12 rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] text-center text-2xl font-bold text-[var(--color-text)] outline-none transition focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)]"
                         />
                     ))}
                 </div>
@@ -209,7 +238,7 @@ function VerifyContent() {
                     disabled={
                         status === "loading" || otp.some((d) => !d)
                     }
-                    className="w-full bg-[var(--color-main)] border-2 border-[var(--color-main)] text-white py-3 rounded-xl font-semibold hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] hover:border-[var(--color-main)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-main)] px-5 py-3 font-medium text-white transition hover:bg-[var(--color-soft-white)] hover:text-[var(--color-main)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {status === "loading" ? (
                         <>
@@ -226,14 +255,19 @@ function VerifyContent() {
                 <div className="mt-6 text-center">
                     <p className="text-[var(--color-text)]">
                         Didn’t receive the code?{" "}
-                        {timer > 0 ? (
+                        {resending ? (
+                            <span className="inline-flex items-center gap-1 font-medium text-[var(--color-main)]">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Sending...
+                            </span>
+                        ) : timer > 0 ? (
                             <span className="text-[var(--color-alert)] font-medium">
                                 Resend in {timer}s
                             </span>
                         ) : (
                             <button
                                 onClick={handleResend}
-                                className="text-[var(--color-main)] font-bold hover:underline inline-flex items-center gap-1"
+                                className="inline-flex items-center gap-1 font-bold text-[var(--color-main)] hover:underline"
                             >
                                 <RefreshCcw className="h-3 w-3" />
                                 Resend Code

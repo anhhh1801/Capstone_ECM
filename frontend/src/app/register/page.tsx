@@ -3,13 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerTeacher, resendOtp } from "@/services/authService";
+import { registerTeacher } from "@/services/authService";
 import toast, { Toaster } from "react-hot-toast";
 import { UserPlus, Mail, Phone, User } from "lucide-react";
+
+type ApiError = {
+  response?: {
+    data?: string;
+  };
+};
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [redirectEmail, setRedirectEmail] = useState<string | null>(null);
 
   // if already authenticated, redirect
   useEffect(() => {
@@ -26,9 +33,25 @@ export default function RegisterPage() {
         } else {
           router.replace("/");
         }
-      } catch (_) { }
+      } catch { }
     }
   }, [router]);
+
+  useEffect(() => {
+    if (!redirectEmail) {
+      return;
+    }
+
+    toast.success("OTP code sent. Redirecting to verification...", {
+      duration: 2500,
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      router.replace(`/verify?email=${encodeURIComponent(redirectEmail)}`);
+    }, 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [redirectEmail, router]);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -48,44 +71,21 @@ export default function RegisterPage() {
     try {
       await registerTeacher(formData);
 
-      toast.success("OTP Code is sent!", { duration: 4000 });
-      router.push(`/verify?email=${encodeURIComponent(formData.personalEmail)}`);
-
-    } catch (error: any) {
+      setRedirectEmail(formData.personalEmail);
+    } catch (error: unknown) {
       console.error(error);
-      const msg = error.response?.data || "Sign up failed. Please try again.";
+      const msg = (error as ApiError).response?.data || "Sign up failed. Please try again.";
       if (typeof msg === 'string' && msg.includes("PENDING_VERIFICATION")) {
-        toast((t) => (
-          <div className="flex flex-col gap-2">
-            <span className="font-semibold text-gray-800">
-              Waiting a confirmation!
-            </span>
-            <button
-              onClick={async () => {
-                toast.dismiss(t.id);
-                await handleResendOld(formData.personalEmail);
-              }}
-              className="bg-blue-600 text-white text-xs py-1 px-3 rounded hover:bg-blue-700"
-            >
-              Resend OTP & Verify now
-            </button>
-          </div>
-        ), { duration: 6000, icon: '⚠️' });
+        toast("This account is waiting for verification. Redirecting to OTP verification...", {
+          duration: 2500,
+          icon: '⚠️',
+        });
+        setRedirectEmail(formData.personalEmail);
       } else {
-        toast.error("Email used!!");
+        toast.error(typeof msg === "string" ? msg : "Sign up failed. Please try again.");
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResendOld = async (email: string) => {
-    try {
-      await resendOtp(email);
-      toast.success("OTP Code is sent again!");
-      router.push(`/verify?email=${encodeURIComponent(email)}`);
-    } catch (e) {
-      toast.error("Failed to resend OTP.");
     }
   };
 
@@ -111,23 +111,29 @@ export default function RegisterPage() {
 
           {/* Name row */}
           <div className="flex gap-4">
-            <div className="w-1/2 relative">
-              <User size={18} className="absolute left-3 top-3 text-[var(--color-text)]" />
-              <input
-                name="firstName"
-                required
-                placeholder="First Name *"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
-              />
+            <div className="w-1/2">
+              <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">First Name <span className="text-[var(--color-negative)]">*</span></label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
+                  <User size={18} />
+                </div>
+                <input
+                  name="firstName"
+                  required
+                  placeholder="First Name"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+                />
+              </div>
             </div>
 
             <div className="w-1/2">
+              <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Last Name <span className="text-[var(--color-negative)]">*</span></label>
               <input
                 name="lastName"
                 required
-                placeholder="Last Name *"
+                placeholder="Last Name"
                 value={formData.lastName}
                 onChange={handleChange}
                 className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
@@ -136,30 +142,40 @@ export default function RegisterPage() {
           </div>
 
           {/* Email */}
-          <div className="relative">
-            <Mail size={18} className="absolute left-3 top-3 text-[var(--color-text)]" />
-            <input
-              name="personalEmail"
-              type="email"
-              required
-              placeholder="Personal Email *"
-              value={formData.personalEmail}
-              onChange={handleChange}
-              className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
-            />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Personal Email <span className="text-[var(--color-negative)]">*</span></label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
+                <Mail size={18} />
+              </div>
+              <input
+                name="personalEmail"
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={formData.personalEmail}
+                onChange={handleChange}
+                className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+              />
+            </div>
           </div>
 
           {/* Phone */}
-          <div className="relative">
-            <Phone size={18} className="absolute left-3 top-3 text-[var(--color-text)]" />
-            <input
-              name="phoneNumber"
-              required
-              placeholder="Phone Number *"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
-            />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--color-text)]">Phone Number <span className="text-[var(--color-negative)]">*</span></label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text)]">
+                <Phone size={18} />
+              </div>
+              <input
+                name="phoneNumber"
+                required
+                placeholder="Phone Number"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="w-full rounded-lg border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-3 pl-10 text-[var(--color-text)] outline-none focus:border-[var(--color-alert)] focus:ring-2 focus:ring-[var(--color-secondary)] transition"
+              />
+            </div>
           </div>
 
           {/* Submit */}

@@ -381,6 +381,10 @@ public class UserService {
     public String registerTeacher(RegisterRequest request) {
         Optional<User> existingUserOpt = userRepository.findByEmail(request.getPersonalEmail());
 
+        if (existingUserOpt.isEmpty()) {
+            existingUserOpt = userRepository.findByPersonalEmail(request.getPersonalEmail());
+        }
+
         if (existingUserOpt.isPresent()) {
             User existingUser = existingUserOpt.get();
             VerificationToken waitingVerifyToken = tokenRepository.findByUser(existingUser).orElse(null);

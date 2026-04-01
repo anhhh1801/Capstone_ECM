@@ -52,13 +52,11 @@ public class UserController {
 
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
-        // Now we pass BOTH email and otp to the service
-        String result = userService.verifyAccount(request.getEmail(), request.getOtp());
-
-        if (result.startsWith("Xác thực thành công")) {
+        try {
+            String result = userService.verifyAccount(request.getEmail(), request.getOtp());
             return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -72,7 +70,7 @@ public class UserController {
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            if (e.getMessage().equals("Sai email hoặc mật khẩu!")) {
+            if (e.getMessage().equals("Invalid email or password!")) {
                 return ResponseEntity.status(401).body(e.getMessage());
             }
 
@@ -98,7 +96,7 @@ public class UserController {
     public ResponseEntity<?> changePassword(@PathVariable Long id, @RequestBody ChangePasswordRequest request) {
         try {
             userService.changePassword(id, request);
-            return ResponseEntity.ok("Đổi mật khẩu thành công!");
+            return ResponseEntity.ok("Password changed successfully!");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -110,7 +108,7 @@ public class UserController {
     public ResponseEntity<?> deactivateAccount(@PathVariable Long id) {
         try {
             userService.deactivateAccount(id);
-            return ResponseEntity.ok("Tài khoản đã được vô hiệu hóa.");
+            return ResponseEntity.ok("Account has been deactivated.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
