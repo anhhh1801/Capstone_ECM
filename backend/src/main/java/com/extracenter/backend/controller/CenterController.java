@@ -31,7 +31,6 @@ import com.extracenter.backend.entity.Classroom;
 import com.extracenter.backend.entity.Grade;
 import com.extracenter.backend.entity.Subject;
 import com.extracenter.backend.entity.User;
-import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.service.CenterService;
 import com.extracenter.backend.service.UserService;
 
@@ -46,8 +45,6 @@ public class CenterController {
     private CenterService centerService;
     @Autowired
     private UserService userService;
-    @Autowired
-    private UserRepository userRepository;
 
     // API: Create a new center
     // POST: http://localhost:8080/api/centers
@@ -280,7 +277,7 @@ public class CenterController {
     // GET: http://localhost:8080/api/centers/1/students
     @GetMapping("/{centerId}/students")
     public ResponseEntity<List<User>> getStudentsByCenter(@PathVariable Long centerId) {
-        return ResponseEntity.ok(userRepository.findStudentsByCenterId(centerId));
+        return ResponseEntity.ok(centerService.getVisibleStudentsByCenter(centerId));
     }
 
     // API: Assign an existing student to a center

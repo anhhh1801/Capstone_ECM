@@ -73,7 +73,7 @@ export default function Header() {
     return (
         <header ref={headerRef} className="sticky top-0 z-40 text-white shadow-md">
             <div className="bg-[var(--color-soft-white)]">
-                <div className="shell-frame flex flex-col gap-1 py-2 text-[var(--color-text)] sm:flex-row sm:items-center sm:justify-between">
+                <div className="container flex flex-col gap-1 py-2 text-[var(--color-text)] sm:flex-row sm:items-center sm:justify-between">
                     <Link href="/" className="text-xl leading-tight font-bold sm:text-2xl lg:text-3xl">
                     Tutoring Center Management Application
                     </Link>
@@ -84,7 +84,7 @@ export default function Header() {
                 </div>
             </div>
             <div className="bg-[var(--color-main)]">
-                <div className="shell-frame flex flex-wrap items-center justify-between gap-3 py-2">
+                <div className="container flex flex-wrap items-center justify-between gap-3 py-2">
                     <Link href="/" className="flex items-center">
                         <Logo className="text-white" />
                     </Link>

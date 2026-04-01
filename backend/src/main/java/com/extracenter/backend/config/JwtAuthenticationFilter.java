@@ -1,11 +1,11 @@
 package com.extracenter.backend.config;
 
-import com.extracenter.backend.utils.JwtUtils;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -13,9 +13,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.extracenter.backend.utils.JwtUtils;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -24,7 +27,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtils jwtUtils;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+        protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
         // 1. Lấy token từ header "Authorization"
@@ -41,8 +45,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 List<GrantedAuthority> authorities = new ArrayList<>();
 
                 if (role != null && !role.trim().isEmpty()) {
-                    // Chuyển thành ROLE_TEACHER in hoa để Spring Security dễ nhận diện
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase().trim()));
+                    String normalizedRole = role.toUpperCase().trim();
+                    authorities.add(new SimpleGrantedAuthority(normalizedRole));
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + normalizedRole));
                 }
 
                 // 3. Nếu token chuẩn, báo cho Spring Security biết là user này đã đăng nhập

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { User } from "@/services/authService";
 import api from "@/utils/axiosConfig";
-import { Course } from "@/services/courseService";
+import { Course, getTeacherCourses } from "@/services/courseService";
 
 import CenterHeader from "./components/CenterHeader";
 import CenterTabs from "./components/CenterTabs";
@@ -49,14 +49,11 @@ export default function CenterDetailPage() {
             const managerCheck = resCenter.data.manager.id === user.id;
             setIsManager(managerCheck);
 
-            const resCourses = await api.get(`/courses?centerId=${centerId}`);
-            let fetchedCourses = resCourses.data;
-
-            if (!managerCheck) {
-                fetchedCourses = fetchedCourses.filter(
-                    (c: Course) => c.teacher.id === user.id
+            const fetchedCourses: Course[] = managerCheck
+                ? (await api.get(`/courses?centerId=${centerId}`)).data
+                : (await getTeacherCourses(user.id)).filter(
+                    (course: Course) => course.center?.id === centerId
                 );
-            }
 
             setCourses(fetchedCourses);
 
@@ -95,7 +92,7 @@ export default function CenterDetailPage() {
             const cardStudents: StudentCenterCard[] = students.map((s: User) => ({
                 ...s,
                 courses: studentCoursesMap.get(s.id) ?? [],
-            }));
+            })).filter((student) => managerCheck || student.courses.length > 0);
 
             setCenterStudents(cardStudents);
 

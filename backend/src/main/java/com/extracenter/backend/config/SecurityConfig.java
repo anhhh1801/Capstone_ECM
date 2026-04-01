@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -11,6 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import jakarta.servlet.DispatcherType;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
         @Autowired
@@ -27,12 +29,22 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers(
                                                                 "/api/users/login",
-                                                                "/api/users/register",
                                                                 "/api/users/register-teacher",
                                                                 "/api/users/verify-otp",
                                                                 "/api/users/resend-otp",
                                                                 "/error")
                                                 .permitAll()
+
+                                                .requestMatchers("/api/users/admin/**")
+                                                .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+                                                .requestMatchers("/api/users/teacher/**", "/api/users/create-student", "/api/users/search")
+                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER", "ADMIN", "ROLE_ADMIN")
+                                                .requestMatchers("/api/schedule/teacher/**", "/api/courses/teacher/**", "/api/courses/invitations/**", "/api/centers/teacher/**", "/api/centers/teaching/**")
+                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER", "ADMIN", "ROLE_ADMIN")
+                                                .requestMatchers("/api/centers/**")
+                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER", "ADMIN", "ROLE_ADMIN")
+                                                .requestMatchers("/api/schedule/student/**", "/api/courses/student/**", "/api/assignments/student/**")
+                                                .hasAnyAuthority("STUDENT", "ROLE_STUDENT", "ADMIN", "ROLE_ADMIN")
 
                                                 .requestMatchers(HttpMethod.POST, "/api/courses", "/api/courses/**")
                                                 .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",

@@ -7,7 +7,6 @@ import {
     Plus,
     FileText,
     Video,
-    Link as LinkIcon,
     File,
     Download,
     Trash2,
@@ -17,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import api from '@/utils/axiosConfig';
 import MaterialAddForm from "./MaterialAddForm";
+import ConfirmModal from "@/components/ConfirmModal";
 
 
 interface Props {
@@ -39,6 +39,7 @@ export default function CourseMaterials({ courseId, readOnly = false }: Props) {
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
     // Fetch materials from the backend
     const fetchMaterials = async () => {
@@ -86,23 +87,32 @@ export default function CourseMaterials({ courseId, readOnly = false }: Props) {
 
     // Delete material
     const handleDelete = async (id: number) => {
-        if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này? Không thể hoàn tác.")) return;
-
         setDeletingId(id);
         try {
             await api.delete(`/materials/${id}`);
-            toast.success("Xóa tài liệu thành công!");
-            setMaterials(materials.filter(m => m.id !== id));
+            toast.success("Material deleted successfully!");
+            setMaterials((currentMaterials) => currentMaterials.filter((material) => material.id !== id));
         } catch (error) {
             console.error("Error deleting material:", error);
-            toast.error("Lỗi khi xóa tài liệu.");
+            toast.error("Error deleting material.");
         } finally {
             setDeletingId(null);
         }
     };
 
+    const pendingDeleteMaterial = materials.find((material) => material.id === pendingDeleteId);
+
     return (
         <div className="bg-[var(--color-soft-white)] rounded-xl border border-[var(--color-main)] shadow-sm mt-6 overflow-hidden">
+
+            <ConfirmModal
+                isOpen={!readOnly && pendingDeleteId !== null}
+                title="Delete Material"
+                message={`Delete "${pendingDeleteMaterial?.fileName || "this material"}"? This action cannot be undone.`}
+                confirmText="Delete"
+                onClose={() => setPendingDeleteId(null)}
+                onConfirm={() => (pendingDeleteId !== null ? handleDelete(pendingDeleteId) : undefined)}
+            />
 
             {/* --- ADD MATERIAL MODAL --- */}
             {isAddModalOpen && (
@@ -213,22 +223,22 @@ export default function CourseMaterials({ courseId, readOnly = false }: Props) {
                                             {formatDate(material.uploadedDate)}
                                         </td>
                                         <td className="p-4">
-                                            <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-center gap-2">
                                                 <a
                                                     href={material.fileUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     download
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                    className="inline-flex items-center justify-center rounded-lg border border-[var(--color-main)]/25 bg-[var(--color-soft-white)] p-2 text-[var(--color-main)] shadow-sm transition hover:border-[var(--color-main)] hover:bg-[var(--color-main)] hover:text-[var(--color-soft-white)]"
                                                     title="View/Download"
                                                 >
                                                     <Download size={18} />
                                                 </a>
                                                 {!readOnly && (
                                                     <button
-                                                        onClick={() => handleDelete(material.id)}
+                                                        onClick={() => setPendingDeleteId(material.id)}
                                                         disabled={deletingId === material.id}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                                                        className="inline-flex items-center justify-center rounded-lg border border-[var(--color-alert)]/30 bg-[var(--color-soft-white)] p-2 text-[var(--color-alert)] shadow-sm transition hover:border-[var(--color-alert)] hover:bg-[var(--color-alert)] hover:text-[var(--color-soft-white)] disabled:cursor-not-allowed disabled:opacity-50"
                                                         title="Delete"
                                                     >
                                                         {deletingId === material.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}

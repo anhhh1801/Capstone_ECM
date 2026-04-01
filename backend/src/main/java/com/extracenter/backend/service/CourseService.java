@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -172,6 +174,7 @@ public class CourseService {
     }
 
     public List<Course> getCoursesByTeacher(Long teacherId) {
+        validateTeacherCourseAccess(teacherId);
         return courseRepository.findByTeacherId(teacherId).stream()
             .map(this::syncCourseStatus)
             .collect(Collectors.toList());
@@ -189,9 +192,33 @@ public class CourseService {
             .collect(Collectors.toList());
     }
 
+    public List<Course> getVisibleCoursesByCenter(Long centerId) {
+        User currentUser = getCurrentUser();
+
+        if (isAdmin(currentUser)) {
+            return getCoursesByCenter(centerId);
+        }
+
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found!"));
+
+        if (center.getManager() != null && center.getManager().getId().equals(currentUser.getId())) {
+            return getCoursesByCenter(centerId);
+        }
+
+        if (isTeacher(currentUser)) {
+            return courseRepository.findByCenterIdAndTeacherId(centerId, currentUser.getId()).stream()
+                    .map(this::syncCourseStatus)
+                    .collect(Collectors.toList());
+        }
+
+        throw new RuntimeException("You do not have permission to view courses in this center.");
+    }
+
     public Course getCourseById(Long id) {
         Course course = courseRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Course not found!"));
+        validateCourseViewer(course);
         return syncCourseStatus(course);
     }
 
@@ -199,6 +226,8 @@ public class CourseService {
     public List<CourseSessionResponse> getClassSessionsByCourse(Long courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        validateCourseViewer(course);
 
         synchronizeSessionsFromActiveClassSlots(course);
 
@@ -210,8 +239,10 @@ public class CourseService {
     }
 
     public List<CourseSessionSlotOptionResponse> getSessionSlotOptionsByCourse(Long courseId) {
-        courseRepository.findById(courseId)
+        Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
+
+        validateCourseViewer(course);
 
         return classSlotRepository.findByCourseId(courseId)
                 .stream()
@@ -601,6 +632,10 @@ public class CourseService {
 
     // Retrieve list of students via Enrollment repository for better performance
     public Set<User> getCourseStudents(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new RuntimeException("Course not found!"));
+        validateCourseViewer(course);
+
         // OPTIMIZATION: Instead of loading the Course and relying on Lazy Loading,
         // we query the EnrollmentRepository directly!
         List<Enrollment> enrollments = enrollmentRepository.findByCourseId(courseId);
@@ -619,6 +654,63 @@ public class CourseService {
         if (!isTeacher && !isManager) {
             throw new RuntimeException("Only assigned teacher or center manager can " + action + " sessions.");
         }
+    }
+
+    private void validateCourseViewer(Course course) {
+        User currentUser = getCurrentUser();
+
+        if (isAdmin(currentUser)) {
+            return;
+        }
+
+        boolean isManager = course.getCenter() != null
+                && course.getCenter().getManager() != null
+                && course.getCenter().getManager().getId().equals(currentUser.getId());
+
+        boolean isAssignedTeacher = course.getTeacher() != null
+                && course.getTeacher().getId().equals(currentUser.getId());
+
+        boolean isEnrolledStudent = isStudent(currentUser)
+                && enrollmentRepository.existsByStudentIdAndCourseId(currentUser.getId(), course.getId());
+
+        if (!isManager && !isAssignedTeacher && !isEnrolledStudent) {
+            throw new RuntimeException("You do not have permission to view this course.");
+        }
+    }
+
+    private void validateTeacherCourseAccess(Long teacherId) {
+        User currentUser = getCurrentUser();
+        if (isAdmin(currentUser)) {
+            return;
+        }
+
+        if (isTeacher(currentUser) && currentUser.getId().equals(teacherId)) {
+            return;
+        }
+
+        throw new RuntimeException("You do not have permission to view these courses.");
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("Authentication is required.");
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private boolean isTeacher(User user) {
+        return user.getRole() != null && "TEACHER".equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private boolean isStudent(User user) {
+        return user.getRole() != null && "STUDENT".equalsIgnoreCase(user.getRole().getName());
     }
 
     private Course syncCourseStatus(Course course) {

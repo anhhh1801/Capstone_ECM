@@ -48,7 +48,7 @@ export default function AssignmentDetailModal({ courseId, assignment, readOnly =
             <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
 
                 {/* Header (Different color if Overdue) */}
-                <div className={`p-6 text-white flex justify-between items-start ${isOverdue ? 'bg-red-500' : 'bg-[var(--color-main)]'}`}>
+                <div className={`p-6 text-white flex justify-between items-start ${isOverdue ? 'bg-[var(--color-alert)]/80' : 'bg-[var(--color-main)]'}`}>
                     <div>
                         <h2 className="text-2xl font-bold mb-2">{assignment.title}</h2>
                         <div className="flex gap-4 text-sm font-medium opacity-90">

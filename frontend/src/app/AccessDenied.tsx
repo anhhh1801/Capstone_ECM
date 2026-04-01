@@ -2,6 +2,7 @@
 
 import { ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getRoleName } from "@/utils/auth";
 
 export default function UnauthorizedPage() {
     const router = useRouter();
@@ -10,10 +11,11 @@ export default function UnauthorizedPage() {
         const userRaw = localStorage.getItem("user");
         if (userRaw) {
             const user = JSON.parse(userRaw);
+            const roleName = getRoleName(user.role);
             // Route them back to their proper dashboard
-            if (user.role === "STUDENT") router.replace("/student/courses");
-            else if (user.role === "TEACHER" || user.role === "MANAGER") router.replace("/teacher/dashboard");
-            else if (user.role === "ADMIN") router.replace("/admin/users");
+            if (roleName === "STUDENT") router.replace("/student/courses");
+            else if (roleName === "TEACHER" || roleName === "MANAGER") router.replace("/teacher/dashboard");
+            else if (roleName === "ADMIN") router.replace("/admin/users");
             else router.replace("/login");
         } else {
             router.replace("/login");

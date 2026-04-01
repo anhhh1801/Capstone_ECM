@@ -35,6 +35,8 @@ const UserManagement = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAuthorized, setIsAuthorized] = useState(false);
+    const [roleFilter, setRoleFilter] = useState("ALL");
+    const [searchTerm, setSearchTerm] = useState("");
     const [stats, setStats] = useState<UserStats | null>(null);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [lockConfirmUser, setLockConfirmUser] = useState<User | null>(null);
@@ -140,6 +142,19 @@ const UserManagement = () => {
         }
     };
 
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const availableRoles = Array.from(new Set(users.map((user) => user.role.name))).sort();
+    const filteredUsers = users.filter((user) => {
+        const matchesRole = roleFilter === "ALL" || user.role.name === roleFilter;
+        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+        const matchesSearch =
+            normalizedSearchTerm.length === 0 ||
+            fullName.includes(normalizedSearchTerm) ||
+            user.email.toLowerCase().includes(normalizedSearchTerm);
+
+        return matchesRole && matchesSearch;
+    });
+
     if (!isAuthorized) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[var(--color-soft-white)] p-6 text-[var(--color-text)]">
@@ -149,10 +164,47 @@ const UserManagement = () => {
     }
 
     return (
-        <div className="p-6 bg-[var(--color-soft-white)] min-h-screen">
+        <div className="min-h-full space-y-6 bg-[var(--color-soft-white)]">
             <h1 className="text-2xl font-bold mb-6 text-[var(--color-text)]">
                 Admin User Management
             </h1>
+
+            <div className="rounded-lg bg-white p-4 shadow-md">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                    <div className="flex-1">
+                        <label htmlFor="user-search" className="mb-2 block text-sm font-semibold text-[var(--color-text)]">
+                            Search by name or email
+                        </label>
+                        <input
+                            id="user-search"
+                            type="text"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="Enter a name or email"
+                            className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-main)]/20"
+                        />
+                    </div>
+
+                    <div className="w-full md:w-56">
+                        <label htmlFor="role-filter" className="mb-2 block text-sm font-semibold text-[var(--color-text)]">
+                            Filter by role
+                        </label>
+                        <select
+                            id="role-filter"
+                            value={roleFilter}
+                            onChange={(event) => setRoleFilter(event.target.value)}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-main)] focus:ring-2 focus:ring-[var(--color-main)]/20"
+                        >
+                            <option value="ALL">All roles</option>
+                            {availableRoles.map((role) => (
+                                <option key={role} value={role}>
+                                    {role}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
 
             {/* USER TABLE */}
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -177,7 +229,7 @@ const UserManagement = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {users.map((user) => (
+                        {filteredUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-gray-100">
                                 <td className="px-5 py-5 border-b text-sm font-medium">
                                     {user.firstName} {user.lastName}
@@ -251,6 +303,13 @@ const UserManagement = () => {
                                 </td>
                             </tr>
                         ))}
+                        {filteredUsers.length === 0 && !loading && (
+                            <tr>
+                                <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                                    No users match the current filters.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

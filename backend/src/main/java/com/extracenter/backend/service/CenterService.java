@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ import com.extracenter.backend.repository.CenterRepository;
 import com.extracenter.backend.repository.ClassSlotRepository;
 import com.extracenter.backend.repository.ClassroomRepository;
 import com.extracenter.backend.repository.CourseRepository;
+import com.extracenter.backend.repository.EnrollmentRepository;
 import com.extracenter.backend.repository.GradeRepository;
 import com.extracenter.backend.repository.SubjectRepository;
 import com.extracenter.backend.repository.UserRepository;
@@ -61,6 +64,9 @@ public class CenterService {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     // 1. Create a new Center
     // @Transactional added: If saving the center works but updating the manager
@@ -101,8 +107,7 @@ public class CenterService {
 
     // 4. Get Center by ID
     public Center getCenterById(Long id) {
-        return centerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + id));
+        return getAccessibleCenterForCurrentUser(id);
     }
 
     // 5. Get list of Centers where a teacher is currently teaching (Guest Teacher)
@@ -127,6 +132,7 @@ public class CenterService {
 
     // Subject / Grade management for a Center
     public List<Subject> getSubjectsByCenter(Long centerId) {
+        getOwnedCenterForCurrentUser(centerId);
         return subjectRepository.findByCenterId(centerId);
     }
 
@@ -175,6 +181,7 @@ public class CenterService {
     }
 
     public List<Grade> getGradesByCenter(Long centerId) {
+        getOwnedCenterForCurrentUser(centerId);
         return gradeRepository.findByCenterId(centerId);
     }
 
@@ -299,6 +306,62 @@ public class CenterService {
         return center;
     }
 
+    private Center getOwnedCenterForCurrentUser(Long centerId) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+
+        User currentUser = getCurrentUser();
+        if (isAdmin(currentUser) || isCenterOwner(center, currentUser)) {
+            return center;
+        }
+
+        throw new RuntimeException("Only the center owner can access this information.");
+    }
+
+    private Center getAccessibleCenterForCurrentUser(Long centerId) {
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+
+        User currentUser = getCurrentUser();
+        if (isAdmin(currentUser) || isCenterOwner(center, currentUser)) {
+            return center;
+        }
+
+        if (isTeacher(currentUser) && hasTeachingAccessToCenter(centerId, currentUser)) {
+            return center;
+        }
+
+        throw new RuntimeException("You do not have permission to access this center.");
+    }
+
+    private boolean hasTeachingAccessToCenter(Long centerId, User user) {
+        boolean linkedToCenter = user.getConnectedCenters().stream().anyMatch(center -> center.getId().equals(centerId));
+        boolean teachesInCenter = !courseRepository.findByCenterIdAndTeacherId(centerId, user.getId()).isEmpty();
+        return linkedToCenter || teachesInCenter;
+    }
+
+    private boolean isCenterOwner(Center center, User user) {
+        return center.getManager() != null && center.getManager().getId().equals(user.getId());
+    }
+
+    private boolean isTeacher(User user) {
+        return user.getRole() != null && "TEACHER".equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName());
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("Authentication is required.");
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
+    }
+
     private Center getEditableOwnedCenter(Long centerId, Long managerId) {
         Center center = getCenterOwnedByManager(centerId, managerId);
         ensureCenterNotArchived(center);
@@ -337,6 +400,7 @@ public class CenterService {
     }
 
     public List<Classroom> getClassroomsByCenter(Long centerId) {
+        getOwnedCenterForCurrentUser(centerId);
         return classroomRepository.findByCenterId(centerId);
     }
 
@@ -382,11 +446,28 @@ public class CenterService {
     }
 
     public List<ClassSlot> getClassSlotsByCenter(Long centerId) {
+        getOwnedCenterForCurrentUser(centerId);
         return classSlotRepository.findByCenterId(centerId);
     }
 
     public List<User> getTeachersByCenter(Long centerId) {
+        getOwnedCenterForCurrentUser(centerId);
         return userRepository.findTeachersByCenterId(centerId);
+    }
+
+    public List<User> getVisibleStudentsByCenter(Long centerId) {
+        Center center = getAccessibleCenterForCurrentUser(centerId);
+        User currentUser = getCurrentUser();
+
+        if (isAdmin(currentUser) || isCenterOwner(center, currentUser)) {
+            return userRepository.findStudentsByCenterId(centerId);
+        }
+
+        if (isTeacher(currentUser) && hasTeachingAccessToCenter(centerId, currentUser)) {
+            return enrollmentRepository.findStudentsByCenterIdAndTeacherId(centerId, currentUser.getId());
+        }
+
+        throw new RuntimeException("You do not have permission to view students in this center.");
     }
 
     @Transactional

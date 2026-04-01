@@ -43,7 +43,6 @@ public class MaterialService {
         } else {
             material.setFileName(file.getOriginalFilename());
         }
-        material.setFileName(file.getOriginalFilename()); // get file original name (vd: bai_tap.pdf)
         material.setFileUrl(fileUrl); // URL Cloudinary
         material.setFileType(file.getContentType()); // file (vd: application/pdf)
         material.setCourse(course);

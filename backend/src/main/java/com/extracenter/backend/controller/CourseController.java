@@ -191,7 +191,7 @@ public class CourseController {
     @GetMapping
     public ResponseEntity<List<Course>> getAllCoursesByCenter(@RequestParam(required = false) Long centerId) {
         if (centerId != null) {
-            return ResponseEntity.ok(courseService.getCoursesByCenter(centerId));
+            return ResponseEntity.ok(courseService.getVisibleCoursesByCenter(centerId));
         }
         // Best Practice: If no centerId is provided, return all courses instead of null
         return ResponseEntity.ok(courseService.getAllCourses());

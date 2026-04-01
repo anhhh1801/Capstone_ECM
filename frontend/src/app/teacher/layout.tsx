@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getInvitations } from "@/services/courseService";
+import { getRoleName, getStoredUser } from "@/utils/auth";
 
 export default function TeacherLayout({
     children,
@@ -37,12 +38,20 @@ export default function TeacherLayout({
     }, [user, pathname]);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        } else {
+        const storedUser = getStoredUser();
+
+        if (!storedUser) {
             router.push("/login");
+            return;
         }
+
+        const roleName = getRoleName(storedUser.role);
+        if (roleName !== "TEACHER" && roleName !== "MANAGER") {
+            router.replace("/AccessDenied");
+            return;
+        }
+
+        setUser(storedUser);
     }, [router]);
 
     useEffect(() => {
@@ -145,7 +154,7 @@ export default function TeacherLayout({
 
             {/* MAIN CONTENT */}
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto transition-all duration-300">
-                <div className="shell-frame py-6 sm:py-8">
+                <div className="container py-6 sm:py-8">
                     <div className="min-h-full">
                         {children}
                     </div>

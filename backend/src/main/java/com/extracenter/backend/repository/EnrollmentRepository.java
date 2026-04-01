@@ -50,4 +50,11 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     // center, they only appear once.
     @Query("SELECT DISTINCT e.student FROM Enrollment e WHERE e.course.center.id = :centerId")
     List<User> findStudentsByCenterId(@Param("centerId") Long centerId);
+
+        @Query("SELECT DISTINCT e.student FROM Enrollment e " +
+            "WHERE e.course.center.id = :centerId " +
+            "AND e.course.teacher.id = :teacherId " +
+            "AND e.student.isEnabled = true")
+        List<User> findStudentsByCenterIdAndTeacherId(@Param("centerId") Long centerId,
+            @Param("teacherId") Long teacherId);
 }

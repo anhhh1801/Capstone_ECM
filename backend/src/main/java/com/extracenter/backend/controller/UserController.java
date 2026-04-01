@@ -119,11 +119,13 @@ public class UserController {
     // API Tìm kiếm học sinh
     // GET: /api/users/search?keyword=Nguyen Van
     @GetMapping("/search")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<List<User>> searchStudents(@RequestParam String keyword) {
         return ResponseEntity.ok(userRepository.searchStudents(keyword));
     }
 
     @GetMapping("/teacher/{teacherId}/students")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> getTeacherStudents(
             @PathVariable Long teacherId,
             @RequestParam(defaultValue = "true") boolean active) {
@@ -138,6 +140,7 @@ public class UserController {
     // API Tạo nhanh học sinh (Auto Email)
     // POST: /api/users/create-student
     @PostMapping("/create-student")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> createStudentAuto(@RequestBody CreateStudentRequest request) {
         User newUser = userService.createStudentAutoEmail(request);
         return ResponseEntity.ok(newUser);
@@ -167,6 +170,7 @@ public class UserController {
     }
 
     @PutMapping("/teacher/{teacherId}/students/{studentId}")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> updateTeacherStudent(
             @PathVariable Long teacherId,
             @PathVariable Long studentId,
@@ -180,6 +184,7 @@ public class UserController {
     }
 
     @DeleteMapping("/teacher/{teacherId}/students/{studentId}")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> removeTeacherStudent(
             @PathVariable Long teacherId,
             @PathVariable Long studentId) {
@@ -192,6 +197,7 @@ public class UserController {
     }
 
     @PostMapping("/teacher/{teacherId}/students/{studentId}/rollback")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> rollbackTeacherStudent(
             @PathVariable Long teacherId,
             @PathVariable Long studentId) {
@@ -204,6 +210,7 @@ public class UserController {
     }
 
     @DeleteMapping("/teacher/{teacherId}/students/{studentId}/permanent")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> permanentlyDeleteTeacherStudent(
             @PathVariable Long teacherId,
             @PathVariable Long studentId) {
@@ -216,6 +223,7 @@ public class UserController {
     }
 
     @PostMapping("/teacher/{teacherId}/students/{studentId}/reset-password")
+    @PreAuthorize("hasAnyAuthority('TEACHER','ROLE_TEACHER','MANAGER','ROLE_MANAGER','ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> resetTeacherStudentPassword(
             @PathVariable Long teacherId,
             @PathVariable Long studentId) {
@@ -242,7 +250,7 @@ public class UserController {
     // API: Admin khóa/mở khóa User
     // PUT: /api/users/admin/lock?adminId=1&targetUserId=5
     @PutMapping("/admin/lock")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> toggleLock(@RequestParam Long adminId, @RequestParam Long targetUserId) {
         try {
             String result = userService.toggleUserLock(adminId, targetUserId);
@@ -267,7 +275,7 @@ public class UserController {
     // API: Get All Users (For Admin Dashboard)
     // GET: /api/users/admin/all
     @GetMapping("/admin/all")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> getAllUsers() {
         // In a real app, use Pagination (Pageable) here!
         return ResponseEntity.ok(userRepository.findAll());

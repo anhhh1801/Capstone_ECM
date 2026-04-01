@@ -2,17 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-    LayoutDashboard,
-    BookOpen,
-    CalendarDays,
-    ChevronLeft,
-    ChevronRight
-} from "lucide-react";
+import { LayoutDashboard, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getRoleName, getStoredUser } from "@/utils/auth";
 
-export default function StudentLayout({
+export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -33,7 +27,7 @@ export default function StudentLayout({
         }
 
         const roleName = getRoleName(storedUser.role);
-        if (roleName !== "STUDENT") {
+        if (roleName !== "ADMIN") {
             router.replace("/AccessDenied");
             return;
         }
@@ -64,9 +58,7 @@ export default function StudentLayout({
     }, []);
 
     const menuItems = [
-        { name: "Overview", href: "/student/dashboard", icon: LayoutDashboard },
-        { name: "Courses", href: "/student/courses", icon: BookOpen },
-        { name: "Schedule", href: "/student/schedule", icon: CalendarDays },
+        { name: "Users", href: "/admin/users", icon: Users },
     ];
 
     const hideAllSidebarContent = isCompactSidebar && collapsed;
@@ -82,10 +74,8 @@ export default function StudentLayout({
         <div className="relative min-h-0 flex-1 bg-gray-100">
             <div className={`teacher-sidebar-column ${sidebarBackgroundWidthClass} bg-[var(--color-main)] shadow-lg transition-all duration-300`} />
 
-            {/* SIDEBAR */}
             <aside className={sidebarClassName}>
                 <div className="flex h-full flex-col">
-                    {/* Header */}
                     <div className={`flex items-center ${hideAllSidebarContent ? "justify-center pt-3" : `border-b p-3 ${collapsed ? "justify-center" : "justify-between"}`}`}>
                         {!collapsed && (
                             <div>
@@ -93,7 +83,7 @@ export default function StudentLayout({
                                     Dashboard
                                 </h1>
                                 <p className="mt-1 text-sm text-[var(--color-soft-white)]">
-                                    Student: {user?.firstName}
+                                    Admin: {user?.firstName}
                                 </p>
                             </div>
                         )}
@@ -107,15 +97,14 @@ export default function StudentLayout({
                         </button>
                     </div>
 
-                    {/* Navigation */}
                     {!hideAllSidebarContent && (
                     <nav className="mt-4 flex-1 space-y-2 pb-4">
                         {menuItems.map((item) => {
-                            const isActive = pathname === item.href || (item.href !== "/student/dashboard" && pathname.startsWith(item.href));
+                            const isActive = pathname === item.href;
 
                             return (
                                 <Link
-                                    key={item.href}
+                                    key={`${item.href}-${item.name}`}
                                     href={item.href}
                                     className={`relative flex items-center ${
                                         showDesktopCollapsedRail ? "justify-center gap-0" : "gap-3"
@@ -135,7 +124,6 @@ export default function StudentLayout({
                 </div>
             </aside>
 
-            {/* MAIN CONTENT */}
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto transition-all duration-300">
                 <div className="container py-6 sm:py-8">
                     <div className="min-h-full">
