@@ -13,6 +13,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.extracenter.backend.entity.User;
+import com.extracenter.backend.repository.UserRepository;
 import com.extracenter.backend.utils.JwtUtils;
 
 import jakarta.servlet.FilterChain;
@@ -25,6 +27,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
         protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -39,6 +44,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtUtils.validateToken(token)) {
                 String email = jwtUtils.extractEmail(token);
+
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user == null || !user.isEnabled() || user.isLocked()) {
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account is no longer active.");
+                    return;
+                }
 
                 String role = jwtUtils.extractRole(token);
 

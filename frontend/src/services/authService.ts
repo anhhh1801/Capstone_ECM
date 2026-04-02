@@ -1,4 +1,5 @@
 import api from '../utils/axiosConfig';
+import { clearStoredAuth } from '@/utils/auth';
 
 export interface User {
     id: number;
@@ -58,5 +59,5 @@ export const resendOtp = async (email: string) => {
 
 // Logout function
 export const logoutUser = () => {
-    localStorage.removeItem("loginResponse");
+    clearStoredAuth();
 };

@@ -11,9 +11,9 @@ import {
     ChevronLeft,
     ChevronRight
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getInvitations } from "@/services/courseService";
-import { getRoleName, getStoredUser } from "@/utils/auth";
+import { getRoleName, getStoredUser, type StoredUser } from "@/utils/auth";
 
 export default function TeacherLayout({
     children,
@@ -23,10 +23,11 @@ export default function TeacherLayout({
     const compactSidebarQuery = "(max-width: 1919px)";
     const pathname = usePathname();
     const router = useRouter();
-    const [user, setUser] = useState<any>(null);
+    const [user] = useState<StoredUser | null>(() => getStoredUser());
     const [collapsed, setCollapsed] = useState(false);
     const [isCompactSidebar, setIsCompactSidebar] = useState(false);
     const [pendingInvites, setPendingInvites] = useState(0);
+    const sidebarRef = useRef<HTMLElement | null>(null);
 
     // fetch invitation count whenever user or route changes
     useEffect(() => {
@@ -51,7 +52,6 @@ export default function TeacherLayout({
             return;
         }
 
-        setUser(storedUser);
     }, [router]);
 
     useEffect(() => {
@@ -76,6 +76,31 @@ export default function TeacherLayout({
         };
     }, []);
 
+    useEffect(() => {
+        const handlePointerDown = (event: MouseEvent) => {
+            if (collapsed) {
+                return;
+            }
+
+            const target = event.target as Node | null;
+            if (!target) {
+                return;
+            }
+
+            if (sidebarRef.current?.contains(target)) {
+                return;
+            }
+
+            setCollapsed(true);
+        };
+
+        document.addEventListener("mousedown", handlePointerDown);
+
+        return () => {
+            document.removeEventListener("mousedown", handlePointerDown);
+        };
+    }, [collapsed]);
+
     const menuItems = [
         { name: "Overview", href: "/teacher/dashboard", icon: LayoutDashboard },
         { name: "Centers", href: "/teacher/centers", icon: Building2, notify: pendingInvites > 0 },
@@ -98,7 +123,7 @@ export default function TeacherLayout({
             <div className={`teacher-sidebar-column ${sidebarBackgroundWidthClass} bg-[var(--color-main)] shadow-lg transition-all duration-300`} />
 
             {/* SIDEBAR */}
-            <aside className={sidebarClassName}>
+            <aside ref={sidebarRef} className={sidebarClassName}>
                 <div className="flex h-full flex-col">
                     {/* Header */}
                     <div className={`flex items-center ${hideAllSidebarContent ? "justify-center pt-3" : `border-b p-3 ${collapsed ? "justify-center" : "justify-between"}`}`}>

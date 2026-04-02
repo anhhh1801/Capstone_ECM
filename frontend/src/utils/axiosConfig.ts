@@ -1,5 +1,7 @@
 import axios from "axios";
 
+import { clearStoredAuth } from "@/utils/auth";
+
 const api = axios.create({
     baseURL: "http://localhost:8080/api",
     headers: {
@@ -59,10 +61,7 @@ api.interceptors.response.use(
         if (status === 401) {
             console.warn(`Auth error (401) - logging out`);
 
-            // Clear all local storage data 
-            // (I added "user" here just in case, based on your previous screenshot)
-            localStorage.removeItem("loginResponse");
-            localStorage.removeItem("user");
+            clearStoredAuth();
 
             // Redirect to login
             if (typeof window !== "undefined" && window.location.pathname !== "/login") {

@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/utils/axiosConfig";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import axios from "axios";
+import { clearStoredAuth, getStoredUser, persistStoredUser } from "@/utils/auth";
 import {
     User,
     Phone,
@@ -12,7 +13,6 @@ import {
     Calendar,
     Save,
     AlertTriangle,
-    ShieldAlert,
     Lock,
     X,
     Eye,
@@ -60,24 +60,47 @@ export default function ProfilePage() {
     };
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
+        const storedUser = getStoredUser();
 
-        if (!storedUser) {
+        if (!storedUser?.id) {
             router.push("/login");
             return;
         }
 
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        let isMounted = true;
 
-        setFormData({
-            firstName: parsedUser.firstName || "",
-            lastName: parsedUser.lastName || "",
-            phoneNumber: parsedUser.phoneNumber || "",
-            dateOfBirth: parsedUser.dateOfBirth || "",
-        });
+        const loadProfile = async () => {
+            try {
+                const response = await api.get<UserProfile>(`/users/${storedUser.id}`);
 
-        setLoading(false);
+                if (!isMounted) {
+                    return;
+                }
+
+                setUser(response.data);
+                setFormData({
+                    firstName: response.data.firstName || "",
+                    lastName: response.data.lastName || "",
+                    phoneNumber: response.data.phoneNumber || "",
+                    dateOfBirth: response.data.dateOfBirth || "",
+                });
+                persistStoredUser(response.data);
+            } catch (error) {
+                if (!axios.isAxiosError(error)) {
+                    toast.error("Failed to load profile.");
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadProfile();
+
+        return () => {
+            isMounted = false;
+        };
     }, [router]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +118,7 @@ export default function ProfilePage() {
 
             const updatedUser = { ...user, ...response.data };
 
-            localStorage.setItem("user", JSON.stringify(updatedUser));
+            persistStoredUser(updatedUser);
             setUser(updatedUser);
 
             toast.success("Profile updated successfully!");
@@ -123,10 +146,10 @@ export default function ProfilePage() {
 
             toast.success("Account deactivated.");
 
-            localStorage.removeItem("user");
+            clearStoredAuth();
 
             setTimeout(() => {
-                router.push("/login");
+                router.replace("/login");
             }, 1500);
         } catch {
             toast.error("Unable to deactivate account.");
@@ -161,8 +184,12 @@ export default function ProfilePage() {
 
             setShowPasswordModal(false);
             setPassData({ oldPassword: "", newPassword: "", confirmPassword: "" });
-        } catch (error: any) {
-            toast.error(error.response?.data || "Password change failed.");
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                toast.error(String(error.response?.data || "Password change failed."));
+            } else {
+                toast.error("Password change failed.");
+            }
         }
     };
 

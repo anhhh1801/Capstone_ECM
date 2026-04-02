@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import axios from "axios";
 import api from "@/utils/axiosConfig";
+import { getStoredUser, persistStoredUser } from "@/utils/auth";
 import {
 	Calendar,
 	Lock,
@@ -38,15 +39,41 @@ export default function StudentProfilePage() {
 	});
 
 	useEffect(() => {
-		const storedUser = localStorage.getItem("user");
+		const storedUser = getStoredUser();
 
-		if (!storedUser) {
+		if (!storedUser?.id) {
 			router.push("/login");
 			return;
 		}
 
-		setUser(JSON.parse(storedUser));
-		setLoading(false);
+		let isMounted = true;
+
+		const loadProfile = async () => {
+			try {
+				const response = await api.get<StudentUser>(`/users/${storedUser.id}`);
+
+				if (!isMounted) {
+					return;
+				}
+
+				setUser(response.data);
+				persistStoredUser(response.data);
+			} catch (error) {
+				if (!axios.isAxiosError(error)) {
+					toast.error("Unable to load profile.");
+				}
+			} finally {
+				if (isMounted) {
+					setLoading(false);
+				}
+			}
+		};
+
+		loadProfile();
+
+		return () => {
+			isMounted = false;
+		};
 	}, [router]);
 
 	const roleLabel = typeof user?.role === "string" ? user.role : user?.role?.name;

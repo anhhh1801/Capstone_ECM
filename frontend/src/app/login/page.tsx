@@ -3,9 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser, type User as AuthUser } from "@/services/authService";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { Lock, Mail } from "lucide-react";
 import LockedAccountModal from '@/components/LockedAccountModal';
+
+type ApiError = {
+    response?: {
+        data?: string | { message?: string };
+    };
+};
 
 export default function LoginPage() {
     const router = useRouter();
@@ -18,6 +24,16 @@ export default function LoginPage() {
 
     const getRoleName = (role: AuthUser["role"]) => {
         return typeof role === "string" ? role : role?.name;
+    };
+
+    const getVerificationRecipientLabel = (value: string) => {
+        const username = value.split("@")[0]?.trim();
+
+        if (!username) {
+            return "your personal email";
+        }
+
+        return `${username}'s personal email`;
     };
 
     // redirect away if already logged in
@@ -38,7 +54,7 @@ export default function LoginPage() {
                         router.replace("/");
                     }
                 }
-            } catch (_) { }
+            } catch { }
         }
     }, [router]);
 
@@ -73,14 +89,15 @@ export default function LoginPage() {
                 }
             }, 1000);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Login Error:", error);
-            const msg = typeof error.response?.data === "string"
-                ? error.response.data
-                : error.response?.data?.message || "Login Failed! Please check again.";
+            const responseData = (error as ApiError).response?.data;
+            const msg = typeof responseData === "string"
+                ? responseData
+                : responseData?.message || "Login Failed! Please check again.";
 
             if (typeof msg === 'string' && msg.includes("ACCOUNT_DEACTIVATED")) {
-                toast((t) => (
+                toast(() => (
                     <div>
                         <p className="font-bold">Your account is temporarily locked / unverified.</p>
                         <p className="text-sm">A new OTP has been sent to your email address.</p>
@@ -88,7 +105,9 @@ export default function LoginPage() {
                 ), { duration: 5000, icon: '🔄' });
 
                 setTimeout(() => {
-                    router.push(`/verify?email=${encodeURIComponent(email)}`);
+                    router.push(
+                        `/verify?email=${encodeURIComponent(email)}&recipient=${encodeURIComponent(getVerificationRecipientLabel(email))}`
+                    );
                 }, 2000);
             }
 
@@ -96,7 +115,9 @@ export default function LoginPage() {
                 setShowLockedModal(true);
             }
             else if (typeof msg === 'string' && msg.includes("PENDING_VERIFICATION")) {
-                router.push(`/verify?email=${encodeURIComponent(email)}`);
+                router.push(
+                    `/verify?email=${encodeURIComponent(email)}&recipient=${encodeURIComponent(getVerificationRecipientLabel(email))}`
+                );
             } else {
                 setErrorMessage(msg);
             }
@@ -177,7 +198,7 @@ export default function LoginPage() {
                 </form>
 
                 <p className="mt-6 text-center text-sm text-gray-500">
-                    Don't have an account ?{" "}
+                    Don&apos;t have an account ?{" "}
                     <a href={`/register`} className="font-semibold text-[var(--color-main)] underline hover:text-[var(--color-alert)]">
                         Go to register
                     </a>

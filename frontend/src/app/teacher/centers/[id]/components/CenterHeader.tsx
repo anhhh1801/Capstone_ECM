@@ -1,8 +1,12 @@
-
 import { ShieldCheck } from "lucide-react";
 
+type CenterHeaderInfo = {
+    name: string;
+    description?: string;
+};
+
 interface Props {
-    center: any;
+    center: CenterHeaderInfo | null;
     isManager: boolean;
 }
 
@@ -10,9 +14,8 @@ export default function CenterHeader({ center, isManager }: Props) {
     if (!center) return null;
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border flex justify-between items-start">
+        <div className="bg-white p-6 rounded-xl shadow-sm border flex justify-between items-start gap-4">
             <div className="max-w-full">
-
                 {/* TITLE */}
                 <h1 className="text-4xl font-bold text-[var(--color-text)] break-words">
                     {center.name}

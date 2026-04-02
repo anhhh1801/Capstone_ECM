@@ -24,6 +24,7 @@ import com.extracenter.backend.dto.LoginResponse;
 import com.extracenter.backend.dto.RegisterRequest;
 import com.extracenter.backend.dto.TeacherStudentResponse;
 import com.extracenter.backend.dto.UpdateProfileRequest;
+import com.extracenter.backend.dto.UserProfileResponse;
 import com.extracenter.backend.dto.UserStatsResponse;
 import com.extracenter.backend.dto.VerifyOtpRequest;
 import com.extracenter.backend.entity.User;
@@ -92,14 +93,31 @@ public class UserController {
     }
 
     // API: Update Profile
+    // GET: /api/users/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getProfile(@PathVariable Long id) {
+        try {
+            UserProfileResponse profile = userService.getProfile(id);
+            return ResponseEntity.ok(profile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    // API: Update Profile
     // PUT: /api/users/{id}/profile
     @PutMapping("/{id}/profile")
     public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody UpdateProfileRequest request) {
         try {
             User updatedUser = userService.updateProfile(id, request);
             return ResponseEntity.ok(updatedUser);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (RuntimeException e) {
+            String message = e.getMessage();
+            if ("You do not have permission to access this user.".equals(message)) {
+                return ResponseEntity.status(403).body(message);
+            }
+
+            return ResponseEntity.badRequest().body(message);
         }
     }
 
@@ -111,6 +129,10 @@ public class UserController {
             userService.changePassword(id, request);
             return ResponseEntity.ok("Password changed successfully!");
         } catch (RuntimeException e) {
+            if ("You do not have permission to access this user.".equals(e.getMessage())) {
+                return ResponseEntity.status(403).body(e.getMessage());
+            }
+
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -122,7 +144,11 @@ public class UserController {
         try {
             userService.deactivateAccount(id);
             return ResponseEntity.ok("Account has been deactivated.");
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            if ("You do not have permission to access this user.".equals(e.getMessage())) {
+                return ResponseEntity.status(403).body(e.getMessage());
+            }
+
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

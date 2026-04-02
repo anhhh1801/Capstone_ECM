@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { User } from "@/services/authService";
 import api from "@/utils/axiosConfig";
 import { Course, getTeacherCourses } from "@/services/courseService";
@@ -20,11 +22,20 @@ type StudentCenterCard = User & {
     courses: { id: number; name: string }[];
 };
 
+type CenterInfo = {
+    id: number;
+    name: string;
+    description?: string;
+    manager: {
+        id: number;
+    };
+};
+
 export default function CenterDetailPage() {
     const params = useParams();
     const centerId = Number(params.id);
 
-    const [centerInfo, setCenterInfo] = useState<any>(null);
+    const [centerInfo, setCenterInfo] = useState<CenterInfo | null>(null);
     const [isManager, setIsManager] = useState(false);
     const [activeTab, setActiveTab] = useState<"courses" | "students" | "teachers" | "subjects" | "grades" | "classrooms" | "class-slots">("courses");
     const [loading, setLoading] = useState(true);
@@ -33,7 +44,7 @@ export default function CenterDetailPage() {
     const [teachers, setTeachers] = useState<User[]>([]);
     const [centerStudents, setCenterStudents] = useState<StudentCenterCard[]>([]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (!centerId) return;
 
         const userStr = localStorage.getItem("user");
@@ -43,7 +54,7 @@ export default function CenterDetailPage() {
         try {
             setLoading(true);
 
-            const resCenter = await api.get(`/centers/${centerId}`);
+            const resCenter = await api.get<CenterInfo>(`/centers/${centerId}`);
             setCenterInfo(resCenter.data);
 
             const managerCheck = resCenter.data.manager.id === user.id;
@@ -106,11 +117,11 @@ export default function CenterDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [centerId]);
 
     useEffect(() => {
         fetchData();
-    }, [centerId]);
+    }, [fetchData]);
 
     if (loading)
         return (
@@ -121,6 +132,13 @@ export default function CenterDetailPage() {
 
     return (
         <div className="space-y-6">
+            <Link
+                href="/teacher/centers"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-main)] transition hover:text-[var(--color-alert)] hover:underline"
+            >
+                <ArrowLeft size={14} />
+                Back to centers
+            </Link>
 
             {/* HEADER */}
             <CenterHeader center={centerInfo} isManager={isManager} />

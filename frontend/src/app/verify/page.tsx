@@ -40,6 +40,16 @@ function VerifyContent() {
     }, [router]);
 
     const email = searchParams.get("email");
+    const recipient = searchParams.get("recipient");
+
+    const verificationRecipient = (() => {
+        if (recipient && recipient.trim()) {
+            return recipient;
+        }
+
+        const username = email?.split("@")[0]?.trim();
+        return username ? `${username}'s personal email` : "your personal email";
+    })();
 
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
     const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
@@ -201,10 +211,10 @@ function VerifyContent() {
                     <h2 className="header-1">Account Verification</h2>
 
                     <p className="mb-1 block text-sm font-medium text-[var(--color-text)]">
-                        A <span className="font-bold text-[var(--color-alert)]">6-digit OTP</span> code has been sent to:
+                        A <span className="font-bold text-[var(--color-alert)]">6-digit OTP</span> code has been sent to
                         <br />
                         <span className="font-bold text-lg text-[var(--color-main)]">
-                            {email || "Email not provided"}
+                            {verificationRecipient}
                         </span>
                     </p>
                 </div>

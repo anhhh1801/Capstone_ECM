@@ -21,6 +21,7 @@ import com.extracenter.backend.dto.LoginResponse;
 import com.extracenter.backend.dto.RegisterRequest;
 import com.extracenter.backend.dto.TeacherStudentResponse;
 import com.extracenter.backend.dto.UpdateProfileRequest;
+import com.extracenter.backend.dto.UserProfileResponse;
 import com.extracenter.backend.dto.UserStatsResponse;
 import com.extracenter.backend.entity.Center;
 import com.extracenter.backend.entity.Role;
@@ -54,6 +55,12 @@ public class UserService {
     private EnrollmentRepository enrollmentRepository;
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getProfile(Long id) {
+        User user = getAccessibleUser(id);
+        return UserProfileResponse.from(user);
+    }
 
     /**
      * Authenticates a user and returns a token with filtered user info.
@@ -120,8 +127,7 @@ public class UserService {
     }
 
     public User updateProfile(Long id, UpdateProfileRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
+        User user = getAccessibleUser(id);
 
         // Validate firstName and lastName
         if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
@@ -140,8 +146,7 @@ public class UserService {
     }
 
     public void changePassword(Long userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
+        User user = getAccessibleUser(userId);
 
         if (!user.getPassword().equals(request.getOldPassword())) {
             throw new RuntimeException("Incorrect old password!");
@@ -280,8 +285,7 @@ public class UserService {
     // 2. Deactivate an Account (e.g., Soft delete or suspending a user)
     @Transactional
     public User deactivateAccount(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
+        User user = getAccessibleUser(id);
 
         user.setEnabled(false); // Locks the user out of logging in
         return userRepository.save(user);
@@ -534,6 +538,17 @@ public class UserService {
 
         return userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
+    }
+
+    private User getAccessibleUser(Long userId) {
+        User actor = getCurrentUser();
+
+        if (!isAdmin(actor) && !actor.getId().equals(userId)) {
+            throw new RuntimeException("You do not have permission to access this user.");
+        }
+
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
     }
 
     private boolean isAdmin(User user) {
