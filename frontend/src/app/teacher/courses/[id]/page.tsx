@@ -340,10 +340,6 @@ export default function CourseDetailPage() {
             {/* ENROLLMENT (MANAGER ONLY) */}
             {activeTab === "Enrollment" && isManager && (
                 <div>
-                    <div className="bg-[var(--color-main)]/10 border border-[var(--color-main)]/30 text-[var(--color-text)] p-4 rounded-lg mb-4 text-sm">
-                        👋 Hello manager! You can add or remove students from
-                        this class.
-                    </div>
                     <CourseEnrollment courseId={courseId} />
                 </div>
 

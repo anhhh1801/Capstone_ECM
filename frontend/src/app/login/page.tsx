@@ -107,7 +107,7 @@ export default function LoginPage() {
 
     return (
         <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-[var(--color-soft-white)] to-[var(--color-main)]/30 p-4 sm:p-8 lg:p-12">
-            <Toaster position="top-center" />
+
 
             <LockedAccountModal
                 isOpen={showLockedModal}

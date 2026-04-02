@@ -98,7 +98,7 @@ export default function StudentProfilePage() {
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
-			<Toaster />
+
 
 			<div className="flex flex-col gap-4 rounded-2xl border-2 border-[var(--color-main)] bg-[var(--color-soft-white)] p-6 shadow-sm md:flex-row md:items-end md:justify-between">
 				<div>

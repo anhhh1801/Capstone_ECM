@@ -38,6 +38,7 @@ export default function RootLayout({
             position="top-right"
             containerStyle={{ zIndex: 4000 }}
             toastOptions={{
+              duration: 3000,
               style: { zIndex: 4000 },
             }}
           />

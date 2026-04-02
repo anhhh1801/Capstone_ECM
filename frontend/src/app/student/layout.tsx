@@ -66,7 +66,6 @@ export default function StudentLayout({
     const menuItems = [
         { name: "Overview", href: "/student/dashboard", icon: LayoutDashboard },
         { name: "Courses", href: "/student/courses", icon: BookOpen },
-        { name: "Schedule", href: "/student/schedule", icon: CalendarDays },
     ];
 
     const hideAllSidebarContent = isCompactSidebar && collapsed;
@@ -109,28 +108,26 @@ export default function StudentLayout({
 
                     {/* Navigation */}
                     {!hideAllSidebarContent && (
-                    <nav className="mt-4 flex-1 space-y-2 pb-4">
-                        {menuItems.map((item) => {
-                            const isActive = pathname === item.href || (item.href !== "/student/dashboard" && pathname.startsWith(item.href));
+                        <nav className="mt-4 flex-1 space-y-2 pb-4">
+                            {menuItems.map((item) => {
+                                const isActive = pathname === item.href || (item.href !== "/student/dashboard" && pathname.startsWith(item.href));
 
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`relative flex items-center ${
-                                        showDesktopCollapsedRail ? "justify-center gap-0" : "gap-3"
-                                    } px-4 py-3 font-bold transition-all ${
-                                        isActive
-                                            ? "bg-blue-50 text-[var(--color-main)]"
-                                            : "text-[var(--color-soft-white)] hover:bg-gray-50 hover:text-blue-500"
-                                    }`}
-                                >
-                                    <item.icon size={22} />
-                                    <span className={hideSidebarLabels ? "hidden" : ""}>{item.name}</span>
-                                </Link>
-                            );
-                        })}
-                    </nav>
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`relative flex items-center ${showDesktopCollapsedRail ? "justify-center gap-0" : "gap-3"
+                                            } px-4 py-3 font-bold transition-all ${isActive
+                                                ? "bg-blue-50 text-[var(--color-main)]"
+                                                : "text-[var(--color-soft-white)] hover:bg-gray-50 hover:text-blue-500"
+                                            }`}
+                                    >
+                                        <item.icon size={22} />
+                                        <span className={hideSidebarLabels ? "hidden" : ""}>{item.name}</span>
+                                    </Link>
+                                );
+                            })}
+                        </nav>
                     )}
                 </div>
             </aside>
