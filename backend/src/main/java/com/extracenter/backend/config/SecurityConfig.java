@@ -15,57 +15,98 @@ import jakarta.servlet.DispatcherType;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-        @Autowired
-        private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                http
-                                .csrf(csrf -> csrf.disable())
-                                .cors(cors -> cors.configure(http))
-                                .authorizeHttpRequests(auth -> auth
-                                                .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD)
-                                                .permitAll()
-                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                                .requestMatchers(
-                                                                "/api/users/login",
-                                                                "/api/users/register-teacher",
-                                                                "/api/users/verify-otp",
-                                                                "/api/users/resend-otp",
-                                                                "/error")
-                                                .permitAll()
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-                                                .requestMatchers("/api/users/admin/**")
-                                                .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers("/api/users/teacher/**", "/api/users/create-student", "/api/users/search")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER", "ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers("/api/schedule/teacher/**", "/api/courses/teacher/**", "/api/courses/invitations/**", "/api/centers/teacher/**", "/api/centers/teaching/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER", "ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers("/api/centers/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER", "ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers("/api/schedule/student/**", "/api/courses/student/**", "/api/assignments/student/**")
-                                                .hasAnyAuthority("STUDENT", "ROLE_STUDENT", "ADMIN", "ROLE_ADMIN")
+        http
+            // disable CSRF for REST API
+            .csrf(csrf -> csrf.disable())
 
-                                                .requestMatchers(HttpMethod.POST, "/api/courses", "/api/courses/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
-                                                                "ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers(HttpMethod.PUT, "/api/courses", "/api/courses/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
-                                                                "ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/api/courses", "/api/courses/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
-                                                                "ADMIN", "ROLE_ADMIN")
-                                                .requestMatchers("/api/materials", "/api/materials/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
-                                                                "ADMIN", "ROLE_ADMIN", "STUDENT", "ROLE_STUDENT")
-                                                .requestMatchers("/api/assignments", "/api/assignments/**")
-                                                .hasAnyAuthority("TEACHER", "ROLE_TEACHER", "MANAGER", "ROLE_MANAGER",
-                                                                "ADMIN", "ROLE_ADMIN", "STUDENT", "ROLE_STUDENT")
-                                                // Tất cả các API khác BẮT BUỘC phải có Token
-                                                .anyRequest().authenticated())
-                                // Thêm Filter JWT vào trước filter mặc định
-                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // enable CORS (default config or you can customize later)
+            .cors(cors -> cors.configure(http))
 
-                return http.build();
-        }
+            .authorizeHttpRequests(auth -> auth
+
+                // allow error + forward requests
+                .dispatcherTypeMatchers(
+                        DispatcherType.ERROR,
+                        DispatcherType.FORWARD
+                ).permitAll()
+
+                // allow preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // PUBLIC APIs
+                .requestMatchers(
+                        "/api/users/login",
+                        "/api/users/register-teacher",
+                        "/api/users/verify-otp",
+                        "/api/users/resend-otp",
+                        "/error"
+                ).permitAll()
+
+                // ADMIN ONLY
+                .requestMatchers("/api/users/admin/**")
+                .hasRole("ADMIN")
+
+                // TEACHER / MANAGER / ADMIN
+                .requestMatchers(
+                        "/api/users/teacher/**",
+                        "/api/users/create-student",
+                        "/api/users/search"
+                ).hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                // TEACHER / MANAGER / ADMIN (courses, schedule, centers)
+                .requestMatchers(
+                        "/api/schedule/teacher/**",
+                        "/api/courses/teacher/**",
+                        "/api/courses/invitations/**",
+                        "/api/centers/teacher/**",
+                        "/api/centers/teaching/**"
+                ).hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                // CENTERS ACCESS
+                .requestMatchers("/api/centers/**")
+                .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                // STUDENT ACCESS
+                .requestMatchers(
+                        "/api/schedule/student/**",
+                        "/api/courses/student/**",
+                        "/api/assignments/student/**"
+                ).hasAnyRole("STUDENT", "ADMIN")
+
+                // COURSE WRITE OPERATIONS
+                .requestMatchers(HttpMethod.POST, "/api/courses/**")
+                .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                .requestMatchers(HttpMethod.PUT, "/api/courses/**")
+                .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                .requestMatchers(HttpMethod.DELETE, "/api/courses/**")
+                .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                // MATERIALS
+                .requestMatchers("/api/materials/**")
+                .hasAnyRole("TEACHER", "MANAGER", "ADMIN", "STUDENT")
+
+                // ASSIGNMENTS
+                .requestMatchers("/api/assignments/**")
+                .hasAnyRole("TEACHER", "MANAGER", "ADMIN", "STUDENT")
+
+                // everything else must be authenticated
+                .anyRequest().authenticated()
+            )
+
+            // JWT filter
+            .addFilterBefore(
+                    jwtAuthenticationFilter,
+                    UsernamePasswordAuthenticationFilter.class
+            );
+
+        return http.build();
+    }
 }
