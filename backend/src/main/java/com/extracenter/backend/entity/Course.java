@@ -57,7 +57,7 @@ public class Course {
     @Column(nullable = false)
     private CourseStatus status = CourseStatus.UPCOMING;
 
-    @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ACCEPTED'")
+    @Column(length = 20)
     private String invitationStatus = "ACCEPTED";
 
     // --- RELATIONSHIPS ---

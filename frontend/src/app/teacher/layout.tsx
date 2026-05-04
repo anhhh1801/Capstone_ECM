@@ -31,11 +31,11 @@ export default function TeacherLayout({
 
     // fetch invitation count whenever user or route changes
     useEffect(() => {
-        if (user) {
-            getInvitations(user.id)
-                .then((list) => setPendingInvites(list.length))
-                .catch((e) => console.error("failed to fetch invites", e));
-        }
+        if (!user?.id) return;
+
+        getInvitations(user.id)
+            .then((list) => setPendingInvites(list.length))
+            .catch((e) => console.error("failed to fetch invites", e));
     }, [user, pathname]);
 
     useEffect(() => {
@@ -149,30 +149,28 @@ export default function TeacherLayout({
 
                     {/* Navigation */}
                     {!hideAllSidebarContent && (
-                    <nav className="mt-4 flex-1 space-y-2 pb-4">
-                        {menuItems.map((item) => {
-                            const isActive = pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`relative flex items-center ${
-                                        showDesktopCollapsedRail ? "justify-center gap-0" : "gap-3"
-                                    } px-4 py-3 font-bold transition-all ${
-                                        isActive
-                                            ? "bg-blue-50 text-[var(--color-main)]"
-                                            : "text-[var(--color-soft-white)] hover:bg-gray-50 hover:text-blue-500"
-                                    }`}
-                                >
-                                    <item.icon size={22} />
-                                    <span className={hideSidebarLabels ? "hidden" : ""}>{item.name}</span>
-                                    {item.notify && (
-                                        <span className="absolute top-1 right-2 h-2 w-2 rounded-full bg-red-500" />
-                                    )}
-                                </Link>
-                            );
-                        })}
-                    </nav>
+                        <nav className="mt-4 flex-1 space-y-2 pb-4">
+                            {menuItems.map((item) => {
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`relative flex items-center ${showDesktopCollapsedRail ? "justify-center gap-0" : "gap-3"
+                                            } px-4 py-3 font-bold transition-all ${isActive
+                                                ? "bg-blue-50 text-[var(--color-main)]"
+                                                : "text-[var(--color-soft-white)] hover:bg-gray-50 hover:text-blue-500"
+                                            }`}
+                                    >
+                                        <item.icon size={22} />
+                                        <span className={hideSidebarLabels ? "hidden" : ""}>{item.name}</span>
+                                        {item.notify && (
+                                            <span className="absolute top-1 right-2 h-2 w-2 rounded-full bg-red-500" />
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
                     )}
                 </div>
             </aside>
