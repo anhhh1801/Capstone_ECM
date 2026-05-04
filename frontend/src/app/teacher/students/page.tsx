@@ -34,7 +34,7 @@ export default function GlobalStudentsPage() {
     const [currentPage, setCurrentPage] = useState(1);
 
     const [isModalOpen, setModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<TeacherManagedStudent | null>(null); // Lưu học sinh đang sửa
+    const [editingStudent, setEditingStudent] = useState<TeacherManagedStudent | undefined>(undefined); // Lưu học sinh đang sửa
     const [deletingStudentId, setDeletingStudentId] = useState<number | null>(null);
     const [resettingStudent, setResettingStudent] = useState<TeacherManagedStudent | null>(null);
     const [rollingBackStudent, setRollingBackStudent] = useState<TeacherManagedStudent | null>(null);
@@ -172,7 +172,7 @@ export default function GlobalStudentsPage() {
 
     // Hàm mở modal Create
     const openCreateModal = () => {
-        setEditingStudent(null); // Null = Create Mode
+        setEditingStudent(undefined); // undefined = Create Mode
         setModalOpen(true);
     }
 
@@ -333,6 +333,7 @@ export default function GlobalStudentsPage() {
                     />
 
                     <select
+                        title="Select Center"
                         value={selectedCenterId}
                         onChange={(e) => setSelectedCenterId(e.target.value)}
                         className="
