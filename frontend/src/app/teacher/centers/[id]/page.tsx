@@ -100,10 +100,12 @@ export default function CenterDetailPage() {
                 }
             }
 
-            const cardStudents: StudentCenterCard[] = students.map((s: User) => ({
-                ...s,
-                courses: studentCoursesMap.get(s.id) ?? [],
-            })).filter((student) => managerCheck || student.courses.length > 0);
+            const cardStudents = (students as User[])
+    .map((s): StudentCenterCard => ({
+        ...s,
+        courses: studentCoursesMap.get(s.id) ?? [],
+    }))
+    .filter((student: StudentCenterCard) => managerCheck || student.courses.length > 0);
 
             setCenterStudents(cardStudents);
 
