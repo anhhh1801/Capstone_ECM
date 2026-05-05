@@ -45,7 +45,20 @@ public class SecurityConfig {
                         "/api/users/register-teacher",
                         "/api/users/verify-otp",
                         "/api/users/resend-otp",
+                        "/api/health",
+                        "/api/status",
+                        "/api/",
                         "/error"
+                ).permitAll()
+
+                // PUBLIC SWAGGER/API DOCUMENTATION
+                .requestMatchers(
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/swagger-resources",
+                        "/swagger-resources/**"
                 ).permitAll()
 
                 // ADMIN ONLY
