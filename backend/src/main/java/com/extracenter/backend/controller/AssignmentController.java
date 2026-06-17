@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.extracenter.backend.dto.AssignmentSubmissionResponse;
 import com.extracenter.backend.dto.ScoreRequest;
+import com.extracenter.backend.dto.StudentAssignmentDTO;
 import com.extracenter.backend.dto.StudentAssignmentResponse;
 import com.extracenter.backend.entity.Assignment;
 import com.extracenter.backend.entity.AssignmentSubmission;
@@ -43,10 +45,13 @@ public class AssignmentController {
             @RequestParam("dueDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueDate,
             @RequestParam("courseId") Long courseId,
             @RequestParam(value = "classSessionId", required = false) Long classSessionId,
+            @RequestParam(value = "scoreItemId", required = false) Long scoreItemId, // <-- 1. ADD THIS REQUEST
+                                                                                     // PARAMETER
             @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            Assignment assignment = assignmentService.createAssignment(title, description, dueDate, courseId,
-                    classSessionId, file);
+            // 2. PASS scoreItemId INTO THE METHOD ARGUMENTS HERE:
+            Assignment assignment = assignmentService.createAssignment(
+                    title, description, dueDate, courseId, classSessionId, scoreItemId, file);
             return ResponseEntity.status(HttpStatus.CREATED).body(assignment);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -124,9 +129,10 @@ public class AssignmentController {
             @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("dueDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueDate,
+            @RequestParam(value = "scoreItemId", required = false) Long scoreItemId,
             @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            Assignment updated = assignmentService.updateAssignment(id, title, description, dueDate, file);
+            Assignment updated = assignmentService.updateAssignment(id, title, description, dueDate, scoreItemId, file);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -159,5 +165,15 @@ public class AssignmentController {
                 assignmentService.getAssignmentsForStudent(
                         courseId,
                         studentId));
+    }
+
+    @GetMapping("/course/{courseId}/student/{studentId}/with-status")
+    @PreAuthorize("hasAuthority('STUDENT')")
+    public ResponseEntity<List<StudentAssignmentDTO>> getAssignmentsForStudentwithStatus(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId) {
+
+        List<StudentAssignmentDTO> list = assignmentService.getAssignmentsWithStudentStatus(courseId, studentId);
+        return ResponseEntity.ok(list);
     }
 }

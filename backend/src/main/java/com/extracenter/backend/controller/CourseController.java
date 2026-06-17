@@ -3,6 +3,7 @@ package com.extracenter.backend.controller;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,7 +25,10 @@ import com.extracenter.backend.dto.CourseRequest;
 import com.extracenter.backend.dto.CourseSessionResponse;
 import com.extracenter.backend.dto.CourseSessionSlotOptionResponse;
 import com.extracenter.backend.entity.Course;
+import com.extracenter.backend.entity.ScoreCategory;
+import com.extracenter.backend.entity.ScoreItem;
 import com.extracenter.backend.entity.User;
+import com.extracenter.backend.repository.ScoreCategoryRepository;
 import com.extracenter.backend.service.CourseService;
 
 import jakarta.validation.Valid;
@@ -143,7 +147,7 @@ public class CourseController {
     public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
         try {
             courseService.deleteCourse(id);
-            return ResponseEntity.ok(Map.of("message", "Course deleted successfully!"));
+            return ResponseEntity.ok(Map.of("message", "Course archived successfully!"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -195,6 +199,20 @@ public class CourseController {
         }
         // Best Practice: If no centerId is provided, return all courses instead of null
         return ResponseEntity.ok(courseService.getAllCourses());
+    }
+
+    @GetMapping("/archived")
+    public ResponseEntity<List<Course>> getArchivedCourses(@RequestParam Long centerId) {
+        return ResponseEntity.ok(courseService.getArchivedCoursesByCenter(centerId));
+    }
+
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restoreCourse(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(courseService.restoreCourse(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // API: Invite a teacher to a course (Used by Center Managers)
@@ -278,4 +296,5 @@ public class CourseController {
     public ResponseEntity<List<Course>> getCoursesForStudent(@PathVariable Long studentId) {
         return ResponseEntity.ok(courseService.getCoursesByStudentId(studentId));
     }
+
 }

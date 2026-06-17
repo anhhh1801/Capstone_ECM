@@ -21,6 +21,7 @@ import com.extracenter.backend.dto.LoginResponse;
 import com.extracenter.backend.dto.RegisterRequest;
 import com.extracenter.backend.dto.TeacherStudentResponse;
 import com.extracenter.backend.dto.UpdateProfileRequest;
+import com.extracenter.backend.dto.UpdateStudentRequest;
 import com.extracenter.backend.dto.UserProfileResponse;
 import com.extracenter.backend.dto.UserStatsResponse;
 import com.extracenter.backend.entity.Center;
@@ -234,7 +235,7 @@ public class UserService {
     }
 
     @Transactional
-    public User updateTeacherManagedStudent(Long teacherId, Long studentId, CreateStudentRequest request) {
+    public User updateTeacherManagedStudent(Long teacherId, Long studentId, UpdateStudentRequest request) {
         User student = getActiveOwnedStudent(teacherId, studentId);
 
         student.setFirstName(request.getFirstName());
@@ -519,7 +520,7 @@ public class UserService {
                     .orElseThrow(() -> new RuntimeException("Teacher not found!"));
         }
 
-        if (!isTeacherOrManager(actor)) {
+        if (!isTeacher(actor)) {
             throw new RuntimeException("Only teachers can manage students.");
         }
 
@@ -555,13 +556,13 @@ public class UserService {
         return user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName());
     }
 
-    private boolean isTeacherOrManager(User user) {
+    private boolean isTeacher(User user) {
         if (user.getRole() == null || user.getRole().getName() == null) {
             return false;
         }
 
         String roleName = user.getRole().getName();
-        return "TEACHER".equalsIgnoreCase(roleName) || "MANAGER".equalsIgnoreCase(roleName);
+        return "TEACHER".equalsIgnoreCase(roleName);
     }
 
     private User getActiveOwnedStudent(Long teacherId, Long studentId) {
