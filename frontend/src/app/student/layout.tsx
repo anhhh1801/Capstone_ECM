@@ -16,17 +16,15 @@ export default function StudentLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const compactSidebarQuery = "(max-width: 1919px)";
     const pathname = usePathname();
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [collapsed, setCollapsed] = useState(false);
-    const [isCompactSidebar, setIsCompactSidebar] = useState(false);
+    const [isBelowHD, setIsBelowHD] = useState(false);
     const sidebarRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
         const storedUser = getStoredUser();
-
         if (!storedUser) {
             router.push("/login");
             return;
@@ -37,75 +35,84 @@ export default function StudentLayout({
             router.replace("/AccessDenied");
             return;
         }
-
         setUser(storedUser);
     }, [router]);
 
-    // Handle responsive breakpoint compact constraints
     useEffect(() => {
-        const mediaQuery = window.matchMedia(compactSidebarQuery);
+        const fhdQuery = window.matchMedia("(min-width: 1920px)");
+        const mobileQuery = window.matchMedia("(max-width: 1023px)");
 
-        const updateCompactSidebar = (event: MediaQueryList | MediaQueryListEvent) => {
-            const matches = event.matches;
-            setIsCompactSidebar(matches);
-            setCollapsed(matches);
+        const handleResizeUpdate = () => {
+            setIsBelowHD(mobileQuery.matches);
+            if (fhdQuery.matches) {
+                setCollapsed(false);
+            } else {
+                setCollapsed(true);
+            }
         };
 
-        updateCompactSidebar(mediaQuery);
-        mediaQuery.addEventListener("change", updateCompactSidebar);
+        handleResizeUpdate();
+        fhdQuery.addEventListener("change", handleResizeUpdate);
+        mobileQuery.addEventListener("change", handleResizeUpdate);
 
         return () => {
-            mediaQuery.removeEventListener("change", updateCompactSidebar);
+            fhdQuery.removeEventListener("change", handleResizeUpdate);
+            mobileQuery.removeEventListener("change", handleResizeUpdate);
         };
     }, []);
 
-    // Dismiss expanded mobile sidebar on outside interaction
+    // Dismiss overlay on outside interaction across both Desktop and Mobile viewports
     useEffect(() => {
         const handlePointerDown = (event: MouseEvent) => {
             if (collapsed) return;
-
             const target = event.target as Node | null;
-            if (!target) return;
-
-            if (sidebarRef.current?.contains(target)) return;
-
+            if (!target || sidebarRef.current?.contains(target)) return;
             setCollapsed(true);
         };
 
         document.addEventListener("mousedown", handlePointerDown);
-        return () => {
-            document.removeEventListener("mousedown", handlePointerDown);
-        };
+        return () => document.removeEventListener("mousedown", handlePointerDown);
     }, [collapsed]);
+
+    useEffect(() => {
+        if (isBelowHD) setCollapsed(true);
+    }, [pathname, isBelowHD]);
 
     const menuItems = [
         { name: "Overview", href: "/student/dashboard", icon: LayoutDashboard },
         { name: "Courses", href: "/student/courses", icon: BookOpen },
     ];
 
-    const isFullyHidden = isCompactSidebar && collapsed;
-
     return (
-        <div className="flex min-h-[calc(100vh-var(--app-header-height,0px))] w-full bg-[var(--color-soft-white)] text-slate-900 selection:bg-indigo-500 selection:text-white">
+        <div className="relative min-h-screen w-full bg-[var(--color-soft-white)] text-slate-900 selection:bg-indigo-500 selection:text-white">
             
-            {/* HIGH-CONTRAST DARK SIDEBAR */}
+            {/* PERSISTENT FLOATING TRIGGER ARROW BAR - Visible whenever collapsed below FHD */}
+            {collapsed && (
+                <button
+                    onClick={() => setCollapsed(false)}
+                    className="fixed left-0 z-40 flex items-center justify-center p-2.5 rounded-r-xl border-y border-r border-slate-800 text-slate-400 bg-slate-950/90 backdrop-blur-sm opacity-60 hover:opacity-100 transition-all active:scale-95 shadow-xl animate-fade-in"
+                    style={{ top: "calc(var(--app-header-height, 73px) + 20px)" }}
+                    aria-label="Reveal floating menu tree"
+                >
+                    <ChevronRight size={18} className="stroke-[3]" />
+                </button>
+            )}
+
+            {/* COMPLETELY DECOUPLED INDEPENDENT FLOATING SIDEBAR OVERLAY LAYER */}
             <aside
                 ref={sidebarRef}
-                className={`fixed inset-y-0 left-0 z-30 flex flex-col border-r border-slate-900 bg-slate-950 shadow-2xl transition-all duration-300 ease-in-out xl:sticky ${
-                    isFullyHidden
-                        ? "-translate-x-full xl:translate-x-0 xl:w-20"
-                        : collapsed
-                            ? "w-20"
-                            : "w-64"
+                className={`fixed left-0 z-40 flex flex-col border-r border-slate-900 bg-slate-950 shadow-2xl transition-all duration-300 ease-in-out ${
+                    collapsed 
+                        ? "-translate-x-full w-0 pointer-events-none opacity-0" 
+                        : "translate-x-0 w-64 opacity-100"
                 }`}
+                style={{
+                    top: "var(--app-header-height, 73px)",
+                    height: "calc(100vh - var(--app-header-height, 73px))"
+                }}
             >
-                {/* Header Profile Plate */}
-                <div className={`flex items-center p-4 border-b border-slate-900 min-h-[73px] transition-all ${
-                    collapsed ? "justify-center" : "justify-between"
-                }`}>
-                    <div className={`truncate pr-2 transition-all duration-300 ${
-                        collapsed ? "w-0 opacity-0 pointer-events-none hidden" : "w-auto opacity-100 block"
-                    }`}>
+                <div className="flex items-center p-4 border-b border-slate-900 min-h-[73px] justify-between">
+                    <div className="truncate pr-2 transition-all duration-300">
                         <h2 className="text-xs font-black text-slate-400 tracking-widest uppercase">Workspace</h2>
                         <p className="text-sm font-bold text-white truncate mt-0.5">
                             {user?.firstName ? `Student: ${user.firstName}` : "Academic Portal"}
@@ -113,27 +120,26 @@ export default function StudentLayout({
                     </div>
 
                     <button
-                        onClick={() => setCollapsed(!collapsed)}
+                        onClick={() => setCollapsed(true)}
                         className="p-2 rounded-xl border border-slate-800 text-slate-400 bg-slate-900/50 hover:bg-slate-900 hover:text-white hover:border-slate-700 transition-all active:scale-95 shadow-md"
-                        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                        aria-label="Collapse sidebar menu layout layer"
                     >
-                        {collapsed ? <ChevronRight size={16} className="stroke-[2.5]" /> : <ChevronLeft size={16} className="stroke-[2.5]" />}
+                        <ChevronLeft size={16} className="stroke-[2.5]" />
                     </button>
                 </div>
 
-                {/* High-Contrast Navigation Links */}
-                <nav className="flex-1 space-y-1.5 p-3 custom-scrollbar">
+                <nav className="flex-1 space-y-1.5 p-3 custom-scrollbar overflow-y-auto">
                     {menuItems.map((item) => {
                         const isActive = pathname === item.href || (item.href !== "/student/dashboard" && pathname.startsWith(item.href));
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`group relative flex items-center rounded-xl p-3 text-sm font-semibold transition-all duration-200 outline-none ${
+                                className={`group relative flex items-center rounded-xl p-3 text-sm font-semibold transition-all duration-200 outline-none gap-3.5 ${
                                     isActive
                                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/10 border border-indigo-500/50"
                                         : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-100 border border-transparent"
-                                } ${collapsed ? "justify-center" : "gap-3.5"}`}
+                                }`}
                             >
                                 <item.icon
                                     size={20}
@@ -141,42 +147,31 @@ export default function StudentLayout({
                                         isActive ? "text-white stroke-[2.5]" : "text-slate-400 group-hover:text-slate-200 stroke-[2]"
                                     }`}
                                 />
-
-                                {/* Smooth Width/Opacity text transition */}
-                                <span className={`tracking-wide whitespace-nowrap transition-all duration-200 origin-left ${
-                                    collapsed 
-                                        ? "w-0 opacity-0 pointer-events-none hidden" 
-                                        : "w-auto opacity-100 block"
-                                }`}>
+                                <span className="tracking-wide whitespace-nowrap transition-all duration-200 origin-left block">
                                     {item.name}
                                 </span>
-
-                                {/* Pure CSS Tooltip when sidebar is collapsed */}
-                                {collapsed && (
-                                    <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium rounded-lg opacity-0 invisible translate-x-[-8px] group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap pointer-events-none shadow-xl z-50">
-                                        {item.name}
-                                    </div>
-                                )}
                             </Link>
                         );
                     })}
                 </nav>
             </aside>
 
-            {/* Mobile Navigation Backdrop Mesh */}
-            {!isFullyHidden && (
+            {/* LIGHTWEIGHT MESH BACKDROP OVERLAY FOR FLUID LAYOUT CLOSURES */}
+            {!collapsed && (
                 <div
-                    className="fixed inset-0 z-20 bg-slate-950/40 backdrop-blur-md xl:hidden transition-all duration-300"
+                    className="fixed left-0 w-screen z-30 bg-slate-950/20 backdrop-blur-[1px] transition-all duration-300"
                     onClick={() => setCollapsed(true)}
+                    style={{
+                        top: "var(--app-header-height, 73px)",
+                        height: "calc(100vh - var(--app-header-height, 73px))"
+                    }}
                 />
             )}
 
-            {/* MAIN CONTENT VIEWPORT */}
-            <main className="flex-1 min-w-0">
-                <div className="container mx-auto px-4 py-6 sm:px-8 bg-[var(--color-soft-white)] sm:py-8 max-w-7xl animate-fade-in">
-                    <div className="min-h-full">
-                        {children}
-                    </div>
+            {/* UNBOUNDED FULL-WIDTH APPLICATION VIEWPORT CONTENT LAYER */}
+            <main className="w-full min-h-[calc(100vh-var(--app-header-height,73px))] flex flex-col justify-between z-0 relative">
+                <div className="container mx-auto px-4 py-6 sm:px-8 bg-[var(--color-soft-white)] sm:py-8 max-w-7xl animate-fade-in flex-1">
+                    {children}
                 </div>
             </main>
         </div>
